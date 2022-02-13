@@ -27,6 +27,7 @@ import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller
 const Pynput = PyNULL()
 
 function __init__()
+    ENV["PYTHON"] = ""                                              # FORCE PyCall to use Conda.jl
     copy!(Pynput, pyimport_pip("pynput"))
     set_controller("mouse", Pynput.mouse.Controller())
 end
