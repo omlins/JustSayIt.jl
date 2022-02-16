@@ -1,7 +1,3 @@
-const DEFAULT_MODELDIRS = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/default/",
-                               TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/type/")
-const DEFAULT_NOISES    = Dict(DEFAULT_MODEL_NAME => NOISES_ENGLISH,
-                               TYPE_MODEL_NAME    => NOISES_ENGLISH)
 const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
                                "type"     => Keyboard.type,
                                "ma"       => Mouse.click_left,
@@ -21,7 +17,7 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
 Start offline, low latency, highly accurate speech to command translation.
 
 # Keyword arguments
-- `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the speech recognition models to be used are located.
+- `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `commands::Dict{String, Function}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function.
 - `subset::NTuple{N,String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
