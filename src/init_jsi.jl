@@ -7,7 +7,7 @@
 Initialize the package JustSayIt.
 
 # Arguments
-- `modeldirs::Dict{String, String}`: the directories where the speech recognition models to be used are located.
+- `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `commands::Dict{String, Function}`: the commands to be recognized with their mapping to a function.
 !!! note "Advanced keyword arguments"
@@ -44,18 +44,40 @@ let
         _commands = commands
 
         # Verify that DEFAULT_MODEL_NAME is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        if !haskey(modeldirs, DEFAULT_MODEL_NAME) error("a directory for 'default' model is mandatory.") end
+        if !haskey(modeldirs, DEFAULT_MODEL_NAME) error("a directory for the 'default' model is mandatory.") end
+        if !haskey(modeldirs, TYPE_MODEL_NAME) error("a directory for the 'type' model is mandatory.") end
+        if haskey(modeldirs, "") error("an empty string is not valid as model identifier.") end
         if !haskey(noises, DEFAULT_MODEL_NAME) error("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
-        if !haskey(modeldirs, TYPE_MODEL_NAME)
-            modeldirs[TYPE_MODEL_NAME] = modeldirs[DEFAULT_MODEL_NAME]
-            @warn("no modeldir given for model \"type\" - falling back to model 'default' for typing.")
-        end
         if !haskey(noises, TYPE_MODEL_NAME)
             noises[TYPE_MODEL_NAME] = noises[DEFAULT_MODEL_NAME]
             @warn("no noises given for model \"type\" - falling back to noises configuration of model 'default' when typing.")
         end
-        if haskey(modeldirs, "") error("an empty string is not valid as model identifier.") end
         _noises = noises
+
+        # If the modeldirs point to the default path, download a model if none is present (asumed present if the folder is present)
+        if modeldirs[DEFAULT_MODEL_NAME] == DEFAULT_MODELDIRS[DEFAULT_MODEL_NAME]
+            if !isdir(modeldirs[DEFAULT_MODEL_NAME])
+                @info "No 'default' model found in its default location: downloading small english model ($DEFAULT_ENGLISH_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (40 MB)..."
+                modeldepot = joinpath(modeldirs[DEFAULT_MODEL_NAME], "..")
+                download_and_unzip(modeldepot, DEFAULT_ENGLISH_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
+            end
+        end
+        if modeldirs[TYPE_MODEL_NAME] == DEFAULT_MODELDIRS[TYPE_MODEL_NAME]
+            if !isdir(modeldirs[TYPE_MODEL_NAME])
+                @info "No 'type' model found in its default location: download accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (1.8 GB)?"
+                answer = ""
+                while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
+                    answer = readline()
+                end
+                if answer == "yes"
+                    modeldepot = joinpath(modeldirs[TYPE_MODEL_NAME], "..")
+                    download_and_unzip(modeldepot, DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
+                else
+                    modeldirs[TYPE_MODEL_NAME] = modeldirs[DEFAULT_MODEL_NAME]
+                    @warn("Not downloading `type` model: falling back to model `default` for typing.")
+                end
+            end
+        end
 
         # Set up a default recognizer for each model as well as the command name recognizer.
         for modelname in keys(modeldirs)
@@ -93,3 +115,11 @@ let
 end
 
 _noises(args...) = noises(args...)
+
+function download_and_unzip(destination, archivename, repository)
+    mkpath(destination)
+    filepath = joinpath(destination, archivename)
+    Downloads.download(repository * "/" * archivename, filepath)
+    unzip_args = ["-q", filepath, "-d", destination]
+    run(`unzip $unzip_args`)
+end
