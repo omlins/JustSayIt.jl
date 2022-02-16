@@ -53,8 +53,8 @@ just_say_it(; subset=("ma", "select", "okay", "middle", "right", "double", "trip
 ```
 # Define custom modeldirs and commands
 using JustSayIt
-modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/default/",
-                 TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/type/")
+modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/vosk-model-small-en-us-0.15",
+                 TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/vosk-model-en-us-0.22")
 commands = Dict("cat"    => Help.help,
                 "dog"    => Keyboard.type,
                 "monkey" => Mouse.click_double,
