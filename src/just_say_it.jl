@@ -55,12 +55,12 @@ just_say_it(; subset=("ma", "select", "okay", "middle", "right", "double", "trip
 using JustSayIt
 modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/default/",
                  TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/type/")
-commands = Dict("help"     => Help.help,
-                "type"     => Keyboard.type,
-                "double"   => Mouse.click_double,
-                "triple"   => Mouse.click_triple,
-                "email"    => Email.email,
-                "internet" => Internet.internet)
+commands = Dict("cat"    => Help.help,
+                "dog"    => Keyboard.type,
+                "monkey" => Mouse.click_double,
+                "zebra"  => Mouse.click_triple,
+                "snake"  => Email.email,
+                "fish"   => Internet.internet)
 just_say_it(; modeldirs=modeldirs, commands=commands)
 ```
 
