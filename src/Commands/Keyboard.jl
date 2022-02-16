@@ -150,10 +150,13 @@ type
         if tokengroup_kind == keyword_kind
             @debug "Keywords found:" keywords
             tokengroup_kind = undefined_kind
+            keyword_sign = ""
             for i = 1:length(keywords)
                 keyword = keywords[i]
                 if tokengroup_kind != undefined_kind
                     @info "ABORT of keyword interpretation: keyword '$(keywords[i-1])' was followed by another keyword ('$keyword'). However, keyword '$(keywords[i-1])' defines the kind of the next word group and, therefore, no other keyword can follow it."
+                    tokengroup_kind = undefined_kind
+                    break
                 end
                 if keyword == TYPE_KEYWORDS_ENGLISH["end"]
                     is_typing = false
@@ -161,10 +164,13 @@ type
                     if ig > 1
                         ig -= 1
                         @info "Undo typing of last word group..."
-                        type_backspace(;count=length(type_memory[ig]))
+                        type_backspace(;count=length(type_memory[ig]) + nb_keyword_chars)
+                        nb_keyword_chars = 0
                         undo_count += 1
-                        if (ig == 0) || (type_memory[ig-1] in [".", "!", "?"])
+                        if (ig == 1) || (type_memory[ig-1] in [".", "!", "?"])
                             is_uppercase = true
+                        else
+                            is_uppercase = false
                         end
                     else
                         @info "Nothing to undo."
@@ -180,11 +186,17 @@ type
                         keyboard.type(type_memory[ig])
                         undo_count -= 1
                         ig += 1
+                        if (type_memory[ig-1] in [".", "!", "?"])
+                            is_uppercase = true
+                        else
+                            is_uppercase = false
+                        end
                     else
                         @info "Nothing to redo."
                     end
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["uppercase"]
                     is_uppercase = true
+                    keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["lowercase"]
                     is_uppercase = false
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["digits"]
@@ -218,11 +230,8 @@ type
                 end
             end
             was_keyword = true
-            keyword_sign = ""
             if tokengroup_kind == digit_kind
                 keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["digits"])]"
-            elseif is_uppercase == true
-                keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
             end
             if keyword_sign != ""
                 keyboard.type(keyword_sign)
