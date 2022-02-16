@@ -199,6 +199,7 @@ type
                     keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["lowercase"]
                     is_uppercase = false
+                    keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["lowercase"])]"
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["digits"]
                     tokengroup_kind = digit_kind
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["point"]
