@@ -16,7 +16,6 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 * [Dependencies](#dependencies)
 * [Installation](#installation)
 * [Your contributions](#your-contributions)
-* [References](#references)
 
 ## Voice argument functions
 The `@voiceargs` macro allows to declare arguments in standard function definitions to be obtainable by voice. It, furthermore, allows to define speech recognition parameters for each voice argument as, e.g., the valid speech input. The following shows some examples:
@@ -145,9 +144,12 @@ julia>]
 This project needs your contribution! There are a lot of commands for all different kind of operations to be programmed! Note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Please open an issue to discuss the addition of new features beforehand.
 
 
-[Vosk Speech Recognition Toolkit]: https://alphacephei.com/vosk/
-[Vosk]: https://github.com/alphacep/vosk-api
-[Pynput]: https://github.com/moses-palmer/pynput
-[PyCall.jl]: https://github.com/JuliaPy/PyCall.jl
+
 [Conda.jl]: https://github.com/JuliaPy/Conda.jl
+[IJulia]: https://github.com/JuliaLang/IJulia.jl
+[Julia REPL]: https://docs.julialang.org/en/v1/stdlib/REPL/
 [MacroTools.jl]: https://github.com/FluxML/MacroTools.jl
+[PyCall.jl]: https://github.com/JuliaPy/PyCall.jl
+[Pynput]: https://github.com/moses-palmer/pynput
+[Vosk]: https://github.com/alphacep/vosk-api
+[Vosk Speech Recognition Toolkit]: https://alphacephei.com/vosk/
