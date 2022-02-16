@@ -246,7 +246,7 @@ type
                 nb_keyword_chars = 0
             end
             if (tokengroup_kind == word_kind)
-                if (is_uppercase) token = uppercasefirst(token) end
+                if (is_uppercase || startswith(token, "i'") || (token == "i")) token = uppercasefirst(token) end
                 if (ig == 1 && it == 0) token_str = token
                 else                    token_str = " " * token
                 end
