@@ -1,4 +1,4 @@
-import Pkg
+import Pkg, Downloads
 using PyCall, Conda, JSON, MacroTools
 import MacroTools: splitdef, combinedef
 
@@ -44,6 +44,16 @@ const COMMAND_RECOGNIZER_ID = "" # NOTE: This is a safe ID as it cannot be taken
 const NOISES_ENGLISH = ["huh"]
 const DIGITS_ENGLISH = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".")
 const UNKNOWN_TOKEN = "[unk]"
+
+const DEFAULT_MODELDIRS = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/vosk-model-small-en-us-0.15",
+                               TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/vosk-model-en-us-0.22")
+const DEFAULT_NOISES    = Dict(DEFAULT_MODEL_NAME => NOISES_ENGLISH,
+                               TYPE_MODEL_NAME    => NOISES_ENGLISH)
+
+DEFAULT_MODEL_REPO                 = "https://alphacephei.com/vosk/models"
+DEFAULT_ENGLISH_MODEL_ARCHIVE      = "vosk-model-small-en-us-0.15.zip"
+DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE = "vosk-model-en-us-0.22.zip"
+
 
 
 ## FUNCTIONS
