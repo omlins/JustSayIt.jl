@@ -153,7 +153,7 @@ type
             keyword_sign = ""
             for i = 1:length(keywords)
                 keyword = keywords[i]
-                if tokengroup_kind != undefined_kind
+                if tokengroup_kind == digit_kind
                     @info "ABORT of keyword interpretation: keyword '$(keywords[i-1])' was followed by another keyword ('$keyword'). However, keyword '$(keywords[i-1])' defines the kind of the next word group and, therefore, no other keyword can follow it."
                     tokengroup_kind = undefined_kind
                     break
@@ -179,7 +179,7 @@ type
                     if undo_count > 0 && ig <= length(type_memory)
                         @info "Redo typing of last word group..."
                         if nb_keyword_chars > 0
-                            type_backspace(;count=nb_keyword_chars) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
+                            type_backspace(;count=nb_keyword_chars)
                             nb_keyword_chars = 0
                             is_uppercase = false
                         end
