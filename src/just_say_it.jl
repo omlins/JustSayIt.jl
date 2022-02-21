@@ -131,6 +131,18 @@ function just_say_it(; modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises:
     finalize_jsi()
 end
 
-@voiceargs words=>(valid_input=["just say it"], use_max_accuracy=true, vararg_timeout=2.0, vararg_max=3) function is_confirmed(words::String...)
+function is_confirmed()
+    try
+        _is_confirmed()
+    catch e
+        if isa(e, InsecureRecognitionException)
+            return false
+        else
+            rethrow(e)
+        end
+    end
+end
+
+@voiceargs words=>(valid_input=["just say it"], use_max_accuracy=true, vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
     return (join(words, " ") == "just say it")
 end
