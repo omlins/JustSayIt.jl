@@ -131,7 +131,7 @@ Saying "help <command name>" shows the help of one of the available commands. He
 Saying "sleep JustSayIt" puts JustSayIt to sleep. It will not execute any commands until it is awoken with the words "awake JustSayIt".
 
 ## Dependencies
-JustSayIt's primary dependencies are [Vosk], [Pynput], [PyCall.jl], [Conda.jl] and [MacroTools.jl].
+JustSayIt's primary dependencies are [vosk], [sounddevice], [pynput], [PyCall.jl], [Conda.jl] and [MacroTools.jl].
 
 ## Installation
 JustSayIt can be installed directly with the [Julia package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/index.html) from the REPL:
@@ -150,6 +150,7 @@ This project needs your contribution! There are a lot of commands for all differ
 [Julia REPL]: https://docs.julialang.org/en/v1/stdlib/REPL/
 [MacroTools.jl]: https://github.com/FluxML/MacroTools.jl
 [PyCall.jl]: https://github.com/JuliaPy/PyCall.jl
-[Pynput]: https://github.com/moses-palmer/pynput
-[Vosk]: https://github.com/alphacep/vosk-api
+[pynput]: https://github.com/moses-palmer/pynput
+[sounddevice]: https://github.com/spatialaudio/python-sounddevice
+[vosk]: https://github.com/alphacep/vosk-api
 [Vosk Speech Recognition Toolkit]: https://alphacephei.com/vosk/
