@@ -4,8 +4,9 @@ import MacroTools: splitdef, combinedef
 
 
 ## PYTHON MODULES
-const Vosk   = PyNULL()
-const Pynput = PyNULL()
+const Vosk        = PyNULL()
+const Pynput      = PyNULL()
+const Sounddevice = PyNULL()
 
 function __init__()
     ENV["PYTHON"] = ""                                              # FORCE PyCall to use Conda.jl
@@ -15,8 +16,9 @@ function __init__()
         @info "...rebuild completed. Restart Julia and JustSayIt."
         exit()
     end
-    copy!(Vosk,   pyimport_pip("vosk"))
-    copy!(Pynput, pyimport_pip("pynput"))
+    copy!(Vosk,        pyimport_pip("vosk"))
+    copy!(Pynput,      pyimport_pip("pynput"))
+    copy!(Sounddevice, pyimport_pip("sounddevice"))
 end
 
 
