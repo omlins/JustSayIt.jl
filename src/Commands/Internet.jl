@@ -27,7 +27,7 @@ const SEARCH_ENGINE = "https://google.com"
     internet `search`
 
 Navigate the internet, performing one of the following actions:
-    - `search`
+- `search`
 """
 internet
 @enum Action search
@@ -40,7 +40,7 @@ end
 @doc "Search in internet: start search engine and automatically change to type command waiting for search keywords to be spoken."
 function search_internet()
     DefaultApplication.open(SEARCH_ENGINE)
-    Keyboard.type(Keyboard.words)
+    Keyboard.type(Keyboard.text)
 end
 
 end # module Internet
