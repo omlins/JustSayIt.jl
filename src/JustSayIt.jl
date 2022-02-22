@@ -20,7 +20,6 @@ Type `?just_say_it` to learn about customization keywords.
 - [`@voiceargs`](@ref)
 
 #### Functions
-- [`just_say_it`](@ref)
 - [`init_jsi`](@ref)
 - [`finalize_jsi`](@ref)
 - [`is_next`](@ref)

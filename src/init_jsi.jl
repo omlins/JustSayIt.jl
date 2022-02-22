@@ -1,15 +1,15 @@
 @doc """
-    init_jsi(modeldirs, noises, commands)
+    init_jsi(commands, modeldirs, noises)
 
 !!! note "Advanced"
-        init_jsi(modeldirs, noises, commands; <keyword arguments>)
+        init_jsi(commands, modeldirs, noises; <keyword arguments>)
 
 Initialize the package JustSayIt.
 
 # Arguments
+- `commands::Dict{String, Function}`: the commands to be recognized with their mapping to a function.
 - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
-- `commands::Dict{String, Function}`: the commands to be recognized with their mapping to a function.
 !!! note "Advanced keyword arguments"
     - `vosk_log_level::Integer=-1`: the vosk log level (see in the Vosk documentation for details).
 
@@ -34,7 +34,7 @@ let
     set_controller(name::AbstractString, c::PyObject)                           = (_controllers[name] = c; return)
 
 
-    function init_jsi(modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}, commands::Dict{String, Function}; vosk_log_level::Integer=-1)
+    function init_jsi(commands::Dict{String, Function}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
 
         # Validate and store the commands, adding the help command to it.
@@ -116,10 +116,11 @@ end
 
 _noises(args...) = noises(args...)
 
-function download_and_unzip(destination, archivename, repository)
+function download_and_unzip(destination, filename, repository)
     mkpath(destination)
-    filepath = joinpath(destination, archivename)
-    Downloads.download(repository * "/" * archivename, filepath)
-    unzip_args = ["-q", filepath, "-d", destination]
-    run(`unzip $unzip_args`)
+    filepath = joinpath(destination, filename)
+    Downloads.download(repository * "/" * filename, filepath)
+    @pywith Zipfile.ZipFile(filepath, "r") as archive begin
+        archive.extractall(destination)
+    end
 end

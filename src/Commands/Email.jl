@@ -24,22 +24,25 @@ const EMAIL_ENGINE = "https://mail.google.com"
 ## Functions
 
 @doc """
-    email `inbox`
+    email `inbox` | `outbox`
 
 Manage e-mails, performing one of the following actions:
-    - `inbox`
+- `inbox`
+- `outbox`
 """
 email
-@enum Action inbox
+@enum Action inbox outbox
 @voiceargs action=>(valid_input_auto=true, use_max_accuracy=true) function email(action::Action)
-    if (action == inbox) open_inbox()
-    else @info "unknown action" #NOTE: this should never happen.
+    if     (action == inbox)  open_inbox()
+    elseif (action == outbox) open_outbox()
+    else                      @info "unknown action"  #NOTE: this should never happen.
     end
 end
 
-@doc "Search in internet: start search engine and automatically change to type command waiting for search keywords to be spoken."
-function open_inbox()
-    DefaultApplication.open(EMAIL_ENGINE)
-end
+@doc "Open E-mail inbox."
+open_inbox() = DefaultApplication.open(EMAIL_ENGINE)
+
+@doc "Open E-mail outbox."
+open_outbox() = DefaultApplication.open(EMAIL_ENGINE * "/" * "#sent")
 
 end # module Email
