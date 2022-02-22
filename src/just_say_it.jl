@@ -12,15 +12,21 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
 
 """
     just_say_it()
-    just_say_it(; <keyword arguments>)
+    just_say_it(<keyword arguments>)
 
 Start offline, low latency, highly accurate speech to command translation.
 
 # Keyword arguments
-- `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
-- `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `commands::Dict{String, Function}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function.
 - `subset::NTuple{N,String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
+- `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
+- `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
+- `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
+
+# Default `commands`
+```
+$(pretty_dict_string(DEFAULT_COMMANDS))
+```
 
 # Default `modeldirs`
 ```
@@ -32,47 +38,49 @@ $(pretty_dict_string(DEFAULT_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 
-# Default `commands`
-```
-$(pretty_dict_string(DEFAULT_COMMANDS))
-```
-
 # Examples
 ```
-# Listen to all commands with exception of the mouse click commands.
+# Listen to all commands with exception of the mouse button commands.
 using JustSayIt
-just_say_it(; subset=("help", "type", "email", "internet"))
+just_say_it(subset=("help", "type", "email", "internet"))
 ```
 
 ```
-# Listen only to the mouse click commands.
+# Listen only to the mouse button commands.
 using JustSayIt
-just_say_it(; subset=("ma", "select", "okay", "middle", "right", "double", "triple"))
+just_say_it(subset=("ma", "select", "okay", "middle", "right", "double", "triple"))
 ```
 
 ```
 # Define custom modeldirs and commands
 using JustSayIt
-modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/.config/JustSayIt/models/vosk-model-small-en-us-0.15",
-                 TYPE_MODEL_NAME    => "$(homedir())/.config/JustSayIt/models/vosk-model-en-us-daanzu-20200905")
 commands = Dict("cat"    => Help.help,
                 "dog"    => Keyboard.type,
-                "monkey" => Mouse.click_double,
-                "zebra"  => Mouse.click_triple,
-                "snake"  => Email.email,
-                "fish"   => Internet.internet)
-just_say_it(; modeldirs=modeldirs, commands=commands)
+                "mouse"  => Mouse.click_double,
+                "monkey" => Mouse.click_triple,
+                "zebra"  => Email.email,
+                "snake"  => Internet.internet)
+modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
+                 TYPE_MODEL_NAME    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
+just_say_it(commands=commands, modeldirs=modeldirs)
+```
+
+```
+# Use a custom command to create the audio input stream - instead of the default recorder (the rate, channels and format must not be chosen different!)
+using JustSayIt
+audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --format=S16_LE`
+just_say_it(audio_input_cmd=audio_input_cmd)
 ```
 
 """
-function just_say_it(; modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing) where N
+function just_say_it(; commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (!isnothing(subset) && !issubset(subset, keys(commands))) error("obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
 
     # Initializations
-    @info "Initializing JustSayIt..."
-    init_jsi(modeldirs, noises, commands)
-    start_recording()
+    @info "Initializing JustSayIt (press CTRL+C to terminate JustSayIt)..."
+    init_jsi(commands, modeldirs, noises)
+    start_recording(; audio_input_cmd=audio_input_cmd)
 
     # Interprete commands
     @info "Listening for commands..."
@@ -98,6 +106,8 @@ function just_say_it(; modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises:
                     catch e
                         if isa(e, InsecureRecognitionException)
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
+                        elseif isa(e, InterruptException)
+                            @info "Command `$cmd_name` aborted (with CTRL+C)."
                         else
                             rethrow(e)
                         end
@@ -116,12 +126,18 @@ function just_say_it(; modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises:
                 cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = true)
             catch e
                 if isa(e, InsecureRecognitionException)
-                    @info(e.msg)
+                    if !is_sleeping @info(e.msg) end
                     cmd_name = ""
                 else
                     rethrow(e)
                 end
             end
+        end
+    catch e
+        if isa(e, InterruptException)
+            @info "Terminating JustSayIt..."
+        else
+            rethrow(e)
         end
     finally
         stop_recording()
