@@ -10,14 +10,14 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 ## Contents
 * [Quick start](#quick-start)
-* [User definable mapping of command names to functions](user-definable-mapping-of-command-names-to-functions)
+* [User definable mapping of command names to functions](#user-definable-mapping-of-command-names-to-functions)
 * [Help on commands callable by voice](#help-on-commands-callable-by-voice)
 * [Sleep and wake up by voice](#sleep-and-wake-up-by-voice)
 * [Fast command programming with voice argument functions](#fast-command-programming-with-voice-argument-functions)
 * [Module documentation callable from the Julia REPL / IJulia](#module-documentation-callable-from-the-julia-repl--ijulia)
 * [Fully automatic installation](#fully-automatic-installation)
-* [Support for Linux, MacOS and Windows](support-for-linux-macos-and-windows)
-* [Dependencies](#Dependencies)
+* [Support for Linux, MacOS and Windows](#support-for-linux-macos-and-windows)
+* [Dependencies](#dependencies)
 * [Your contributions](#your-contributions)
 
 ## Quick start
