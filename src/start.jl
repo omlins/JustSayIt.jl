@@ -11,8 +11,8 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
                                "internet" => Internet.internet)
 
 """
-    just_say_it()
-    just_say_it(<keyword arguments>)
+    start()
+    start(<keyword arguments>)
 
 Start offline, low latency, highly accurate speech to command translation.
 
@@ -22,6 +22,15 @@ Start offline, low latency, highly accurate speech to command translation.
 - `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
+
+# Submodules for command name to function mapping
+- [`Help`](@ref)
+- [`Keyboard`](@ref)
+- [`Mouse`](@ref)
+- [`Email`](@ref)
+- [`Internet`](@ref)
+
+To see a description of a submodule, type `?<modulename>`.
 
 # Default `commands`
 ```
@@ -39,20 +48,22 @@ $(pretty_dict_string(DEFAULT_NOISES))
 ```
 
 # Examples
+
+#### Define `subset`
 ```
 # Listen to all commands with exception of the mouse button commands.
 using JustSayIt
-just_say_it(subset=("help", "type", "email", "internet"))
+start(subset=("help", "type", "email", "internet"))
 ```
 
 ```
 # Listen only to the mouse button commands.
 using JustSayIt
-just_say_it(subset=("ma", "select", "okay", "middle", "right", "double", "triple"))
+start(subset=("ma", "select", "okay", "middle", "right", "double", "triple"))
 ```
 
+#### Define custom `commands`
 ```
-# Define custom modeldirs and commands
 using JustSayIt
 commands = Dict("cat"    => Help.help,
                 "dog"    => Keyboard.type,
@@ -60,20 +71,26 @@ commands = Dict("cat"    => Help.help,
                 "monkey" => Mouse.click_triple,
                 "zebra"  => Email.email,
                 "snake"  => Internet.internet)
-modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
-                 TYPE_MODEL_NAME    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
-just_say_it(commands=commands, modeldirs=modeldirs)
+start(commands=commands)
 ```
 
+#### Define custom `modeldirs`
+```
+using JustSayIt
+modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
+                 TYPE_MODEL_NAME    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
+start(modeldirs=modeldirs)
+```
+
+#### Define `audio_input_cmd`
 ```
 # Use a custom command to create the audio input stream - instead of the default recorder (the rate, channels and format must not be chosen different!)
 using JustSayIt
 audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --format=S16_LE`
-just_say_it(audio_input_cmd=audio_input_cmd)
+start(audio_input_cmd=audio_input_cmd)
 ```
-
 """
-function just_say_it(; commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (!isnothing(subset) && !issubset(subset, keys(commands))) error("obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
 

@@ -14,7 +14,7 @@ Start recording.
 ```
 # Use a custom command to create the audio input stream - instead of the default recorder (the rate, channels and format must not be chosen different!)
 audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --format=S16_LE`
-just_say_it(audio_input_cmd=audio_input_cmd)
+start_recording(audio_input_cmd=audio_input_cmd)
 ```
 
 See also: [`stop_recording`](@ref)

@@ -4,7 +4,7 @@
 !!! note "Advanced"
     is_next(token; <keyword arguments>)
 
-Check if `token` is the next token in the speech; if yes, return `true`, else, return `false`. If `token` is an array of strings, check if any of them is the next token in the speech. A call to `is_next` does by default not consume the next token (nor fix the recognizer to be used for its recognition).
+Check if the next token in the speech matches `token`; if yes, return `true`, else, return `false`. If `token` is an array of strings, check if any of them matches the next token in the speech. A call to `is_next` does by default not consume the next token (nor fix the recognizer to be used for its recognition).
 
 # Arguments
 - `token::String | AbstractArray{String}`: the token(s) to compare the next token in the speech against.
@@ -17,6 +17,26 @@ Check if `token` is the next token in the speech; if yes, return `true`, else, r
 See also: [`init_jsi`](@ref)
 """
 is_next
+
+@doc """
+    are_next(token)
+
+!!! note "Advanced"
+    are_next(token; <keyword arguments>)
+
+Check if the next group of tokens in the speech match `token`; if all match, return `true`, else, return `false`. If `token` is an array of strings, check if any of them match the next tokens in the speech. A call to `are_next` does by default not consume the next tokens (nor fix the recognizer to be used for its recognition).
+
+# Arguments
+- `token::String | AbstractArray{String}`: the token(s) to compare the next token in the speech against.
+!!! note "Advanced keyword arguments"
+	- `modelname::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
+	- `consume_if_match::Bool=false`: whether the next token is to be consumed in case of a match.
+	- `timeout::Float64=Inf`: timeout after which to abort waiting for a next token to be spoken.
+	- `use_max_accuracy::Bool=false`: whether to use maxium accuracy for the recognition of the next token (rather than maximum speed). It is only recommended to set `use_max_accuracy=true` if the next cluster of tokens is in any case to be recognised with maxium accuracy (typically used with a free speech recognizer, i.e. with a large vocabulary),
+
+See also: [`init_jsi`](@ref)
+"""
+are_next
 
 let
     global next_token, is_next, _is_next, are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.

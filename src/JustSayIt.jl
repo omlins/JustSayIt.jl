@@ -10,31 +10,18 @@ https://github.com/omlins/JustSayIt.jl
 ```
 > julia
 julia> using JustSayIt
-julia> just_say_it()
+julia> start()
 ```
-Type `?just_say_it` to learn about customization keywords.
+Type `?start` to learn about customization keywords.
 
-# Application Programming Interface (API)
+# API usage
 
-#### Macros
-- [`@voiceargs`](@ref)
-
-#### Functions
-- [`init_jsi`](@ref)
-- [`finalize_jsi`](@ref)
-- [`is_next`](@ref)
-- [`are_next`](@ref)
-- [`pause_recording`](@ref)
-- [`restart_recording`](@ref)
-
-#### Submodules
-- [`Help`](@ref)
-- [`Keyboard`](@ref)
-- [`Mouse`](@ref)
-- [`Email`](@ref)
-- [`Internet`](@ref)
-
-To see a description of a function, macro or module type `?<functionname>`, `?<macroname>` (including the `@`) or `?<modulename>`, respectively.
+```
+> julia
+julia> import JustSayIt
+julia> using JustSayIt.API
+```
+Type `?JustSayIt.API` to learn about the Application Programming Interface (API) of JustSayIt.
 """
 module JustSayIt
 
@@ -61,13 +48,12 @@ include("Commands/Help.jl")
 include("Commands/Email.jl")
 include("Commands/Internet.jl")
 
-## Include of main application (must be at end as needs to import potentially anything available in JustSayIt, in particular the Commands submodule).
-include("just_say_it.jl")
+## Include of main application and API (must be at end as needs to import potentially anything available in JustSayIt, in particular the Commands submodules).
+include("start.jl")
+include("API.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
-export just_say_it
-export @voiceargs
-export init_jsi, finalize_jsi, is_next, are_next, pause_recording, restart_recording
+export start
 export Keyboard, Mouse, Help, Email, Internet
 
 end # module JustSayIt
