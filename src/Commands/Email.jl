@@ -27,8 +27,8 @@ const EMAIL_ENGINE = "https://mail.google.com"
     email `inbox` | `outbox`
 
 Manage e-mails, performing one of the following actions:
-- `inbox`
-- `outbox`
+- open `inbox`
+- open `outbox`
 """
 email
 @enum Action inbox outbox
