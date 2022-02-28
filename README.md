@@ -29,12 +29,12 @@ julia> ]
   pkg> add https://github.com/omlins/JustSayIt
   pkg> <backspace button>
 julia> using JustSayIt
-julia> just_say_it()
+julia> start()
 ```
 3. Say "help commands" and then, e.g., "help type".
 
 ## User definable mapping of command names to functions
-The keyword `commands` of `just_say_it` enables to freely define a mapping of command names to functions, e.g.:
+The keyword `commands` of `start` enables to freely define a mapping of command names to functions, e.g.:
 ```julia-repl
 # Define custom commands
 using JustSayIt
@@ -44,17 +44,17 @@ commands = Dict("cat"    => Help.help,
                 "monkey" => Mouse.click_triple,
                 "zebra"  => Email.email,
                 "snake"  => Internet.internet)
-just_say_it(commands=commands)
+start(commands=commands)
 ```
 
-The keyword `subset` of `just_say_it` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
+The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia-repl
 # Listen to all default commands with exception of the mouse button commands.
 using JustSayIt
-just_say_it(subset=("help", "type", "email", "internet"))
+start(subset=("help", "type", "email", "internet"))
 ```
 
-More information on customization keywords is obtainable by typing `?just_say_it`.
+More information on customization keywords is obtainable by typing `?start`.
 
 ## Help on commands callable by voice
 Saying "help commands" lists your available commands in the Julia REPL leading to, e.g., the following output:
@@ -75,16 +75,16 @@ Saying "help commands" lists your available commands in the Julia REPL leading t
 ```
 Saying "help <command name>" shows the help of one of the available commands. Here is, e.g., the output produced when saying "help email":
 ```
-[ Info: Starting command: help (latency: 83 ms)
+[ Info: Starting command: help (latency: 6 ms)
 ┌ Info: Command email
 │    =
 │      email `inbox` | `outbox`
 │    
 │      Manage e-mails, performing one of the following actions:
 │    
-│        •  inbox
+│        •  open inbox
 │    
-└        •  outbox
+└        •  open outbox
 ```
 Note that the submodules `Email` and `Internet` contain still very little functionality. Yet, they illustrate how submodules for all kind of operations can be programmed.
 
@@ -119,15 +119,13 @@ The module documentation can be called from the [Julia REPL] or in [IJulia]:
 julia> using JustSayIt
 julia>?
 help?> JustSayIt
-search: JustSayIt just_say_it
+search: JustSayIt start
 
   Module JustSayIt
 
   Enables offline, low latency, highly accurate speech to command translation and is usable as software or API.
 
   (...)
-
-  To see a description of a function, macro or module type ?<functionname>, ?<macroname> (including the @) or ?<modulename>, respectively.
 ```
 
 ## Fully automatic installation
