@@ -10,7 +10,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 ## Contents
 * [Quick start](#quick-start)
-* [User definable mapping of command names to functions](#user-definable-mapping-of-command-names-to-functions)
+* [User definable mapping of command names to keyboard shortcuts or functions](#user-definable-mapping-of-command-names-to-keyboard-shortcuts-or-functions)
 * [Help on commands callable by voice](#help-on-commands-callable-by-voice)
 * [Sleep and wake up by voice](#sleep-and-wake-up-by-voice)
 * [Fast command programming with voice argument functions](#fast-command-programming-with-voice-argument-functions)
@@ -33,19 +33,28 @@ julia> start()
 ```
 3. Say "help commands" and then, e.g., "help type".
 
-## User definable mapping of command names to functions
-The keyword `commands` of `start` enables to freely define a mapping of command names to functions, e.g.:
+## User definable mapping of command names to keyboard shortcuts or functions
+The keyword `commands` of `start` enables to freely define a mapping of command names to keyboard shortcuts or functions, e.g.:
 ```julia-repl
 # Define custom commands
 using JustSayIt
-commands = Dict("cat"    => Help.help,
-                "dog"    => Keyboard.type,
-                "mouse"  => Mouse.click_double,
-                "monkey" => Mouse.click_triple,
-                "zebra"  => Email.email,
-                "snake"  => Internet.internet)
+commands = Dict("help"      => Help.help,
+                "type"      => Keyboard.type,
+                "email"     => Email.email,
+                "internet"  => Internet.internet,
+                "double"    => Mouse.click_double,
+                "triple"    => Mouse.click_triple,
+                "copy"      => (Key.ctrl, 'c'),
+                "cut"       => (Key.ctrl, 'x'),
+                "paste"     => (Key.ctrl, 'v'),
+                "undo"      => (Key.ctrl, 'z'),
+                "redo"      => (Key.ctrl, Key.shift, 'z'),
+                "upwards"   => Key.page_up,
+                "downwards" => Key.page_down,
+                );
 start(commands=commands)
 ```
+Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
 The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia-repl
