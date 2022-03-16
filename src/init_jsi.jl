@@ -7,7 +7,7 @@
 Initialize the package JustSayIt.
 
 # Arguments
-- `commands::Dict{String, Function}`: the commands to be recognized with their mapping to a function.
+- `commands::Dict{String, <:Any}`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 !!! note "Advanced keyword arguments"
@@ -19,28 +19,31 @@ init_jsi
 
 let
     global init_jsi, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
-    _commands::Dict{String, Function}                                           = Dict{String, Function}()
-    _models::Dict{String, PyObject}                                             = Dict{String, PyObject}()
-    _noises::Dict{String, <:AbstractArray{String}}                              = Dict{String, Array{String}}()
-    _recognizers::Dict{String, PyObject}                                        = Dict{String, PyObject}()
-    _controllers::Dict{String, PyObject}                                        = Dict{String, PyObject}()
-    command(name::AbstractString)::Function                                     = _commands[name]
-    command_names()::Base.KeySet{String, Dict{String, Function}}                = keys(_commands)
-    model(name::AbstractString=DEFAULT_MODEL_NAME)::PyObject                    = _models[name]
-    noises(modelname::AbstractString)                                           = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
-    noises_names()::Base.KeySet{String, Dict{String, <:AbstractArray{String}}}  = keys(_noises)
-    recognizer(id::AbstractString)::PyObject                                    = _recognizers[id]
-    controller(name::AbstractString)::PyObject                                  = if (name in keys(_controllers)) return _controllers[name] else error("The controller for $name is not available as it has not been set up in init_jsi.") end
-    set_controller(name::AbstractString, c::PyObject)                           = (_controllers[name] = c; return)
+    _commands::Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}                            = Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}()
+    _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
+    _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
+    _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
+    _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
+    command(name::AbstractString)                                       = _commands[name]
+    command_names() = keys(_commands)
+    model(name::AbstractString=DEFAULT_MODEL_NAME)::PyObject                                            = _models[name]
+    noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
+    noises_names()::Base.KeySet{String, Dict{String, <:AbstractArray{String}}}                          = keys(_noises)
+    recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
+    controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else error("The controller for $name is not available as it has not been set up in init_jsi.") end
+    set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
 
 
-    function init_jsi(commands::Dict{String, Function}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
+    function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
 
         # Validate and store the commands, adding the help command to it.
         if haskey(commands, COMMAND_NAME_EXIT) error("the command name $COMMAND_NAME_EXIT is reserved for exiting command interpretation. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_SLEEP) error("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_AWAKE) error("the command name $COMMAND_NAME_AWAKE is reserved for awaking JustSayIt. Please choose another command name for your command.") end
+        for cmd_name in keys(commands)
+            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) error("the command belonging to commmand name $command_name is of an invalid. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+        end
         _commands = commands
 
         # Verify that DEFAULT_MODEL_NAME is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
