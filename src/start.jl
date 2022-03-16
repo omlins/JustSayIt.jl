@@ -17,8 +17,9 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
 Start offline, low latency, highly accurate speech to command translation.
 
 # Keyword arguments
-- `commands::Dict{String, Function}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function.
+- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `subset::NTuple{N,String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
+- `use_max_accuracy::Bool=false`: whether to use maxium accuracy for the recognition of the command names (rather than maximum speed). It is recommended to set `use_max_accuracy=true` if command names map to keyboard shortcuts triggering immediate actions, as this allows for a safe recognition of such single word commands. There will however be a perceivable latency between the saying of a command and its execution. Alternatively to setting `use_max_accuracy=true`, it is possible to define very distinctive command names in order to achive a safe command name to shortcut mapping (to be tested always).
 - `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
@@ -62,15 +63,21 @@ using JustSayIt
 start(subset=("ma", "select", "okay", "middle", "right", "double", "triple"))
 ```
 
-#### Define custom `commands`
+#### Define custom `commands` - functions and keyboard shortcuts
 ```
 using JustSayIt
-commands = Dict("cat"    => Help.help,
-                "dog"    => Keyboard.type,
-                "mouse"  => Mouse.click_double,
-                "monkey" => Mouse.click_triple,
-                "zebra"  => Email.email,
-                "snake"  => Internet.internet)
+commands = Dict("help"      => Help.help,
+                "type"      => Keyboard.type,
+                "double"    => Mouse.click_double,
+                "triple"    => Mouse.click_triple,
+                "copy"      => (Key.ctrl, 'c'),
+                "cut"       => (Key.ctrl, 'x'),
+                "paste"     => (Key.ctrl, 'v'),
+                "undo"      => (Key.ctrl, 'z'),
+                "redo"      => (Key.ctrl, Key.shift, 'z'),
+                "upwards"   => Key.page_up,
+                "downwards" => Key.page_down,
+                );
 start(commands=commands)
 ```
 
@@ -90,12 +97,12 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, NTuple{N,String}}=nothing, use_max_accuracy::Bool=false, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (!isnothing(subset) && !issubset(subset, keys(commands))) error("obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
 
     # Initializations
-    @info "Initializing JustSayIt (press CTRL+C to terminate JustSayIt)..."
+    @info "Initializing JustSayIt (press CTRL+c to terminate JustSayIt)..."
     init_jsi(commands, modeldirs, noises)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
@@ -118,8 +125,8 @@ function start(; commands::Dict{String, Function}=DEFAULT_COMMANDS, subset::Unio
                     cmd = command(string(cmd_name))
                     if (t0_latency() > 0.0) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
                     try
-                        @info "Starting command: $cmd (latency: $(round(Int,toc(t0_latency())*1000)) ms)"
-                        cmd()
+                        @info "Starting command: $(pretty_cmd_string(cmd)) (latency: $(round(Int,toc(t0_latency())*1000)) ms)"
+                        execute(cmd)
                     catch e
                         if isa(e, InsecureRecognitionException)
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
@@ -179,3 +186,7 @@ end
 @voiceargs words=>(valid_input=["just say it"], use_max_accuracy=true, vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
     return (join(words, " ") == "just say it")
 end
+
+execute(cmd::Function)                  = cmd()
+execute(cmd::PyKey)                     = Keyboard.press_keys(cmd)
+execute(cmd::NTuple{N,PyKey} where {N}) = Keyboard.press_keys(cmd...)
