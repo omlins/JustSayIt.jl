@@ -10,7 +10,7 @@ To see a description of a function type `?<functionname>`.
 """
 module Help
 
-import ..JustSayIt: @voiceargs, TYPE_MODEL_NAME, command, command_names, next_token
+import ..JustSayIt: @voiceargs, TYPE_MODEL_NAME, command, command_names, next_token, pretty_cmd_string, PyKey
 
 const COMMANDS_KEYWORD = "commands"
 
@@ -22,11 +22,18 @@ function help()
         cmd_length_max = maximum(length.(command_names()))
         @info join(["", "Your commands:",
                     map(sort([command_names()...])) do x
-                       join((x, command(x)), " "^(cmd_length_max+1-length(x)) * "=> ")
+                       join((x, pretty_cmd_string(command(x))), " "^(cmd_length_max+1-length(x)) * "=> ")
                     end...
                     ], "\n")
     elseif keyword in command_names()
-        @info "Command $keyword" ""=Base.Docs.doc(command(keyword))
+        cmd = command(keyword)
+        if isa(cmd, Function)
+            @info "Command $keyword" ""=Base.Docs.doc(cmd)
+        elseif isa(cmd, PyKey)
+            @info "Command $keyword\n   =   Keyboard key $(pretty_cmd_string(cmd))"
+        else
+            @info "Command $keyword\n   =   Keyboard shortcut $(pretty_cmd_string(cmd))"
+        end
     else
         @info "Keyword not recognized."
     end
