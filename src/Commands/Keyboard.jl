@@ -16,7 +16,7 @@ To see a description of a function type `?<functionname>`.
 module Keyboard
 
 using PyCall
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, TYPE_MODEL_NAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, TYPE_MODEL_NAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
 
 
 ## PYTHON MODULES
@@ -314,5 +314,17 @@ function type_backspace(; count::Integer=1)
         keyboard.press(backspace); keyboard.release(backspace)
     end
 end
+
+function press_keys(keys::PyKey...)
+    keyboard  = controller("keyboard")
+    keys = map(convert_key, keys)
+    @pywith keyboard.pressed(keys[1:end-1]...) begin
+        keyboard.press(keys[end])
+        keyboard.release(keys[end])
+    end
+end
+
+convert_key(key::Char)     = string(key)
+convert_key(key::PyObject) = key
 
 end # module Keyboard
