@@ -49,7 +49,7 @@ let
 	was_partial_recognition()::Bool = was_partial_result
 
 
-    function next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
+    function _next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
 		ignore_tokens = ignore_unknown ? [noise_tokens..., UNKNOWN_TOKEN] : noise_tokens
 		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
 			 restart_recognition = true
@@ -104,6 +104,12 @@ let
         end
         return token
     end
+
+
+	function next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
+		if force_dynamic_recognizer error("forcing dynamic recogniser is not possible, if a recognizer is given.") end
+		_next_token(recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=restart_recognition, ignore_unknown=ignore_unknown)
+	end
 
 	function next_token(recognizer_info::Tuple{Symbol,Symbol,<:AbstractArray{String},String}, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=true)
 		if (i >= length(token_buffer)) && !was_partial_result && !force_dynamic_recognizer  # If all tokens in the buffer were consumed and the last recognition was not partial, then we can swap the recogniser without having to consider the last recognitions (i.e., get the recognizer created in init_jsi)...
