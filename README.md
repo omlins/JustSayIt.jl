@@ -10,7 +10,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 ## Contents
 * [Quick start](#quick-start)
-* [User definable mapping of command names to keyboard shortcuts or functions](#user-definable-mapping-of-command-names-to-keyboard-shortcuts-or-functions)
+* [User definable mapping of command names to functions or keyboard shortcuts](#user-definable-mapping-of-command-names-to-functions-or-keyboard-shortcuts)
 * [Help on commands callable by voice](#help-on-commands-callable-by-voice)
 * [Sleep and wake up by voice](#sleep-and-wake-up-by-voice)
 * [Fast command programming with voice argument functions](#fast-command-programming-with-voice-argument-functions)
@@ -33,8 +33,8 @@ julia> start()
 ```
 3. Say "help commands" and then, e.g., "help type".
 
-## User definable mapping of command names to keyboard shortcuts or functions
-The keyword `commands` of `start` enables to freely define a mapping of command names to keyboard shortcuts or functions, e.g.:
+## User definable mapping of command names to functions or keyboard shortcuts
+The keyword `commands` of `start` enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
 ```julia-repl
 # Define custom commands
 using JustSayIt
@@ -60,10 +60,30 @@ The keyword `subset` of `start` enables to activate only a subset of the default
 ```julia-repl
 # Listen to all default commands with exception of the mouse button commands.
 using JustSayIt
-start(subset=("help", "type", "email", "internet"))
+start(subset=["help", "type", "email", "internet"])
 ```
 
 More information on customization keywords is obtainable by typing `?start`.
+
+## Per command choice between maximum speed or accuracy
+
+The keyword `max_accuracy_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognised with maxium accuracy rather than with maximum speed, e.g.:
+```julia-repl
+# Define custom commands
+using JustSayIt
+commands = Dict("copy"      => (Key.ctrl, 'c'),
+                "cut"       => (Key.ctrl, 'x'),
+                "paste"     => (Key.ctrl, 'v'),
+                "undo"      => (Key.ctrl, 'z'),
+                "redo"      => (Key.ctrl, Key.shift, 'z'),
+                "upwards"   => Key.page_up,
+                "downwards" => Key.page_down,
+                );
+start(commands=commands, max_accuracy_subset=["cut", "paste", "undo", "redo"])
+```
+Forcing maximum accuracy is only sometimes needed for single word commands that map to keyboard shortcuts triggering immediate "dangerous" actions, like "cut", "paste", "undo" and "redo" in the above example (however, "copy", "upwards" and "downwards" do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum accuracy means to wait for a certain amount of silence after the end of a command, which will be perceived as latency between the saying of a command name and its execution. Alternatively to forcing maximum accuracy for commands that map keyboard shortcuts, it is possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
+
+Note furthermore that a good recording quality is important in order to achieve a good recognition accuracy. In particular, background noise might reduce recognition accuracy. Thus, a microphone integrated in a notebook or a webcam might potentially lead to unsatisfying accuracy, while a headset or a well set up external microphone should lead to good accuracy. JustSayIt relying on the [Vosk Speech Recognition Toolkit], it is the latter that dictates the requirements on recording quality for good recognition accuracy (for more information, have a look at the subsection [accuracy](https://alphacephei.com/vosk/accuracy) on their website).
 
 ## Help on commands callable by voice
 Saying "help commands" lists your available commands in the Julia REPL leading to, e.g., the following output:
