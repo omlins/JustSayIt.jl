@@ -55,5 +55,6 @@ include("API.jl")
 ## Exports (need to be after include of submodules if re-exports from them)
 export start
 export Keyboard, Mouse, Help, Email, Internet
+export Key
 
 end # module JustSayIt
