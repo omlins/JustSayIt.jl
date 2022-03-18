@@ -83,7 +83,7 @@ start(commands=commands, max_accuracy_subset=["cut", "paste", "undo", "redo"])
 ```
 Forcing maximum accuracy is only sometimes needed for single word commands that map to keyboard shortcuts triggering immediate "dangerous" actions, like "cut", "paste", "undo" and "redo" in the above example (however, "copy", "upwards" and "downwards" do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum accuracy means to wait for a certain amount of silence after the end of a command, which will be perceived as latency between the saying of a command name and its execution. Alternatively to forcing maximum accuracy for commands that map keyboard shortcuts, it is possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 
-Note furthermore that a good recording quality is important in order to achieve a good recognition accuracy. In particular, background noise might reduce recognition accuracy. Thus, a microphone integrated in a notebook or a webcam might potentially lead to unsatisfying accuracy, while a headset or a well set up external microphone should lead to good accuracy. JustSayIt relying on the [Vosk Speech Recognition Toolkit], it is the latter that dictates the requirements on recording quality for good recognition accuracy (for more information, have a look at the subsection [accuracy](https://alphacephei.com/vosk/accuracy) on their website).
+Note furthermore that a good recording quality is important in order to achieve a good recognition accuracy. In particular, background noise might reduce recognition accuracy. Thus, a microphone integrated in a notebook or a webcam might potentially lead to unsatisfying accuracy, while a headset or an external microphone that is well set up should lead to good accuracy. JustSayIt relying on the [Vosk Speech Recognition Toolkit], it is the latter that dictates the requirements on recording quality for good recognition accuracy (for more information, have a look at the subsection [accuracy](https://alphacephei.com/vosk/accuracy) on their website).
 
 ## Help on commands callable by voice
 Saying "help commands" lists your available commands in the Julia REPL leading to, e.g., the following output:
@@ -140,6 +140,34 @@ JustSayIt commands map to regular Julia functions. Function arguments can be eas
       #(...)
       return
   end
+```
+
+While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom `@voiceargs` functions thanks to the API of JustSayIt (`JustSayIt.API`). The following example shows how 1) a weather forecast search function (`weather`) can be programmed, 2) a command name to function mapping defined, and then 3) JustSayIt started using these customly defined commands. The command `weather` programmed here allows to find out how the weather is `today` or `tomorrow` - just say "weather today" or "weather tomorrow". Furthermore, if you say "help weather", it will show in the Julia REPL the function documentation written here. To run this example, type in the Julia REPL `include("path-to-file")` or simply copy-paste the code below inside (the corresponding file can be found [here](config_examples/config_custom_function.jl)).
+
+```julia
+using JustSayIt
+using JustSayIt.API       # Import JustSayIt API to write @voicearg functions
+using DefaultApplication  # To install type: `]` and then `add DefaultApplication`
+
+# 1) Define a custom weather forecast search function.
+@doc """
+    weather `today` | `tomorrow`
+
+Find out how the weather is `today` or `tomorrow`.
+"""
+weather
+@enum Day today tomorrow
+@voiceargs day=>(valid_input_auto=true, use_max_accuracy=true) function weather(day::Day)
+    DefaultApplication.open("https://www.google.com/search?q=weather+$day")
+end
+
+# 2) Define command name to function mapping, calling custom function
+commands = Dict("help"      => Help.help,
+                "weather"   => weather,
+                );
+
+# 3) Start JustSayIt with the custom commands.
+start(commands=commands)
 ```
 
 ## Module documentation callable from the Julia REPL / IJulia
