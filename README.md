@@ -141,6 +141,7 @@ JustSayIt commands map to regular Julia functions. Function arguments can be eas
       return
   end
 ```
+Detailed information on `@voiceargs` is obtainable by typing `?@voiceargs`.
 
 While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom `@voiceargs` functions thanks to the API of JustSayIt (`JustSayIt.API`). The following example shows how 1) a weather forecast search function (`weather`) can be programmed, 2) a command name to function mapping defined, and then 3) JustSayIt started using these customly defined commands. The command `weather` programmed here allows to find out how the weather is `today` or `tomorrow` - just say "weather today" or "weather tomorrow". Furthermore, if you say "help weather", it will show in the Julia REPL the function documentation written here. To run this example, type in the Julia REPL `include("path-to-file")` or simply copy-paste the code below inside (the corresponding file can be found [here](config_examples/config_custom_function.jl)).
 
@@ -169,6 +170,9 @@ commands = Dict("help"      => Help.help,
 # 3) Start JustSayIt with the custom commands.
 start(commands=commands)
 ```
+More information on the JustSayIt API is obtainable by typing `?JustSayIt.API`.
+
+Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `include_config` permits to conveniently `include` files from this folder. More information is obtainable by typing `?include_config`.
 
 ## Module documentation callable from the Julia REPL / IJulia
 The module documentation can be called from the [Julia REPL] or in [IJulia]:

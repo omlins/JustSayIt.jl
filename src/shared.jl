@@ -52,12 +52,18 @@ const UNKNOWN_TOKEN = "[unk]"
 const PyKey = Union{Char, PyObject}
 
 @static if Sys.iswindows()
-    const MODELDIR_PREFIX = joinpath(ENV["APPDATA"], "JustSayIt", "models")
+    const JSI_DATA        = joinpath(ENV["APPDATA"], "JustSayIt")
+    const MODELDIR_PREFIX = joinpath(JSI_DATA, "models")
+    const CONFIG_PREFIX   = joinpath(JSI_DATA, "config")
 elseif Sys.isapple()
-    const MODELDIR_PREFIX = joinpath(homedir(), "Library", "JustSayIt", "models")
+    const JSI_DATA        = joinpath(homedir(), "Library", "Application Support", "JustSayIt")
+    const MODELDIR_PREFIX = joinpath(JSI_DATA, "models")
+    const CONFIG_PREFIX   = joinpath(JSI_DATA, "config")
 else
     const MODELDIR_PREFIX = joinpath(homedir(), ".local", "share", "JustSayIt", "models")
+    const CONFIG_PREFIX   = joinpath(homedir(), ".config", "JustSayIt")
 end
+
 const DEFAULT_MODELDIRS = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
                                TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"))
 const DEFAULT_NOISES    = Dict(DEFAULT_MODEL_NAME => NOISES_ENGLISH,
