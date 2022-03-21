@@ -37,6 +37,7 @@ include("voiceargs.jl")
 include("finalize_jsi.jl")
 include("next_token.jl")
 include("init_jsi.jl")
+include("include_config.jl")
 include("recorder.jl")
 
 ## Include of command-submodules for peripherics control and help
@@ -53,7 +54,7 @@ include("start.jl")
 include("API.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
-export start
+export start, include_config
 export Keyboard, Mouse, Help, Email, Internet
 export Key
 
