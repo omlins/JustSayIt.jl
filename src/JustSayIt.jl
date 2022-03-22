@@ -54,7 +54,7 @@ include("start.jl")
 include("API.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
-export start, include_config
+export start, @include_config
 export Keyboard, Mouse, Help, Email, Internet
 export Key
 

@@ -172,7 +172,7 @@ start(commands=commands)
 ```
 More information on the JustSayIt API is obtainable by typing `?JustSayIt.API`.
 
-Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `include_config` permits to conveniently `include` files from this folder. More information is obtainable by typing `?include_config`.
+Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `@include_config` permits to conveniently `include` files from this folder. More information is obtainable by typing `?@include_config`.
 
 ## Module documentation callable from the Julia REPL / IJulia
 The module documentation can be called from the [Julia REPL] or in [IJulia]:
