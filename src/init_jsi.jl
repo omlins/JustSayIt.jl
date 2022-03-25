@@ -60,14 +60,14 @@ let
         # If the modeldirs point to the default path, download a model if none is present (asumed present if the folder is present)
         if modeldirs[DEFAULT_MODEL_NAME] == DEFAULT_MODELDIRS[DEFAULT_MODEL_NAME]
             if !isdir(modeldirs[DEFAULT_MODEL_NAME])
-                @info "No 'default' model found in its default location: downloading small english model ($DEFAULT_ENGLISH_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (40 MB)..."
+                @info "No 'default' model found in its default location: downloading small english model ($DEFAULT_ENGLISH_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~40 MB)..."
                 modeldepot = joinpath(modeldirs[DEFAULT_MODEL_NAME], "..")
                 download_and_unzip(modeldepot, DEFAULT_ENGLISH_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
             end
         end
         if modeldirs[TYPE_MODEL_NAME] == DEFAULT_MODELDIRS[TYPE_MODEL_NAME]
             if !isdir(modeldirs[TYPE_MODEL_NAME])
-                @info "No 'type' model found in its default location: download accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (1 GB)?"
+                @info "No 'type' model found in its default location: download accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~1 GB)?"
                 answer = ""
                 while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
                     answer = readline()
@@ -119,10 +119,20 @@ end
 
 _noises(args...) = noises(args...)
 
+
 function download_and_unzip(destination, filename, repository)
+    progress = nothing
+    previous = 0
+    function show_progress(total::Integer, now::Integer)
+        if (total > 0) && (now != previous)
+            if isnothing(progress) progress = ProgressMeter.Progress(total; dt=0.1, desc="Download ($(Base.format_bytes(total))): ", color=:magenta, output=stderr) end
+            ProgressMeter.update!(progress, now)
+        end
+        previous = now
+    end
     mkpath(destination)
     filepath = joinpath(destination, filename)
-    Downloads.download(repository * "/" * filename, filepath)
+    Downloads.download(repository * "/" * filename, filepath; progress=show_progress)
     @pywith Zipfile.ZipFile(filepath, "r") as archive begin
         archive.extractall(destination)
     end
