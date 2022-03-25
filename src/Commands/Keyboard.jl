@@ -93,7 +93,7 @@ Type digits only (including '.'). Supported keywords are:
 - "digits"
 """
 type
-@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind punctuation_kind
+@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
 @voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode)
     @info "Typing $(string(mode))..."
@@ -105,7 +105,9 @@ type
     was_keyword      = false
     is_new_group     = false
     is_uppercase     = (mode == text) ? true : false
+    was_space        = true # We want the first token to be dealt with as if there had been a space character before (new paragraph).
     punctuation      = Vector{String}()
+    spaces           = Vector{String}()
     undo_count       = 0
     ig               = 0  # group index
     it               = 0  # token index
@@ -164,7 +166,7 @@ type
             keyword_sign = ""
             for i = 1:length(keywords)
                 keyword = keywords[i]
-                if tokengroup_kind in [letter_kind, digit_kind]
+                if tokengroup_kind in (letter_kind, digit_kind)
                     @info "ABORT of keyword interpretation: keyword '$(keywords[i-1])' was followed by another keyword ('$keyword'). However, keyword '$(keywords[i-1])' defines the kind of the next word group and, therefore, no other keyword can follow it."
                     tokengroup_kind = undefined_kind
                     break
@@ -178,10 +180,11 @@ type
                         type_backspace(;count=length(type_memory[ig]) + nb_keyword_chars)
                         nb_keyword_chars = 0
                         undo_count += 1
-                        if (ig == 1) || (type_memory[ig-1] in [".", "!", "?"])
-                            is_uppercase = true
-                        else
-                            is_uppercase = false
+                        if (ig == 1) || (type_memory[ig-1] in (".", "!", "?")) is_uppercase = true
+                        else                                                   is_uppercase = false
+                        end
+                        if (ig == 1) || (type_memory[ig-1] in ("\n",)) was_space = true
+                        else                                           was_space = false
                         end
                     else
                         @info "Nothing to undo."
@@ -193,24 +196,26 @@ type
                             type_backspace(;count=nb_keyword_chars)
                             nb_keyword_chars = 0
                             is_uppercase = false
+                            was_space = false
                         end
                         keyboard.type(type_memory[ig])
                         undo_count -= 1
                         ig += 1
-                        if (type_memory[ig-1] in [".", "!", "?"])
-                            is_uppercase = true
-                        else
-                            is_uppercase = false
+                        if (type_memory[ig-1] in (".", "!", "?")) is_uppercase = true
+                        else                                      is_uppercase = false
+                        end
+                        if (type_memory[ig-1] in ("\n",)) was_space = true
+                        else                              was_space = false
                         end
                     else
                         @info "Nothing to redo."
                     end
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["uppercase"]
                     is_uppercase = true
-                    keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
+                    keyword_sign = "[$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["lowercase"]
                     is_uppercase = false
-                    keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["lowercase"])]"
+                    keyword_sign = "[$(TYPE_KEYWORDS_ENGLISH["lowercase"])]"
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["letters"]
                     tokengroup_kind = letter_kind
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["digits"]
@@ -237,15 +242,16 @@ type
                     tokengroup_kind = punctuation_kind
                     is_uppercase = true
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["paragraph"]
-                    push!(punctuation, "\n")
-                    tokengroup_kind = punctuation_kind
+                    push!(spaces, "\n")
+                    tokengroup_kind = space_kind
+                    was_space = true
                 else
                     @info "Unkown keyword." #NOTE: this should never occur as the are_next should only match known keywords.
                 end
             end
             was_keyword = true
-            if     (tokengroup_kind == letter_kind) keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["letters"])]"
-            elseif (tokengroup_kind == digit_kind)  keyword_sign = " [$(TYPE_KEYWORDS_ENGLISH["digits"])]"
+            if     (tokengroup_kind == letter_kind) keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS_ENGLISH["letters"])]"
+            elseif (tokengroup_kind == digit_kind)  keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS_ENGLISH["digits"])]"
             end
             if keyword_sign != ""
                 keyboard.type(keyword_sign)
@@ -262,20 +268,20 @@ type
             end
             if (tokengroup_kind == word_kind)
                 if (is_uppercase || startswith(token, "i'") || (token == "i")) token = uppercasefirst(token) end
-                if (ig == 1 && it == 0) token_str = token
-                else                    token_str = " " * token
+                if (was_space) token_str = token
+                else           token_str = " " * token
                 end
             elseif (tokengroup_kind == letter_kind)
-                if (ig > 1 && it == 0 && mode != letters) token_str = " " * token
-                else                   token_str = token
-                end
+                if (is_uppercase) token = uppercase(token) end
+                token_str = token
             elseif (tokengroup_kind == digit_kind)
-                if (ig > 1 && it == 0 && mode != digits) token_str = " " * token
-                else                   token_str = token
-                end
+                token_str = token
             elseif (tokengroup_kind == punctuation_kind)
                 token_str = join(punctuation, "")
                 punctuation = Vector{String}()
+            elseif (tokengroup_kind == space_kind)
+                token_str = join(spaces, "")
+                spaces = Vector{String}()
             elseif (tokengroup_kind == word_kind)
                 @info "Unkown token group." #NOTE: this should never occur.
             end
@@ -284,7 +290,8 @@ type
             it += 1
             undo_count = 0
             was_keyword = false
-            if (tokengroup_kind != punctuation_kind) is_uppercase = false end
+            if !(tokengroup_kind in (punctuation_kind, space_kind)) is_uppercase = false end
+            if (tokengroup_kind != space_kind) was_space = false end
             if all_consumed() tokengroup_kind = undefined_kind end
             sleep(0.05)
         end
