@@ -55,8 +55,8 @@ Each of the modes supports a set of keywords which can trigger some immediate ac
 - "redo": redo typing of last word group.
 - "uppercase": type the first word of the next word group uppercase (automatic in `text` mode after '.', '!' and '?').
 - "lowercase": type the first word of the next word group lowercase (default).
-- "letters": interpret the next word group as letters.
-- "digits": interpret the next word group as digits (interprets in addition 'dot' as '.').
+- "letters": interpret the next word group as letters (interprets in addition 'space' as ' ').
+- "digits": interpret the next word group as digits (interprets in addition 'dot' as '.' and 'space' as ' ').
 - "point": type '.'.
 - "comma": type ','.
 - "colon": type ':'.
