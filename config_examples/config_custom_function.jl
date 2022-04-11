@@ -11,7 +11,7 @@ Find out how the weather is `today` or `tomorrow`.
 """
 weather
 @enum Day today tomorrow
-@voiceargs day=>(valid_input_auto=true, use_max_accuracy=true) function weather(day::Day)
+@voiceargs day=>(valid_input_auto=true) function weather(day::Day)
     DefaultApplication.open("https://www.google.com/search?q=weather+$day")
 end
 

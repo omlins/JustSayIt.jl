@@ -11,7 +11,7 @@ Declare some or all arguments of the `function` definition to be arguments that 
     - `valid_input::AbstractArray{String}`: the valid speech input (e.g. `["up", "down"]`).
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
     - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
-    - `use_max_accuracy::Bool=false`: whether to use maxium accuracy for the recognition of the function argument (rather than maximum speed). It is only recommended to set it to true if the next cluster of tokens is in any case to be recognised with maxium accuracy (typically used with a free speech recognizer, i.e. with a large vocabulary),
+    - `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
     - `vararg_end::String`: a token to signal the end of a vararg (only valid if the function argument is a vararg).
     - `vararg_max::Integer=∞`: the maximum number of arguments the vararg can contain (only valid if the function argument is a vararg).
     - `vararg_timeout::AbstractFloat`: timeout after which to abort waiting for a next token to be spoken (only valid if the function argument is a vararg).
@@ -23,13 +23,13 @@ Declare some or all arguments of the `function` definition to be arguments that 
     return
 end
 
-@voiceargs (b, c=>(use_max_accuracy=true)) function f(a, b::String, c::String, d)
+@voiceargs (b=>(use_max_speed=true), c) function f(a, b::String, c::String, d)
     #(...)
     return
 end
 
 @enum TypeMode words formula
-@voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, use_max_accuracy=true, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+@voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
     #(...)
     return
 end
@@ -202,7 +202,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
         modelname                = haskey(kwargs,:model) ? kwargs[:model] : DEFAULT_MODEL_NAME
-        use_partial_recognitions = haskey(kwargs,:use_max_accuracy) ? !(kwargs[:use_max_accuracy]) : USE_PARTIAL_RECOGNITIONS_DEFAULT
+        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
         f_arg                    = f_args[voicearg]
         f_name_sym               = :(Symbol($(string(f_name))))
         voicearg_sym             = :(Symbol($(string(voicearg))))

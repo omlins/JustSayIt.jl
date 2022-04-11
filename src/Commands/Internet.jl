@@ -31,7 +31,7 @@ Navigate the internet, performing one of the following actions:
 """
 internet
 @enum Action search
-@voiceargs action=>(valid_input_auto=true, use_max_accuracy=true) function internet(action::Action)
+@voiceargs action=>(valid_input_auto=true) function internet(action::Action)
     if (action == search) search_internet()
     else @info "unknown action" #NOTE: this should never happen.
     end
