@@ -35,7 +35,6 @@ const AUDIO_ALLOC_GRANULARITY = 1024^2  #[bytes]
 const AUDIO_HISTORY_MIN = 1024^2        #[bytes]
 const AUDIO_ELTYPE = Int16
 const AUDIO_IN_CHANNELS = 1
-const COMMAND_NAME_EXIT  = "terminus"
 const COMMAND_NAME_SLEEP = "sleep"
 const COMMAND_NAME_AWAKE = "awake"
 const COMMAND_ABORT = "abortus"
