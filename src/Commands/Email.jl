@@ -32,7 +32,7 @@ Manage e-mails, performing one of the following actions:
 """
 email
 @enum Action inbox outbox
-@voiceargs action=>(valid_input_auto=true, use_max_accuracy=true) function email(action::Action)
+@voiceargs action=>(valid_input_auto=true) function email(action::Action)
     if     (action == inbox)  open_inbox()
     elseif (action == outbox) open_outbox()
     else                      @info "unknown action"  #NOTE: this should never happen.

@@ -132,7 +132,7 @@ type
         end
         if is_new_group && (tokengroup_kind == undefined_kind)
             reset_all(; hard=true, exclude_active=true)      # NOTE: a reset is required to avoid that the dynamic recognizers generated in is_next and are_next include the previous recognition as desired for normal command recognition.
-            if is_next(type_keywords; use_max_accuracy=false, ignore_unknown=false)
+            if is_next(type_keywords; use_max_speed=true, ignore_unknown=false)
                 keywords = String[]
                 try
                     are_keywords, keywords = are_next(type_keywords; consume_if_match=true, ignore_unknown=false)
@@ -304,15 +304,15 @@ interpret_digits(input::AbstractString)  = (return DIGITS_ENGLISH[input])
 
 @doc "Get next word from speech."
 next_word
-@voiceargs word=>(model=TYPE_MODEL_NAME, use_max_accuracy=true) next_word(word::String) = (return word)
+@voiceargs word=>(model=TYPE_MODEL_NAME) next_word(word::String) = (return word)
 
 @doc "Get next letter from speech."
 next_letter
-@voiceargs letter=>(valid_input=[keys(ALPHABET_ENGLISH)...], use_max_accuracy=true, interpret_function=interpret_letters) next_letter(letter::String) = (return letter)
+@voiceargs letter=>(valid_input=[keys(ALPHABET_ENGLISH)...], interpret_function=interpret_letters) next_letter(letter::String) = (return letter)
 
 @doc "Get next digit from speech."
 next_digit
-@voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], use_max_accuracy=true, interpret_function=interpret_digits) next_digit(digit::String) = (return digit)
+@voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits) next_digit(digit::String) = (return digit)
 
 function type_backspace(; count::Integer=1)
     keyboard  = controller("keyboard")

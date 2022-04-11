@@ -19,7 +19,7 @@ Start offline, low latency, highly accurate speech to command translation.
 # Keyword arguments
 - `commands::Dict{String, <:Any}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
-- `max_accuracy_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium accuracy rather than with maximum speed. Forcing maximum accuracy is only sometimes needed for single word commands that map to keyboard shortcuts triggering immediate "dangerous" actions, like "cut", "paste", "undo" and "redo" in the above example (however, "copy", "upwards" and "downwards" do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum accuracy means to wait for a certain amount of silence after the end of a command, which will be perceived as latency between the saying of a command name and its execution. Alternatively to forcing maximum accuracy for commands that map keyboard shortcuts, it is possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
+- `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 - `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
@@ -97,11 +97,11 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, AbstractArray{String}}=nothing, max_accuracy_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (!isnothing(subset) && !issubset(subset, keys(commands))) error("obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
-    if (!isnothing(max_accuracy_subset) && !issubset(max_accuracy_subset, keys(commands))) error("obtained max_accuracy_subset ($(max_accuracy_subset)) is not a subset of the command names ($(keys(commands))).") end
+    if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) error("obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
-    if isnothing(max_accuracy_subset) max_accuracy_subset = String[] end
+    if isnothing(max_speed_subset) max_speed_subset = String[] end
 
     # Initializations
     @info "Initializing JustSayIt (press CTRL+c to terminate JustSayIt)..."
@@ -113,7 +113,7 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
     valid_cmd_names = command_names()
     cmd_name = ""
     is_sleeping = false
-    use_max_accuracy = false
+    use_max_speed = true
     try
         while true
             if is_sleeping
@@ -128,7 +128,7 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
                     cmd = command(string(cmd_name))
                     if (t0_latency() > 0.0) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
                     try
-                        latency_msg = use_max_accuracy ? "" : " (latency: $(round(Int,toc(t0_latency())*1000)) ms)"
+                        latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
                         @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
                         execute(cmd)
                     catch e
@@ -151,8 +151,8 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
             end
             try
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
-                use_max_accuracy = _is_next(max_accuracy_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
-                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = !use_max_accuracy, ignore_unknown=false)
+                use_max_speed = _is_next(max_speed_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
+                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                 if (cmd_name == UNKNOWN_TOKEN) # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                     reset_all()
                     cmd_name = ""
@@ -192,7 +192,7 @@ function is_confirmed()
     end
 end
 
-@voiceargs words=>(valid_input=["just say it"], use_max_accuracy=true, vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
+@voiceargs words=>(valid_input=["just say it"], vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
     return (join(words, " ") == "just say it")
 end
 
