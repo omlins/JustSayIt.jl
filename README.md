@@ -22,7 +22,8 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 ## Quick start
 1. Install [Julia] if you do not have it yet.
-2. Execute the following in your shell to install and run JustSayIt:
+2. Connect your best microphone (a good recording quality is key to a great voice control experience!)
+3. Execute the following in your shell to install and run JustSayIt:
 ```julia-repl
 $> julia
 julia> ]
@@ -31,7 +32,8 @@ julia> ]
 julia> using JustSayIt
 julia> start()
 ```
-3. Say "help commands" and then, e.g., "help type".
+4. Say "help commands" and then, e.g., "help type".
+5. Try some commands and then look through the documentation!
 
 ## User definable mapping of command names to functions or keyboard shortcuts
 The keyword `commands` of `start` enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
@@ -67,7 +69,7 @@ More information on customization keywords is obtainable by typing `?start`.
 
 ## Per command choice between maximum speed or accuracy
 
-The keyword `max_accuracy_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognised with maxium accuracy rather than with maximum speed, e.g.:
+The keyword `max_speed_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognised with maxium speed rather than with maximum accuracy, e.g.:
 ```julia-repl
 # Define custom commands
 using JustSayIt
@@ -79,9 +81,9 @@ commands = Dict("copy"      => (Key.ctrl, 'c'),
                 "upwards"   => Key.page_up,
                 "downwards" => Key.page_down,
                 );
-start(commands=commands, max_accuracy_subset=["cut", "paste", "undo", "redo"])
+start(commands=commands, max_speed_subset=["upwards", "downwards", "copy"])
 ```
-Forcing maximum accuracy is only sometimes needed for single word commands that map to keyboard shortcuts triggering immediate "dangerous" actions, like "cut", "paste", "undo" and "redo" in the above example (however, "copy", "upwards" and "downwards" do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum accuracy means to wait for a certain amount of silence after the end of a command, which will be perceived as latency between the saying of a command name and its execution. Alternatively to forcing maximum accuracy for commands that map keyboard shortcuts, it is possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
+Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or, as in the above example page up/down or copy (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). However, it is typically not desired for "dangerous" actions, like "cut", "paste", "undo" and "redo" in this example. Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 
 Note furthermore that a good recording quality is important in order to achieve a good recognition accuracy. In particular, background noise might reduce recognition accuracy. Thus, a microphone integrated in a notebook or a webcam might potentially lead to unsatisfying accuracy, while a headset or an external microphone that is well set up should lead to good accuracy. JustSayIt relying on the [Vosk Speech Recognition Toolkit], it is the latter that dictates the requirements on recording quality for good recognition accuracy (for more information, have a look at the subsection [accuracy](https://alphacephei.com/vosk/accuracy) on their website).
 
@@ -122,6 +124,7 @@ Saying "sleep JustSayIt" puts JustSayIt to sleep. It will not execute any comman
 
 ## Fast command programming with voice argument functions
 JustSayIt commands map to regular Julia functions. Function arguments can be easily passed by voice thanks to the `@voiceargs` macro. It allows to declare arguments in standard function definitions to be directly obtainable by voice. It, furthermore, allows to define speech recognition parameters for each voice argument as, e.g., the valid speech input. The following shows some examples:
+
 ```julia
   @voiceargs (b, c) function f(a, b::String, c::String, d)
       #(...)
@@ -129,17 +132,17 @@ JustSayIt commands map to regular Julia functions. Function arguments can be eas
   end
 ```
 ```julia
-  @voiceargs (b, c=>(use_max_accuracy=true)) function f(a, b::String, c::String, d)
-      #(...)
-      return
-  end
+    @voiceargs (b=>(use_max_speed=true), c) function f(a, b::String, c::String, d)
+        #(...)
+        return
+    end
 ```
 ```julia
-  @enum TypeMode words formula
-  @voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, use_max_accuracy=true, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
-      #(...)
-      return
-  end
+    @enum TypeMode words formula
+    @voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+        #(...)
+        return
+    end
 ```
 Detailed information on `@voiceargs` is obtainable by typing `?@voiceargs`.
 
