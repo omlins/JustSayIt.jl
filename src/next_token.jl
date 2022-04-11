@@ -228,7 +228,7 @@ let
 	end
 
 	function reset_all(; timeout::Float64=60.0, hard::Bool=false, exclude_active::Bool=false)
-		if (!exclude_active) reset(active_recognizer; timeout=timeout, hard=hard) end
+		if (!exclude_active && !isnothing(active_recognizer)) reset(active_recognizer; timeout=timeout, hard=hard) end
 		do_delayed_resets(;timeout=timeout, hard=hard)
 		reset_token_buffer()
 		reset_audio()
