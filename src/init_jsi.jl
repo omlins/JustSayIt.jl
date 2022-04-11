@@ -38,7 +38,6 @@ let
         Vosk.SetLogLevel(vosk_log_level)
 
         # Validate and store the commands, adding the help command to it.
-        if haskey(commands, COMMAND_NAME_EXIT) error("the command name $COMMAND_NAME_EXIT is reserved for exiting command interpretation. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_SLEEP) error("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_AWAKE) error("the command name $COMMAND_NAME_AWAKE is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
@@ -92,7 +91,7 @@ let
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
             if modelname == DEFAULT_MODEL_NAME
-                grammar = json([keys(commands)..., COMMAND_NAME_EXIT, COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
+                grammar = json([keys(commands)..., COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
                 _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
             end
         end

@@ -151,11 +151,15 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
             end
             try
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
-                use_max_accuracy = _is_next(max_accuracy_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=true)
-                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = !use_max_accuracy)
+                use_max_accuracy = _is_next(max_accuracy_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
+                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = !use_max_accuracy, ignore_unknown=false)
+                if (cmd_name == UNKNOWN_TOKEN) # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
+                    reset_all()
+                    cmd_name = ""
+                end
             catch e
                 if isa(e, InsecureRecognitionException)
-                    if !is_sleeping @info(e.msg) end
+                    if !is_sleeping @debug(e.msg) end
                     cmd_name = ""
                 else
                     rethrow(e)
