@@ -24,11 +24,11 @@ let
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
     _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
-    command(name::AbstractString)                                       = _commands[name]
-    command_names() = keys(_commands)
+    command(name::AbstractString)                                                                       = _commands[name]
+    command_names()                                                                                     = keys(_commands)
     model(name::AbstractString=DEFAULT_MODEL_NAME)::PyObject                                            = _models[name]
     noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
-    noises_names()::Base.KeySet{String, Dict{String, <:AbstractArray{String}}}                          = keys(_noises)
+    noises_names()                                                                                      = keys(_noises)
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
     controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else error("The controller for $name is not available as it has not been set up in init_jsi.") end
     set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
