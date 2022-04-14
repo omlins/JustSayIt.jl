@@ -27,7 +27,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add https://github.com/omlins/JustSayIt
+  pkg> add https://github.com/omlins/JustSayIt.jl
   pkg> <backspace button>
 julia> using JustSayIt
 julia> start()
