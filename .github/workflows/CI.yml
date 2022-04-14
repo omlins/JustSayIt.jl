@@ -12,10 +12,9 @@ concurrency:
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 env:
   PYTHON: ""
-  DISPLAY: ":0"
 jobs:
   test:
-    name: xvfb-run Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,9 +27,15 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-        arch:
+        julia-arch:
           - x64
           - x86
+        include:
+          - os: ubuntu-latest
+            prefix: xvfb-run
+        exclude:
+          - os: macOS-latest
+            julia-arch: x86  # 32-bit Julia binaries are not available on macOS
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
