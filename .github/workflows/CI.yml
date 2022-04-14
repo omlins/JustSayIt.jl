@@ -27,7 +27,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-        julia-arch:
+        arch:
           - x64
           - x86
         include:
@@ -35,7 +35,7 @@ jobs:
             prefix: xvfb-run
         exclude:
           - os: macOS-latest
-            julia-arch: x86  # 32-bit Julia binaries are not available on macOS
+            arch: x86  # 32-bit Julia binaries are not available on macOS
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
