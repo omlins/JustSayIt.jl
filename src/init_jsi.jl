@@ -66,7 +66,7 @@ let
         end
         if modeldirs[TYPE_MODEL_NAME] == DEFAULT_MODELDIRS[TYPE_MODEL_NAME]
             if !isdir(modeldirs[TYPE_MODEL_NAME])
-                @info "No 'type' model found in its default location: download accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~1 GB)?"
+                @info "No 'type' model found in its default location: download (optional) accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~1 GB)?"
                 answer = ""
                 while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
                     answer = readline()
