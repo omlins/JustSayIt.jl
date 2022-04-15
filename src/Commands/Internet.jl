@@ -12,13 +12,15 @@ To see a description of a function type `?<functionname>`.
 """
 module Internet
 
+using PyCall
 import DefaultApplication
-import ..JustSayIt: @voiceargs, Keyboard
+import ..JustSayIt: @voiceargs, Keyboard, Key
 
 
 ## CONSTANTS
 
 const SEARCH_ENGINE = "https://google.com"
+const SEARCH_DOC = "start search engine, enter \"type text\" mode to obtain search words from speech and then trigger the search when the keyword \"search\" is spoken."
 
 
 ## Functions
@@ -27,7 +29,7 @@ const SEARCH_ENGINE = "https://google.com"
     internet `search`
 
 Navigate the internet, performing one of the following actions:
-- `search`
+- `search`: $SEARCH_DOC
 """
 internet
 @enum Action search
@@ -37,10 +39,11 @@ internet
     end
 end
 
-@doc "Search in internet: start search engine and automatically change to type command waiting for search keywords to be spoken."
+@doc SEARCH_DOC
 function search_internet()
     DefaultApplication.open(SEARCH_ENGINE)
-    Keyboard.type(Keyboard.text)
+    Keyboard.type(Keyboard.text; end_keyword="search")
+    Keyboard.press_keys(Key.enter)
 end
 
 end # module Internet
