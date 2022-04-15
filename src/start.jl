@@ -45,7 +45,7 @@ $(pretty_dict_string(DEFAULT_NOISES))
 
 #### Define `subset`
 ```
-# Listen to only to the commands "help" and "type".
+# Listen only to the commands "help" and "type".
 using JustSayIt
 start(subset=["help", "type"])
 ```

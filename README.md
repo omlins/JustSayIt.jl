@@ -66,7 +66,7 @@ Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up
 
 The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia-repl
-# Listen to only to the commands "help" and "type".
+# Listen only to the commands "help" and "type".
 using JustSayIt
 start(subset=["help", "type"])
 ```
