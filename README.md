@@ -29,7 +29,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add https://github.com/omlins/JustSayIt
+  pkg> add https://github.com/omlins/JustSayIt.jl
   pkg> <backspace button>
 julia> using JustSayIt
 julia> start()
@@ -44,8 +44,11 @@ The keyword `commands` of `start` enables to freely define a mapping of command 
 using JustSayIt
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type,
-                "email"     => Email.email,
-                "internet"  => Internet.internet,
+                "ma"        => Mouse.click_left,
+                "select"    => Mouse.press_left,
+                "okay"      => Mouse.release_left,
+                "middle"    => Mouse.click_middle,
+                "right"     => Mouse.click_right,
                 "double"    => Mouse.click_double,
                 "triple"    => Mouse.click_triple,
                 "copy"      => (Key.ctrl, 'c'),
@@ -56,22 +59,23 @@ commands = Dict("help"      => Help.help,
                 "upwards"   => Key.page_up,
                 "downwards" => Key.page_down,
                 );
-start(commands=commands)
+start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards"])
 ```
+
 Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
 The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia-repl
-# Listen to all default commands with exception of the mouse button commands.
+# Listen to only to the commands "help" and "type".
 using JustSayIt
-start(subset=["help", "type", "email", "internet"])
+start(subset=["help", "type"])
 ```
 
 More information on customization keywords is obtainable by typing `?start`.
 
 ## Per command choice between maximum speed or accuracy
 
-The keyword `max_speed_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognised with maxium speed rather than with maximum accuracy, e.g.:
+The keyword `max_speed_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognized with maximum speed rather than with maximum accuracy, e.g.:
 ```julia-repl
 # Define custom commands
 using JustSayIt
@@ -94,17 +98,24 @@ Saying "help commands" lists your available commands in the Julia REPL leading t
 ```julia-repl
 ┌ Info:
 │ Your commands:
-│ double   => click_double
-│ email    => email
-│ help     => help
-│ internet => internet
-│ ma       => click_left
-│ middle   => click_middle
-│ okay     => release_left
-│ right    => click_right
-│ select   => press_left
-│ triple   => click_triple
-└ type     => type
+│ copy      => ctrl + c
+│ cut       => ctrl + x
+│ double    => click_double
+│ downwards => page_down
+│ email     => email
+│ help      => help
+│ internet  => internet
+│ ma        => click_left
+│ middle    => click_middle
+│ okay      => release_left
+│ paste     => ctrl + v
+│ redo      => ctrl + shift + z
+│ right     => click_right
+│ select    => press_left
+│ triple    => click_triple
+│ type      => type
+│ undo      => ctrl + z
+└ upwards   => page_up
 ```
 Saying "help <command name>" shows the help of one of the available commands. Here is, e.g., the output produced when saying "help email":
 ```
@@ -198,7 +209,7 @@ search: JustSayIt start
 After installing [Julia] - if not yet installed - JustSayIt can be installed directly with the [Julia package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/index.html) from the [Julia REPL]:
 ```julia-repl
 julia>]
-  pkg> add https://github.com/omlins/JustSayIt
+  pkg> add https://github.com/omlins/JustSayIt.jl
 ```
 All dependencies are automatically installed. Python dependencies are automatically installed in a local mini-conda environment, set up by [Conda.jl]. Default language models are automatically downloaded at first usage of JustSayIt.
 
