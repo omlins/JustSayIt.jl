@@ -33,7 +33,8 @@ end
 ## CONSTANTS
 
 const TYPE_MEMORY_ALLOC_GRANULARITY = 32
-const TYPE_KEYWORDS_ENGLISH = Dict("end"=>"terminus", "undo"=>"undo", "redo"=>"redo", "uppercase"=>"uppercase", "lowercase"=>"lowercase", "letters"=>"letters", "digits"=>"digits", "point"=>"point", "comma"=>"comma", "colon"=>"colon", "semicolon"=>"semicolon", "exclamation"=>"exclamation", "interrogation"=>"interrogation", "paragraph" => "paragraph")
+const TYPE_KEYWORDS_ENGLISH = Dict("undo"=>"undo", "redo"=>"redo", "uppercase"=>"uppercase", "lowercase"=>"lowercase", "letters"=>"letters", "digits"=>"digits", "point"=>"point", "comma"=>"comma", "colon"=>"colon", "semicolon"=>"semicolon", "exclamation"=>"exclamation", "interrogation"=>"interrogation", "paragraph" => "paragraph")
+const TYPE_END_KEYWORD_ENGLISH = "terminus"
 
 
 ## FUNCTIONS
@@ -95,7 +96,7 @@ Type digits only (including '.'). Supported keywords are:
 type
 @enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
-@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode)
+@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD_ENGLISH)
     @info "Typing $(string(mode))..."
     keyboard         = controller("keyboard")
     type_memory      = Vector{String}()
@@ -112,10 +113,10 @@ type
     ig               = 0  # group index
     it               = 0  # token index
     nb_keyword_chars = 0
-    if     (mode == text)    type_keywords = [values(TYPE_KEYWORDS_ENGLISH)...]
-    elseif (mode == words)   type_keywords = [TYPE_KEYWORDS_ENGLISH["end"], TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["uppercase"], TYPE_KEYWORDS_ENGLISH["lowercase"]]
-    elseif (mode == letters) type_keywords = [TYPE_KEYWORDS_ENGLISH["end"], TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["letters"]]
-    elseif (mode == digits)  type_keywords = [TYPE_KEYWORDS_ENGLISH["end"], TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["digits"]]
+    if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS_ENGLISH)...]
+    elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["uppercase"], TYPE_KEYWORDS_ENGLISH["lowercase"]]
+    elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["letters"]]
+    elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["digits"]]
     end
     while is_typing
         is_new_group = (all_consumed() && !was_partial_recognition())
@@ -171,7 +172,7 @@ type
                     tokengroup_kind = undefined_kind
                     break
                 end
-                if keyword == TYPE_KEYWORDS_ENGLISH["end"]
+                if keyword == end_keyword
                     is_typing = false
                 elseif keyword == TYPE_KEYWORDS_ENGLISH["undo"]
                     if ig > 1
