@@ -1,12 +1,5 @@
 const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
                                "type"     => Keyboard.type,
-                               "ma"       => Mouse.click_left,
-                               "select"   => Mouse.press_left,
-                               "okay"     => Mouse.release_left,
-                               "middle"   => Mouse.click_middle,
-                               "right"    => Mouse.click_right,
-                               "double"   => Mouse.click_double,
-                               "triple"   => Mouse.click_triple,
                                "email"    => Email.email,
                                "internet" => Internet.internet)
 
@@ -52,22 +45,21 @@ $(pretty_dict_string(DEFAULT_NOISES))
 
 #### Define `subset`
 ```
-# Listen to all commands with exception of the mouse button commands.
+# Listen to only to the commands "help" and "type".
 using JustSayIt
-start(subset=["help", "type", "email", "internet"])
+start(subset=["help", "type"])
 ```
 
-```
-# Listen only to the mouse button commands.
-using JustSayIt
-start(subset=["ma", "select", "okay", "middle", "right", "double", "triple"])
-```
-
-#### Define custom `commands` - functions and keyboard shortcuts
+#### Define custom `commands` - functions and keyboard shortcuts - and a `max_speed_subset`
 ```
 using JustSayIt
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type,
+                "ma"        => Mouse.click_left,
+                "select"    => Mouse.press_left,
+                "okay"      => Mouse.release_left,
+                "middle"    => Mouse.click_middle,
+                "right"     => Mouse.click_right,
                 "double"    => Mouse.click_double,
                 "triple"    => Mouse.click_triple,
                 "copy"      => (Key.ctrl, 'c'),
@@ -78,7 +70,7 @@ commands = Dict("help"      => Help.help,
                 "upwards"   => Key.page_up,
                 "downwards" => Key.page_down,
                 );
-start(commands=commands)
+start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards"])
 ```
 
 #### Define custom `modeldirs`
@@ -104,7 +96,7 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
     if isnothing(max_speed_subset) max_speed_subset = String[] end
 
     # Initializations
-    @info "Initializing JustSayIt (press CTRL+c to terminate JustSayIt)..."
+    @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."
     init_jsi(commands, modeldirs, noises)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
