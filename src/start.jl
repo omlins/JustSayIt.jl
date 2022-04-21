@@ -94,6 +94,12 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
     if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) error("obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
     if isnothing(max_speed_subset) max_speed_subset = String[] end
+    max_speed_token_subset = map(max_speed_subset) do cmd_name # Only the first tokens are used to decide if max speed is used.
+       string(first(split(cmd_name)))
+    end
+    max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
+    incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
+    if !isempty(incoherent_subset) error("'max_speed_subset' is not coherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
 
     # Initializations
     @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."
@@ -138,16 +144,25 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
                     else              @info("Going to sleep... (To awake me, just say \"awake JustSayIt\".)")
                     end
                 elseif cmd_name != ""
-                    @info "Invalid command: $cmd_name." # NOTE: this might better go to stderr or @debug later.
+                    @debug "Invalid command: $cmd_name."
                 end
             end
             try
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
-                use_max_speed = _is_next(max_speed_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
+                use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
                 cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = use_max_speed, ignore_unknown=false)
-                if (cmd_name == UNKNOWN_TOKEN) # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
+                if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                     reset_all()
                     cmd_name = ""
+                end
+                while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
+                    token = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                    if token == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
+                        reset_all()
+                        cmd_name = ""
+                    else
+                        cmd_name = cmd_name * " " * token
+                    end
                 end
             catch e
                 if isa(e, InsecureRecognitionException)
