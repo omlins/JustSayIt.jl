@@ -38,7 +38,9 @@ include("finalize_jsi.jl")
 include("next_token.jl")
 include("init_jsi.jl")
 include("include_config.jl")
+include("reader.jl")
 include("recorder.jl")
+include("streamer.jl")
 
 ## Include of command-submodules for peripherics control and help
 include("Commands/Keyboard.jl")
