@@ -1,5 +1,5 @@
 let
-    global reader, start_reading, stop_reading, read_wav
+    global reader, active_reader_id, start_reading, stop_reading, read_wav
     _readers::Dict{String, Union{Base.Process,PyObject,IOBuffer}}               = Dict{String, Union{Base.Process,PyObject,IOBuffer}}()
     _active_reader_id::String                                                   = ""
     reader(id::String=DEFAULT_READER_ID)::Union{Base.Process,PyObject,IOBuffer} = _readers[id]
