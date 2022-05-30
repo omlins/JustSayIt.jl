@@ -53,18 +53,21 @@ See also: [`pause_recording`](@ref)
 restart_recording
 
 let
-    global recorder, start_recording, stop_recording, pause_recording, restart_recording
+    global recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording
     _recorders::Dict{String, Union{Base.Process,PyObject}}                 = Dict{String, Union{Base.Process,PyObject}}()
     _active_recorder_id::String                                            = ""
+    _active_recorder_cmd::Union{Cmd,Nothing}                               = nothing
     recorder(id::String=DEFAULT_RECORDER_ID)::Union{Base.Process,PyObject} = _recorders[id]
     active_recorder_id()::String                                           = (if (_active_recorder_id=="") error("no recorder is active.") end; return _active_recorder_id)
 
     function start_recording(; id::String=DEFAULT_RECORDER_ID, audio_input_cmd::Union{Cmd,Nothing}=nothing) # NOTE: here could be started multiple recorders.
         if !isnothing(audio_input_cmd)
             _recorders[id] = open(audio_input_cmd)
+            _active_recorder_cmd = audio_input_cmd
         else # Default recorder
             _recorders[id] = Sounddevice.RawInputStream(samplerate=SAMPLERATE, channels=AUDIO_IN_CHANNELS, dtype=lowercase(string(AUDIO_ELTYPE)), blocksize=Int(AUDIO_READ_MAX/sizeof(AUDIO_ELTYPE)))
             _recorders[id].start()
+            _active_recorder_cmd = nothing
         end
         _active_recorder_id = id
         return _recorders[id]
@@ -75,5 +78,5 @@ let
     end
 
     pause_recording()   = (stop_recording(id=active_recorder_id()); return)
-    restart_recording() = (start_recording(id=active_recorder_id()); return)
+    restart_recording() = (start_recording(id=active_recorder_id(), audio_input_cmd=_active_recorder_cmd); return)
 end
