@@ -80,25 +80,25 @@ Type words only (upper and lower case). Supported keywords are:
 - "lowercase"
 
 #### `letters`
-Type letters only (including '.'). Supported keywords are:
+Type letters only. Supported keywords are:
 - "terminus"
 - "undo"
 - "redo"
-- "letters"
+- "space"
 
 #### `digits`
-Type digits only (including '.'). Supported keywords are:
+Type digits only. Supported keywords are:
 - "terminus"
 - "undo"
 - "redo"
-- "digits"
+- "space"
+- "dot"
 """
 type
 @enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
-@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD_ENGLISH)
+@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD_ENGLISH, do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
-    keyboard         = controller("keyboard")
     type_memory      = Vector{String}()
     tokengroup_str   = ""
     tokengroup_kind  = undefined_kind
@@ -178,7 +178,7 @@ type
                     if ig > 1
                         ig -= 1
                         @info "Undo typing of last word group..."
-                        type_backspace(;count=length(type_memory[ig]) + nb_keyword_chars)
+                        type_backspace(;count=length(type_memory[ig]) + nb_keyword_chars, do_keystrokes=do_keystrokes)
                         nb_keyword_chars = 0
                         undo_count += 1
                         if (ig == 1) || (type_memory[ig-1] in (".", "!", "?")) is_uppercase = true
@@ -194,12 +194,12 @@ type
                     if undo_count > 0 && ig <= length(type_memory)
                         @info "Redo typing of last word group..."
                         if nb_keyword_chars > 0
-                            type_backspace(;count=nb_keyword_chars)
+                            type_backspace(;count=nb_keyword_chars, do_keystrokes=do_keystrokes)
                             nb_keyword_chars = 0
                             is_uppercase = false
                             was_space = false
                         end
-                        keyboard.type(type_memory[ig])
+                        type_string(type_memory[ig]; do_keystrokes=do_keystrokes)
                         undo_count -= 1
                         ig += 1
                         if (type_memory[ig-1] in (".", "!", "?")) is_uppercase = true
@@ -255,7 +255,7 @@ type
             elseif (tokengroup_kind == digit_kind)  keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS_ENGLISH["digits"])]"
             end
             if keyword_sign != ""
-                keyboard.type(keyword_sign)
+                type_string(keyword_sign; do_keystrokes=do_keystrokes)
                 nb_keyword_chars += length(keyword_sign)
             end
         else
@@ -264,7 +264,7 @@ type
             elseif (tokengroup_kind == digit_kind)  token = next_digit()
             end
             if nb_keyword_chars > 0
-                type_backspace(;count=nb_keyword_chars) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
+                type_backspace(;count=nb_keyword_chars, do_keystrokes=do_keystrokes) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
                 nb_keyword_chars = 0
             end
             if (tokengroup_kind == word_kind)
@@ -286,7 +286,7 @@ type
             elseif (tokengroup_kind == word_kind)
                 @info "Unkown token group." #NOTE: this should never occur.
             end
-            keyboard.type(token_str)
+            type_string(token_str; do_keystrokes=do_keystrokes)
             tokengroup_str *= token_str
             it += 1
             undo_count = 0
@@ -298,6 +298,7 @@ type
         end
     end
     @info "...stopped typing $(string(mode))."
+    return join(type_memory[1:ig-1])
 end
 
 interpret_letters(input::AbstractString) = (return ALPHABET_ENGLISH[input])
@@ -315,11 +316,20 @@ next_letter
 next_digit
 @voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits) next_digit(digit::String) = (return digit)
 
-function type_backspace(; count::Integer=1)
-    keyboard  = controller("keyboard")
-    backspace = Pynput.keyboard.Key.backspace
-    for i = 1:count
-        keyboard.press(backspace); keyboard.release(backspace)
+function type_string(str::String; do_keystrokes::Bool=true)
+    if do_keystrokes
+        keyboard  = controller("keyboard")
+        keyboard.type(str)
+    end
+end
+
+function type_backspace(; count::Integer=1, do_keystrokes::Bool=true)
+    if do_keystrokes
+        keyboard  = controller("keyboard")
+        backspace = Pynput.keyboard.Key.backspace
+        for i = 1:count
+            keyboard.press(backspace); keyboard.release(backspace)
+        end
     end
 end
 
