@@ -1,0 +1,45 @@
+[words]
+the julia programming language
+the julia programming language [undo]
+the julia [undo][redo]
+the[uppercase] Julia [uppercase][lowercase]programming language
+[terminus]
+
+
+[letters]
+j u l i a
+c s c s
+j u l i [space] a 
+c s   c s [undo]
+c s   c  [undo][redo]
+[terminus]
+
+
+[digits]
+zero five one two six . seven three eight [space]  four nine
+zero five one two six . seven three eight four nine [undo]
+zero five one two six . seven three eight four nine [undo][redo]
+[terminus]
+
+
+[text]
+Let's type some words: the[uppercase] Julia [uppercase][lowercase]programming language.
+Let's type some letters: j u l i a [space] c s c s . j u l i a .
+Let's type some digits: zero five one two six . [space] seven three eight four nine .
+Let's try undo redo point coma colon semicolon exlamation interrogation and paragraph: .,:;!?
+Let's try undo redo point coma colon semicolon exlamation interrogation and paragraph: .,:;!?[undo]
+Let's try undo redo point coma colon semicolon exlamation interrogation and paragraph: .,:;!?[undo][redo]
+[terminus]
+
+
+ascend
+
+
+
+
+
+
+
+
+
+
