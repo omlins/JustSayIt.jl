@@ -13,6 +13,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 ## Contents
 * [Quick start](#quick-start)
 * [User definable mapping of command names to functions or keyboard shortcuts](#user-definable-mapping-of-command-names-to-functions-or-keyboard-shortcuts)
+* [Per command choice between maximum speed or accuracy](#per-command-choice-between-maximum-speed-or-accuracy)
 * [Help on commands callable by voice](#help-on-commands-callable-by-voice)
 * [Sleep and wake up by voice](#sleep-and-wake-up-by-voice)
 * [Fast command programming with voice argument functions](#fast-command-programming-with-voice-argument-functions)
