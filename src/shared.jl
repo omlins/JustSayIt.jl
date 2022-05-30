@@ -6,6 +6,7 @@ import MacroTools: splitdef, combinedef
 ## PYTHON MODULES
 const Vosk        = PyNULL()
 const Sounddevice = PyNULL()
+const Wave        = PyNULL()
 const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
@@ -31,6 +32,7 @@ function __init__()
     end
     copy!(Vosk,        pyimport_pip("vosk"))
     copy!(Sounddevice, pyimport_pip("sounddevice"; dependency="portaudio"))
+    copy!(Wave,        pyimport("wave"))
     copy!(Zipfile,     pyimport("zipfile"))
     copy!(Pynput,      pyimport_pip("pynput"))
     copy!(Key,         Pynput.keyboard.Key)
@@ -52,6 +54,7 @@ const VARARG_END = "terminus"
 const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat)
 const DEFAULT_MODEL_NAME = "default"
 const DEFAULT_RECORDER_ID = "default"
+const DEFAULT_READER_ID = "default"
 const TYPE_MODEL_NAME = "type"
 const COMMAND_RECOGNIZER_ID = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
 const NOISES_ENGLISH = ["huh"]

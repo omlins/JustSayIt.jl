@@ -1,13 +1,12 @@
 @doc """
     start_recording()
-
-!!! note "Advanced"
-        start_recording(<keyword arguments>)
+    start_recording(<keyword arguments>)
 
 Start recording.
 
 # Arguments
-!!! note "Advanced keyword arguments"
+!!! note "Keyword arguments"
+    - `id`: an id to retrieve recorder as an alternative to reusing the returned recorder handle.
     - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
 
 # Examples
@@ -23,8 +22,13 @@ start_recording
 
 @doc """
     stop_recording()
+    stop_recording(<keyword arguments>)
 
 Stop recording.
+
+# Arguments
+!!! note "Keyword arguments"
+    - `id`: an id to retrieve recorder as an alternative to reusing the returned recorder handle.
 
 See also: [`start_recording`](@ref)
 """
@@ -48,36 +52,31 @@ See also: [`pause_recording`](@ref)
 """
 restart_recording
 
-import Base: readbytes!, close
 let
-    global recorder, start_recording, stop_recording, pause_recording, restart_recording, readbytes!, close
+    global recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording
     _recorders::Dict{String, Union{Base.Process,PyObject}}                 = Dict{String, Union{Base.Process,PyObject}}()
     _active_recorder_id::String                                            = ""
+    _active_recorder_cmd::Union{Cmd,Nothing}                               = nothing
     recorder(id::String=DEFAULT_RECORDER_ID)::Union{Base.Process,PyObject} = _recorders[id]
     active_recorder_id()::String                                           = (if (_active_recorder_id=="") error("no recorder is active.") end; return _active_recorder_id)
 
-    function start_recording(id::String=DEFAULT_RECORDER_ID; audio_input_cmd::Union{Cmd,Nothing}=nothing) # NOTE: here could be started multiple recorders.
+    function start_recording(; id::String=DEFAULT_RECORDER_ID, audio_input_cmd::Union{Cmd,Nothing}=nothing) # NOTE: here could be started multiple recorders.
         if !isnothing(audio_input_cmd)
             _recorders[id] = open(audio_input_cmd)
+            _active_recorder_cmd = audio_input_cmd
         else # Default recorder
             _recorders[id] = Sounddevice.RawInputStream(samplerate=SAMPLERATE, channels=AUDIO_IN_CHANNELS, dtype=lowercase(string(AUDIO_ELTYPE)), blocksize=Int(AUDIO_READ_MAX/sizeof(AUDIO_ELTYPE)))
             _recorders[id].start()
+            _active_recorder_cmd = nothing
         end
         _active_recorder_id = id
+        return _recorders[id]
     end
 
-    function stop_recording(id::String=DEFAULT_RECORDER_ID)
+    function stop_recording(; id::String=DEFAULT_RECORDER_ID)
         close(_recorders[id])
     end
 
-    function readbytes!(stream::PyObject, b::AbstractVector{UInt8}, nb=length(b))
-        nb_frames = Int(nb/sizeof(AUDIO_ELTYPE))
-        b .= stream.read(nb_frames)[1]
-        return nb
-    end
-
-    close(stream::PyObject) = stream.close()
-
-    pause_recording()   = (stop_recording(active_recorder_id()); return)
-    restart_recording() = (start_recording(active_recorder_id()); return)
+    pause_recording()   = (stop_recording(id=active_recorder_id()); return)
+    restart_recording() = (start_recording(id=active_recorder_id(), audio_input_cmd=_active_recorder_cmd); return)
 end

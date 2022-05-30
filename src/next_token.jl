@@ -39,7 +39,7 @@ See also: [`init_jsi`](@ref)
 are_next
 
 let
-    global next_token, is_next, _is_next, are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
+    global next_token, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
     recognizers_to_reset = Vector{PyObject}()
     active_recognizer::Union{Nothing, PyObject} = nothing
     was_partial_result = false
@@ -258,7 +258,7 @@ let
     t0_latency()::Float64 = _t0_latency
 	reset_audio()         = (i = 0; return)
 
-    function next_partial_recognition(recognizer::PyObject; timeout::Float64=60.0, restart::Bool=false, reset_audio_buffer::Bool=false)
+    function next_partial_recognition(recognizer::PyObject; timeout::Float64=60.0, restart::Bool=false, reset_audio_buffer::Bool=false, streamer = default_streamer())
         is_partial_result = true
         partial_result    = ""
         text              = ""
@@ -274,7 +274,7 @@ let
 			if i + AUDIO_READ_MAX > length(audio_buffer)
 				resize!(audio_buffer, length(audio_buffer) + AUDIO_ALLOC_GRANULARITY)
 			end
-			tic();  bytes_read = readbytes!(recorder(), audio_chunk);  t_read_sum+=toc(); t_read_max=max(t_read_max,toc()) #; println("t_read: $(toc())")
+			tic();  bytes_read = readbytes!(streamer, audio_chunk);  t_read_sum+=toc(); t_read_max=max(t_read_max,toc()) #; println("t_read: $(toc())")
             if bytes_read > 0
 				it += 1
                 _t0_latency = tic() # NOTE: when the while loop is left, this value will contain the time right before the call to the recognizer, which lead to a successful partial or full recognition. It allows to compute the latency from when the reading of a command was completed (which can be considered equivalent to the time it the speaker completed it, if bytes_read per iteration is small) to the invocation of a command (toc() needs to be called right before its invocation).
