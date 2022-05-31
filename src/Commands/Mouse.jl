@@ -19,7 +19,7 @@ To see a description of a function type `?<functionname>`.
 module Mouse
 
 using PyCall
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller
+import ..JustSayIt: pyimport_pip, controller, set_controller
 
 
 ## PYTHON MODULES
