@@ -306,15 +306,15 @@ interpret_digits(input::AbstractString)  = (return DIGITS_ENGLISH[input])
 
 @doc "Get next word from speech."
 next_word
-@voiceargs word=>(model=TYPE_MODEL_NAME) next_word(word::String) = (return word)
+@voiceargs word=>(model=TYPE_MODEL_NAME, ignore_unknown=true) next_word(word::String) = (return word)
 
 @doc "Get next letter from speech."
 next_letter
-@voiceargs letter=>(valid_input=[keys(ALPHABET_ENGLISH)...], interpret_function=interpret_letters) next_letter(letter::String) = (return letter)
+@voiceargs letter=>(valid_input=[keys(ALPHABET_ENGLISH)...], interpret_function=interpret_letters, ignore_unknown=true) next_letter(letter::String) = (return letter)
 
 @doc "Get next digit from speech."
 next_digit
-@voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits) next_digit(digit::String) = (return digit)
+@voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits, ignore_unknown=true) next_digit(digit::String) = (return digit)
 
 function type_string(str::String; do_keystrokes::Bool=true)
     if do_keystrokes
