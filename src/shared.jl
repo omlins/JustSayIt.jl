@@ -51,7 +51,7 @@ const COMMAND_NAME_SLEEP = "sleep"
 const COMMAND_NAME_AWAKE = "awake"
 const COMMAND_ABORT = "abortus"
 const VARARG_END = "terminus"
-const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat)
+const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
 const DEFAULT_MODEL_NAME = "default"
 const DEFAULT_RECORDER_ID = "default"
 const DEFAULT_READER_ID = "default"
