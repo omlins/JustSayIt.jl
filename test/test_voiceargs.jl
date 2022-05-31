@@ -15,7 +15,7 @@ import JustSayIt: voicearg_f_names, voiceargs, recognizer
 @voiceargs (
     nr=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=Keyboard.interpret_digits, use_max_speed=true),
     name=>(valid_input_auto=true),
-    question=>(model=TYPE_MODEL_NAME, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
+    question=>(model=TYPE_MODEL_NAME, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
 ) function ask(nr::Integer, name::Name, question::String...)
     println("[Q$nr] Hi $name, could you please $(join(question," "))?")
 end
@@ -45,7 +45,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
             @test issetequal(keys(voiceargs(:hi)[:n2]), [:recognizer, :valid_input, :valid_input_auto])
             @test issetequal(keys(voiceargs(:ask)[:nr]), [:recognizer, :valid_input, :interpret_function, :use_max_speed])
             @test issetequal(keys(voiceargs(:ask)[:name]), [:recognizer, :valid_input, :valid_input_auto])
-            @test issetequal(keys(voiceargs(:ask)[:question]), [:model, :vararg_end, :vararg_max, :vararg_timeout])
+            @test issetequal(keys(voiceargs(:ask)[:question]), [:model, :ignore_unknown, :vararg_end, :vararg_max, :vararg_timeout])
         end;
         @testset "kwarg content" begin
             @testset "recognizers" begin
@@ -72,6 +72,9 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
             end;
             @testset "use_max_speed" begin
                 @test voiceargs(:ask)[:nr][:use_max_speed] == true
+            end;
+            @testset "ignore_unknown" begin
+                @test voiceargs(:ask)[:question][:ignore_unknown] == true
             end;
             @testset "model" begin
                 @test voiceargs(:ask)[:question][:model] == TYPE_MODEL_NAME

@@ -10,7 +10,7 @@ To see a description of a function type `?<functionname>`.
 """
 module Help
 
-import ..JustSayIt: @voiceargs, TYPE_MODEL_NAME, command, command_names, next_token, pretty_cmd_string, PyKey
+import ..JustSayIt: command, command_names, next_token, pretty_cmd_string, PyKey
 
 const COMMANDS_KEYWORD = "commands"
 
