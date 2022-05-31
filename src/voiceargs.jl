@@ -12,6 +12,7 @@ Declare some or all arguments of the `function` definition to be arguments that 
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
     - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
     - `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
+    - `ignore_unknown::Bool=false`: whether to ignore unknown tokens in the speech (and consume the next instead). It is generally not recommended to set `ignore_unkown=true` - in particular not in combination with a limited valid input - as then the function will block until it receives a token it recognizes.
     - `vararg_end::String`: a token to signal the end of a vararg (only valid if the function argument is a vararg).
     - `vararg_max::Integer=∞`: the maximum number of arguments the vararg can contain (only valid if the function argument is a vararg).
     - `vararg_timeout::AbstractFloat`: timeout after which to abort waiting for a next token to be spoken (only valid if the function argument is a vararg).
@@ -43,8 +44,9 @@ macro voiceargs(args...) checkargs(args...); handle_voiceargs(__module__, args..
 
 ## CONSTANTS
 
-const USE_PARTIAL_RECOGNITIONS_DEFAULT=false
-const VARARG_TIMEOUT_DEFAULT = 60.0
+const USE_PARTIAL_RECOGNITIONS_DEFAULT = false
+const USE_IGNORE_UNKNOWN_DEFAULT       = false
+const VARARG_TIMEOUT_DEFAULT           = 60.0
 
 
 ## ARGUMENT CHECKS
@@ -203,6 +205,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
         kwargs                   = voiceargs[voicearg]
         modelname                = haskey(kwargs,:model) ? kwargs[:model] : DEFAULT_MODEL_NAME
         use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
+        ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : USE_IGNORE_UNKNOWN_DEFAULT
         f_arg                    = f_args[voicearg]
         f_name_sym               = :(Symbol($(string(f_name))))
         voicearg_sym             = :(Symbol($(string(voicearg))))
@@ -239,14 +242,16 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
                 $voicearg_esc = []
                 $has_timed_out = false
                 while $conditions
-                    $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, timeout=$vararg_timeout)
+                    $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, timeout=$vararg_timeout, ignore_unknown=$ignore_unknown)
+                    if ($token == UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
                     push!($voicearg_esc, $(interpret_and_parse_calls(token, kwargs, f_arg)))
                     $has_timed_out = ($token == "")
                 end
             end
         else
             recognition = quote
-                $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions)
+                $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
+                if ($token == UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
                 if ($token == "") error($("time out waiting for voice argument $voicearg in function $f_name.")) end
                 $voicearg_esc = $(interpret_and_parse_calls(token, kwargs, f_arg))
             end
