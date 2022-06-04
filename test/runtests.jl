@@ -6,7 +6,7 @@ function runtests()
     exename      = joinpath(Sys.BINDIR, Base.julia_exename())
     testdir      = pwd()
     istest(f)    = endswith(f, ".jl") && startswith(basename(f), "test_")
-    ispretest(f) = endswith(f, ".jl") && startswith(basename(f), "pretest_")    # NOTE: pretest_JustSayIt1.jl, pretest_JustSayIt2.jl test the Python related installations.
+    ispretest(f) = endswith(f, ".jl") && startswith(basename(f), "pretest_")    # NOTE: pretest_JustSayIt1.jl, pretest_JustSayIt2.jl test the Python related installations (restart needed after first installation!).
     testfiles    = sort(filter(istest,    vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...)))
     pretestfiles = sort(filter(ispretest, vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...)))
 
