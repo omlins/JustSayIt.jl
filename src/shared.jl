@@ -100,7 +100,7 @@ function pyimport_pip(modulename::AbstractString; dependency::AbstractString="",
                 pyimport(modulename)
             catch e
                 if isa(e, PyCall.PyError) && (dependency != "") # If the module import still failed after installation, try installing the dependency with Conda first.
-                    Conda.pip("uninstall", modulename)
+                    Conda.pip("uninstall --yes", modulename)
                     Conda.add(dependency; channel=channel)
                     Conda.pip("install", modulename)
                     pyimport(modulename)
