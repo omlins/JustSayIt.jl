@@ -12,6 +12,8 @@ Provides functions for controlling the keyboard by voice.
 - [`page`](@ref)
 
 To see a description of a function type `?<functionname>`.
+
+See also: [`Mouse`](@ref)
 """
 module Keyboard
 
