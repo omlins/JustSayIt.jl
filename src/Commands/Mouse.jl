@@ -15,6 +15,8 @@ Provides functions for controlling the mouse by voice.
 - [`click_triple`](@ref)
 
 To see a description of a function type `?<functionname>`.
+
+See also: [`Keyboard`](@ref)
 """
 module Mouse
 
@@ -33,7 +35,7 @@ function __init__()
 end
 
 
-## Functions
+## FUNCTIONS
 
 "Click left mouse button."
 click_left(;count::Integer=1) = controller("mouse").click(Pynput.mouse.Button.left, count)
