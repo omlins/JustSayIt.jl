@@ -6,7 +6,7 @@ Application Programming Interface (API) of JustSayIt.
 #### Macros
 - [`@voiceargs`](@ref)
 
-#### Functions
+#### FUNCTIONS
 - [`is_next`](@ref)
 - [`are_next`](@ref)
 - [`pause_recording`](@ref)
