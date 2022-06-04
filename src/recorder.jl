@@ -58,7 +58,7 @@ let
     _active_recorder_id::String                                            = ""
     _active_recorder_cmd::Union{Cmd,Nothing}                               = nothing
     recorder(id::String=DEFAULT_RECORDER_ID)::Union{Base.Process,PyObject} = _recorders[id]
-    active_recorder_id()::String                                           = (if (_active_recorder_id=="") error("no recorder is active.") end; return _active_recorder_id)
+    active_recorder_id()::String                                           = (if (_active_recorder_id=="") @APIUsageError("no recorder is active.") end; return _active_recorder_id)
 
     function start_recording(; id::String=DEFAULT_RECORDER_ID, audio_input_cmd::Union{Cmd,Nothing}=nothing) # NOTE: here could be started multiple recorders.
         if !isnothing(audio_input_cmd)
