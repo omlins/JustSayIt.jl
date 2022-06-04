@@ -19,7 +19,7 @@ const SAMPLEDIR_CMD = joinpath("samples", "commands")
         @test isa(recorder(id), Base.Process)
         stop_recording(id=id)
     end;
-    @static if !Sys.iswindows()
+    @static if !Sys.iswindows() && !Sys.islinux()
         @testset "2. start/stop/pause/restart recording from mic" begin
             id = "mic"
             @test isa(start_recording(id=id), PyObject)
