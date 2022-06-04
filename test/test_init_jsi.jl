@@ -3,7 +3,7 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, COMMAND_RECOGNIZER_ID
-import JustSayIt: command_names, command, noises_names, noises, model, recognizer
+import JustSayIt: init_jsi, finalize_jsi, command_names, command, noises_names, noises, model, recognizer
 
 @testset "$(basename(@__FILE__))" begin
     @testset "1. initialization" begin

@@ -3,7 +3,7 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS_ENGLISH
-import JustSayIt: voicearg_f_names, voiceargs, recognizer
+import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer
 
 
 # Test setup
