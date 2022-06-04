@@ -3,7 +3,7 @@ let
     _readers::Dict{String, Union{Base.Process,PyObject,IOBuffer}}               = Dict{String, Union{Base.Process,PyObject,IOBuffer}}()
     _active_reader_id::String                                                   = ""
     reader(id::String=DEFAULT_READER_ID)::Union{Base.Process,PyObject,IOBuffer} = _readers[id]
-    active_reader_id()::String                                                  = (if (_active_reader_id=="") error("no reader is active.") end; return _active_reader_id)
+    active_reader_id()::String                                                  = (if (_active_reader_id=="") @APIUsageError("no reader is active.") end; return _active_reader_id)
 
     function start_reading(filename::String; id::String=DEFAULT_READER_ID) # NOTE: here could be started multiple readers.
         _readers[id] = Wave.open(filename, "rb")
@@ -30,7 +30,7 @@ let
 
     function check_wav(reader::PyObject)
         if reader.getnchannels() != 1 || reader.getsampwidth() != 2 || reader.getcomptype() != "NONE" || reader.getframerate() != SAMPLERATE
-            error("the audio file must be WAV format mono PCM @ $SAMPLERATE Hz.")
+            @FileError("the audio file must be WAV format mono PCM @ $SAMPLERATE Hz.")
         end
     end
 
@@ -39,7 +39,7 @@ let
         audio = zeros(UInt8, wav_reader.getnframes()*sizeof(AUDIO_ELTYPE))
         bytes_read = readbytes!(wav_reader, audio)
         close(wav_reader)
-        if (bytes_read == 0) error("file $filepath could not be read.") end
+        if (bytes_read == 0) @FileError("file $filepath could not be read.") end
         return audio
     end
 end
