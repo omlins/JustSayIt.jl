@@ -52,9 +52,9 @@ const VARARG_TIMEOUT_DEFAULT           = 60.0
 ## ARGUMENT CHECKS
 
 function checkargs(args...)
-    if (length(args) != 2) error("wrong number of arguments.") end
-    if !(is_symbol(args[1]) || is_pair(args[1]) || is_tuple(args[1])) error("the first argument must be a voicearg, a pair `voicearg=>kwargs` or a tuple with multiple voiceargs, which can each have kwargs or not (obtained: $(args[1])).") end
-    if !is_function(args[end]) error("the last argument must be a function definition (obtained: $(args[end])).") end
+    if (length(args) != 2) @ArgumentError("wrong number of arguments.") end
+    if !(is_symbol(args[1]) || is_pair(args[1]) || is_tuple(args[1])) @ArgumentError("the first argument must be a voicearg, a pair `voicearg=>kwargs` or a tuple with multiple voiceargs, which can each have kwargs or not (obtained: $(args[1])).") end
+    if !is_function(args[end]) @ArgumentError("the last argument must be a function definition (obtained: $(args[end])).") end
 end
 
 
@@ -101,19 +101,19 @@ complexarg_kwargexpr(complexarg) = complexarg.args[3]
 function extract_voiceargs(arg)
     if (is_symbol(arg) || is_pair(arg)) return [arg]
     elseif is_tuple(arg)                return arg.args
-    else                                error("the argument does not contain voiceargs.")
+    else                                @ArgumentError("the argument does not contain voiceargs.")
     end
 end
 
 function extract_kwargs(arg)
     if is_kwarg(arg)     return Dict{Symbol, Any}(split_kwarg(arg))
     elseif is_tuple(arg) return Dict{Symbol, Any}(split_kwarg(x) for x in arg.args)
-    else                 error("the argument does not contain kwargs.")
+    else                 @KeywordArgumentError("the argument does not contain keyword arguments.")
     end
 end
 
 function split_kwarg(kwarg)
-    if !is_kwarg(kwarg) error("the argument is not a kwarg.") end
+    if !is_kwarg(kwarg) @KeywordArgumentError("the argument is not a keyword arguments.") end
     @capture(kwarg, key_ = value_)
     return key => value
 end
@@ -122,13 +122,13 @@ function split_args(args)
     simpleargs  = Symbol[x for x in args if is_symbol(x)]
     complexargs = Expr[x for x in args if is_pair(x)]
     invalidargs = [x for x in args if !is_symbol(x) && !is_pair(x)]
-    if !isempty(invalidargs) error("one or multiple arguments are not valid:\nInvalid: $(join(invalidargs, "\nInvalid: "))") end
+    if !isempty(invalidargs) @ArgumentError("one or multiple arguments are not valid:\nInvalid: $(join(invalidargs, "\nInvalid: "))") end
     return simpleargs, complexargs
 end
 
 function split_complexargs(complexargs_expr)
-    if !all(is_pair.(complexargs_expr)) error("not all of complexargs_expr are `voicearg=>kwargs` pairs.") end
-    if !all([is_kwargexpr(complexarg_kwargexpr(x)) for x in complexargs_expr]) error("not all keyword arguments are parsable") end
+    if !all(is_pair.(complexargs_expr)) @ArgumentError("not all of complexargs_expr are `voicearg=>kwargs` pairs.") end
+    if !all([is_kwargexpr(complexarg_kwargexpr(x)) for x in complexargs_expr]) @ArgumentError("not all keyword arguments are parsable") end
     return Dict{Symbol, Dict{Symbol, Any}}(complexarg_key(x) => extract_kwargs(complexarg_kwargexpr(x)) for x in complexargs_expr)
 end
 
@@ -140,9 +140,9 @@ function parse_signature(f_expr)
     f_def  = splitdef(f_expr)
     f_name = f_def[:name]
     f_args = Dict(x[1] => Dict(:arg_type=>x[2], :slurp=>x[3], :default=>x[4]) for x in splitarg.(f_def[:args]))
-    if !is_symbol(f_name) error("the function name $f_name in the function definition is not valid.") end
+    if !is_symbol(f_name) @ArgumentError("the function name $f_name in the function definition is not valid.") end
     for arg_name in keys(f_args)
-        if !is_symbol(arg_name) error("the argument $arg_name in the function signature is not valid.") end
+        if !is_symbol(arg_name) @ArgumentError("the argument $arg_name in the function signature is not valid.") end
     end
     return f_name, f_args
 end
@@ -161,20 +161,20 @@ function eval_arg(caller::Module, arg)
     try
         return @eval(caller, $arg)
     catch e
-        error("argument $arg could not be evaluated at parse time (in module $caller).")
+        @ArgumentEvaluationError("argument $arg could not be evaluated at parse time (in module $caller).")
     end
 end
 
 function validate_voiceargs(voiceargs, f_args)
     for voicearg in keys(voiceargs)
-        if !haskey(f_args, voicearg) error("voicearg $(voicearg) is not part of the (positional) function arguments (keyword arguments cannot be voiceargs).") end
+        if !haskey(f_args, voicearg) @ArgumentError("voicearg $(voicearg) is not part of the (positional) function arguments (keyword arguments cannot be voiceargs).") end
         for kwarg in keys(voiceargs[voicearg])
-            if !haskey(VALID_VOICEARGS_KWARGS, kwarg) error("keyword $(kwarg) of voicearg $(voicearg) is not valid.") end
-            if !isa(voiceargs[voicearg][kwarg], VALID_VOICEARGS_KWARGS[kwarg]) error("keyword argument $(kwarg)=$(voiceargs[voicearg][kwarg]) of voicearg $(voicearg) is of the wrong type (obtained type: $(typeof(voiceargs[voicearg][kwarg])); expected type: $(VALID_VOICEARGS_KWARGS[kwarg])).") end
+            if !haskey(VALID_VOICEARGS_KWARGS, kwarg) @KeywordArgumentError("keyword $(kwarg) of voicearg $(voicearg) is not valid.") end
+            if !isa(voiceargs[voicearg][kwarg], VALID_VOICEARGS_KWARGS[kwarg]) @KeywordArgumentError("keyword argument $(kwarg)=$(voiceargs[voicearg][kwarg]) of voicearg $(voicearg) is of the wrong type (obtained type: $(typeof(voiceargs[voicearg][kwarg])); expected type: $(VALID_VOICEARGS_KWARGS[kwarg])).") end
         end
-        if haskey(voiceargs[voicearg], :valid_input) && haskey(voiceargs[voicearg], :valid_input_auto) error("the keywords valid_input and valid_input_auto are incompatible. Set can set only one of them, not both.") end
-        if  (haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) && !f_args[voicearg][:slurp] error("the keywords vararg_end, vararg_max and vararg_timeout are only valid for vararg arguments (as e.g. `args...`)") end
-        if !(haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) &&  f_args[voicearg][:slurp] error("at least one of the keywords vararg_end, vararg_max and vararg_timeout must be set for vararg arguments (as e.g. `args...`)") end
+        if haskey(voiceargs[voicearg], :valid_input) && haskey(voiceargs[voicearg], :valid_input_auto) @IncoherentArgumentError("the keywords valid_input and valid_input_auto are incompatible. Set can set only one of them, not both.") end
+        if  (haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) && !f_args[voicearg][:slurp] @KeywordArgumentError("the keywords vararg_end, vararg_max and vararg_timeout are only valid for vararg arguments (as e.g. `args...`)") end
+        if !(haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) &&  f_args[voicearg][:slurp] @ArgumentError("at least one of the keywords vararg_end, vararg_max and vararg_timeout must be set for vararg arguments (as e.g. `args...`)") end
     end
 end
 
@@ -184,13 +184,13 @@ function handle_valid_inputs!(caller::Module, voiceargs, f_args)
         if haskey(voiceargs[voicearg], :valid_input_auto) && (voiceargs[voicearg][:valid_input_auto] == true)
             type = eval_arg(caller, f_args[voicearg][:arg_type])
             voiceargs[voicearg][:valid_input] = generate_valid_input(type)
-            if !isa(voiceargs[voicearg][:valid_input], VALID_VOICEARGS_KWARGS[:valid_input]) error("generation of valid input by type inspection failed for voicearg $voicearg (generated: $(voiceargs[voicearg][:valid_input])).") end
+            if !isa(voiceargs[voicearg][:valid_input], VALID_VOICEARGS_KWARGS[:valid_input]) @ArgumentError("generation of valid input by type inspection failed for voicearg $voicearg (generated: $(voiceargs[voicearg][:valid_input])).") end
         end
     end
 end
 
 generate_valid_input(type::Type{<:Enum}) = [string.(instances(type))...]
-generate_valid_input(type)               = error("type $(esc(type)) is not supported to define the valid input of a voicearg; currently supported are: Enum types. Other types can be supported by overloading `generate_valid_input`. Else, you can define the valid input explicitly witht the `valid_input` keyword argument.")
+generate_valid_input(type)               = @ArgumentError("type $(esc(type)) is not supported to define the valid input of a voicearg; currently supported are: Enum types. Other types can be supported by overloading `generate_valid_input`. Else, you can define the valid input explicitly witht the `valid_input` keyword argument.")
 
 # Construct the wrapper based on the definition of the original function, as it will only differ in the arguments and body.
 function wrap_f(f_name, f_args, f_expr, voiceargs)
@@ -252,7 +252,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
             recognition = quote
                 $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
                 if ($token == UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
-                if ($token == "") error($("time out waiting for voice argument $voicearg in function $f_name.")) end
+                if ($token == "") @InsecureRecognitionException($("time out waiting for voice argument $voicearg in function $f_name.")) end
                 $voicearg_esc = $(interpret_and_parse_calls(token, kwargs, f_arg))
             end
         end
