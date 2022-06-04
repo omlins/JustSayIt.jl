@@ -36,6 +36,8 @@ jobs:
         exclude:
           - os: macOS-latest
             arch: x86  # 32-bit Julia binaries are not available on macOS
+          - os: ubuntu-latest
+            arch: x86  # Conda interop fails: https://github.com/JuliaPy/Conda.jl/issues/220
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
