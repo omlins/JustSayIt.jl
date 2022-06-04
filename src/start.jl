@@ -7,7 +7,7 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
     start()
     start(<keyword arguments>)
 
-Start offline, low latency, highly accurate speech to command translation.
+Start offline, low latency, highly accurate and secure speech to command translation.
 
 # Keyword arguments
 - `commands::Dict{String, <:Any}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
