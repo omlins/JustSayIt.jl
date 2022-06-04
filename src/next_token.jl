@@ -14,7 +14,7 @@ Check if the next token in the speech matches `token`; if yes, return `true`, el
 	- `timeout::Float64=Inf`: timeout after which to abort waiting for a next token to be spoken.
 	- `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
 
-See also: [`init_jsi`](@ref)
+See also: [`are_next`](@ref)
 """
 is_next
 
@@ -30,11 +30,11 @@ Check if the next group of tokens in the speech match `token`; if all match, ret
 - `token::String | AbstractArray{String}`: the token(s) to compare the next token in the speech against.
 !!! note "Advanced keyword arguments"
 	- `modelname::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
-	- `consume_if_match::Bool=false`: whether the next token is to be consumed in case of a match.
+	- `consume_if_match::Bool=false`: whether the next tokens are to be consumed in case that all match.
 	- `timeout::Float64=Inf`: timeout after which to abort waiting for a next token to be spoken.
-	- `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
+	- `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next tokens (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
 
-See also: [`init_jsi`](@ref)
+See also: [`is_next`](@ref)
 """
 are_next
 
