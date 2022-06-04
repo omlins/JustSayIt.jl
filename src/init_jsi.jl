@@ -30,7 +30,7 @@ let
     noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
     noises_names()                                                                                      = keys(_noises)
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
-    controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else error("The controller for $name is not available as it has not been set up in init_jsi.") end
+    controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
     set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
 
 
@@ -38,18 +38,18 @@ let
         Vosk.SetLogLevel(vosk_log_level)
 
         # Validate and store the commands, adding the help command to it.
-        if haskey(commands, COMMAND_NAME_SLEEP) error("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
-        if haskey(commands, COMMAND_NAME_AWAKE) error("the command name $COMMAND_NAME_AWAKE is reserved for awaking JustSayIt. Please choose another command name for your command.") end
+        if haskey(commands, COMMAND_NAME_SLEEP) @ArgumentError("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
+        if haskey(commands, COMMAND_NAME_AWAKE) @ArgumentError("the command name $COMMAND_NAME_AWAKE is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
-            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) error("the command belonging to commmand name $command_name is of an invalid. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) @ArgumentError("the command belonging to commmand name $command_name is of an invalid. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
         end
         _commands = commands
 
         # Verify that DEFAULT_MODEL_NAME is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        if !haskey(modeldirs, DEFAULT_MODEL_NAME) error("a directory for the 'default' model is mandatory.") end
-        if !haskey(modeldirs, TYPE_MODEL_NAME) error("a directory for the 'type' model is mandatory.") end
-        if haskey(modeldirs, "") error("an empty string is not valid as model identifier.") end
-        if !haskey(noises, DEFAULT_MODEL_NAME) error("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
+        if !haskey(modeldirs, DEFAULT_MODEL_NAME) @ArgumentError("a directory for the 'default' model is mandatory.") end
+        if !haskey(modeldirs, TYPE_MODEL_NAME) @ArgumentError("a directory for the 'type' model is mandatory.") end
+        if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
+        if !haskey(noises, DEFAULT_MODEL_NAME) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
         if !haskey(noises, TYPE_MODEL_NAME)
             noises[TYPE_MODEL_NAME] = noises[DEFAULT_MODEL_NAME]
             @warn("no noises given for model \"type\" - falling back to noises configuration of model 'default' when typing.")
@@ -86,7 +86,7 @@ let
             if !isdir(modeldirs[modelname])
                 tilde_errmsg = ""
                 if startswith(modeldirs[modelname], "~") tilde_errmsg = " Tildes ('~') in strings are not expanded for portability reasons (consider using 'homedir()')." end
-                error("directory $(modeldirs[modelname]) does not exist.$tilde_errmsg")
+                @ArgumentError("directory $(modeldirs[modelname]) does not exist.$tilde_errmsg")
             end
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
@@ -100,7 +100,7 @@ let
         for f_name in voicearg_f_names()
             for voicearg in keys(voiceargs(f_name))
                 kwargs = voiceargs(f_name)[voicearg]
-                if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) error("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
+                if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
                 if haskey(kwargs, :valid_input)
                     modelname = haskey(kwargs, :model) ? kwargs[:model] : DEFAULT_MODEL_NAME
                     grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
