@@ -20,4 +20,4 @@ function include_config(caller::Module, path)
     end
 end
 
-checkargs_include(args...) = if (length(args) != 1) error("wrong number of arguments.") end
+checkargs_include(args...) = if (length(args) != 1) @ArgumentError("wrong number of arguments.") end

@@ -107,7 +107,7 @@ let
 
 
 	function next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
-		if force_dynamic_recognizer error("forcing dynamic recogniser is not possible, if a recognizer is given.") end
+		if force_dynamic_recognizer @APIUsageError("forcing dynamic recogniser is not possible, if a recognizer is given.") end
 		_next_token(recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=restart_recognition, ignore_unknown=ignore_unknown)
 	end
 

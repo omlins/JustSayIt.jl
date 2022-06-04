@@ -90,8 +90,8 @@ start(audio_input_cmd=audio_input_cmd)
 ```
 """
 function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
-    if (!isnothing(subset) && !issubset(subset, keys(commands))) error("obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
-    if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) error("obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
+    if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
+    if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
     if isnothing(max_speed_subset) max_speed_subset = String[] end
     max_speed_token_subset = map(max_speed_subset) do cmd_name # Only the first tokens are used to decide if max speed is used.
@@ -99,7 +99,7 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
     end
     max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
-    if !isempty(incoherent_subset) error("'max_speed_subset' is not coherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
+    if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
 
     # Initializations
     @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."

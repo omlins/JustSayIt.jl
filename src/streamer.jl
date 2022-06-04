@@ -1,9 +1,9 @@
 import Base: readbytes!, close
 let
     global default_streamer, set_default_streamer, readbytes!, close
-    _default_streamer::Tuple{Function, String}                                              = (recorder, DEFAULT_RECORDER_ID)
-    default_streamer(id::String=DEFAULT_RECORDER_ID)::Union{Base.Process,PyObject,IOBuffer} = _default_streamer[1](_default_streamer[2])
-    set_default_streamer(streamerkind::Function, id::String)                                = (_default_streamer = (streamerkind, id); return)
+    _default_streamer::Tuple{Function, String}                = (recorder, DEFAULT_RECORDER_ID)
+    default_streamer()::Union{Base.Process,PyObject,IOBuffer} = _default_streamer[1](_default_streamer[2])
+    set_default_streamer(streamerkind::Function, id::String)  = (_default_streamer = (streamerkind, id); return)
 
     function readbytes!(stream::PyObject, b::AbstractVector{UInt8}, nb=length(b))
         nb_frames = Int(nb/sizeof(AUDIO_ELTYPE))
@@ -15,7 +15,7 @@ let
             b .= stream.read(nb_frames)[1]
             return nb
         else
-            error("PyObject of unknown class.")
+            @APIUsageError("PyObject of unknown class.")
         end
     end
 
