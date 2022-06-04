@@ -9,6 +9,8 @@ Provides functions for operations in an Email client.
 - [`inbox`](@ref)
 
 To see a description of a function type `?<functionname>`.
+
+See also: [`Internet`](@ref)
 """
 module Email
 
@@ -21,7 +23,7 @@ import ..JustSayIt: @voiceargs
 const EMAIL_ENGINE = "https://mail.google.com"
 
 
-## Functions
+## FUNCTIONS
 
 @doc """
     email `inbox` | `outbox`
