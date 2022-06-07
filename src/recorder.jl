@@ -37,7 +37,7 @@ stop_recording
 @doc """
     pause_recording()
 
-Pause recording of active recorder.
+Pause recording of the active recorder.
 
 See also: [`restart_recording`](@ref)
 """
@@ -46,7 +46,7 @@ pause_recording
 @doc """
     restart_recording()
 
-Restart recording of last active recorder.
+Restart recording of the last active recorder.
 
 See also: [`pause_recording`](@ref)
 """

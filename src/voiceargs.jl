@@ -34,10 +34,7 @@ end
     #(...)
     return
 end
-
 ```
-
-See also: [`init_jsi`](@ref)
 """
 macro voiceargs(args...) checkargs(args...); handle_voiceargs(__module__, args...); end
 

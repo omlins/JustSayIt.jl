@@ -9,6 +9,8 @@ Provides functions for navigating in the internet by voice.
 - [`search`](@ref)
 
 To see a description of a function type `?<functionname>`.
+
+See also: [`Email`](@ref)
 """
 module Internet
 
@@ -23,7 +25,7 @@ const SEARCH_ENGINE = "https://google.com"
 const SEARCH_DOC = "start search engine, enter \"type text\" mode to obtain search words from speech and then trigger the search when the keyword \"search\" is spoken."
 
 
-## Functions
+## FUNCTIONS
 
 @doc """
     internet `search`

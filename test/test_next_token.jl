@@ -3,7 +3,7 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
-import JustSayIt: recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
+import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
 
 
 # Test setup
