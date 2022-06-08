@@ -10,12 +10,15 @@ const DEFAULT_COMMANDS  = Dict("help"     => Help.help,
 Start offline, low latency, highly accurate and secure speech to command translation.
 
 # Keyword arguments
-- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
+- `command_language::String="$(LANG.EN_US)"`: the language of the voice commands (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
+- `type_languages::String|AbstractArray{String}=["$(LANG.EN_US)"]`: the languages used for typing (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
+- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[command_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
-- `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
-- `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
-- `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
+!!! note "Advanced"
+    - `modeldirs::Dict{String, String}=DEFAULT_MODELDIRS[command_language,type_languages]`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
+    - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES[command_language,type_languages]`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
+    - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
 
 # Submodules for command name to function mapping
 - [`Help`](@ref)
@@ -31,17 +34,25 @@ To see a description of a submodule, type `?<modulename>`.
 $(pretty_dict_string(DEFAULT_COMMANDS))
 ```
 
-# Default `modeldirs`
-```
-$(pretty_dict_string(DEFAULT_MODELDIRS))
-```
+!!! note "Advanced"
+    # Default `modeldirs`
+    ```
+    $(pretty_dict_string(DEFAULT_MODELDIRS))
+    ```
 
-# Default `noises`
-```
-$(pretty_dict_string(DEFAULT_NOISES))
-```
+    # Default `noises`
+    ```
+    $(pretty_dict_string(DEFAULT_NOISES))
+    ```
 
 # Examples
+
+#### Define `command_language` and `type_languages`
+```
+# Set command language to french and type languages to french and spanish:
+using JustSayIt
+start(command_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
+```
 
 #### Define `subset`
 ```
@@ -76,8 +87,8 @@ start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "ri
 #### Define custom `modeldirs`
 ```
 using JustSayIt
-modeldirs = Dict(DEFAULT_MODEL_NAME => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
-                 TYPE_MODEL_NAME    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
+                 MODELNAME.TYPE.EN_US    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
 start(modeldirs=modeldirs)
 ```
 
@@ -89,7 +100,7 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; command_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
@@ -149,14 +160,14 @@ function start(; commands::Dict{String, <:Any}=DEFAULT_COMMANDS, subset::Union{N
             end
             try
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
-                use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
-                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=true, ignore_unknown=false)
+                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                 if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                     reset_all()
                     cmd_name = ""
                 end
                 while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
-                    token = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(DEFAULT_MODEL_NAME); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                    token = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                     if token == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                         reset_all()
                         cmd_name = ""

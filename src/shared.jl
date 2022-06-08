@@ -52,10 +52,8 @@ const COMMAND_NAME_AWAKE = "awake"
 const COMMAND_ABORT = "abortus"
 const VARARG_END = "terminus"
 const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
-const DEFAULT_MODEL_NAME = "default"
 const DEFAULT_RECORDER_ID = "default"
 const DEFAULT_READER_ID = "default"
-const TYPE_MODEL_NAME = "type"
 const COMMAND_RECOGNIZER_ID = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
 const NOISES_ENGLISH = ["huh"]
 const DIGITS_ENGLISH = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".", "space"=>" ")
@@ -63,6 +61,15 @@ const ALPHABET_ENGLISH = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", 
 
 const UNKNOWN_TOKEN = "[unk]"
 const PyKey = Union{Char, PyObject}
+
+const LANG = (; DE    = "de",
+                EN_US = "en_us",
+                ES    = "es",
+                FR    = "fr",
+             )
+const MODELNAME = (; DEFAULT = (; zip(keys(LANG), "default_" .* values(LANG))...),
+                     TYPE    = (; zip(keys(LANG),    "type_" .* values(LANG))...),
+                  )
 
 @static if Sys.iswindows()
     const JSI_DATA        = joinpath(ENV["APPDATA"], "JustSayIt")
@@ -77,10 +84,10 @@ else
     const CONFIG_PREFIX   = joinpath(homedir(), ".config", "JustSayIt")
 end
 
-const DEFAULT_MODELDIRS = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                               TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"))
-const DEFAULT_NOISES    = Dict(DEFAULT_MODEL_NAME => NOISES_ENGLISH,
-                               TYPE_MODEL_NAME    => NOISES_ENGLISH)
+const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                               MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"))
+const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES_ENGLISH,
+                               MODELNAME.TYPE.EN_US    => NOISES_ENGLISH)
 
 DEFAULT_MODEL_REPO                 = "https://alphacephei.com/vosk/models"
 DEFAULT_ENGLISH_MODEL_ARCHIVE      = "vosk-model-small-en-us-0.15.zip"

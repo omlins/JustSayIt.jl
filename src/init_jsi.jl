@@ -26,7 +26,7 @@ let
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     command(name::AbstractString)                                                                       = _commands[name]
     command_names()                                                                                     = keys(_commands)
-    model(name::AbstractString=DEFAULT_MODEL_NAME)::PyObject                                            = _models[name]
+    model(name::AbstractString=MODELNAME.DEFAULT.EN_US)::PyObject                                            = _models[name]
     noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
     noises_names()                                                                                      = keys(_noises)
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
@@ -45,37 +45,37 @@ let
         end
         _commands = commands
 
-        # Verify that DEFAULT_MODEL_NAME is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        if !haskey(modeldirs, DEFAULT_MODEL_NAME) @ArgumentError("a directory for the 'default' model is mandatory.") end
-        if !haskey(modeldirs, TYPE_MODEL_NAME) @ArgumentError("a directory for the 'type' model is mandatory.") end
+        # Verify that MODELNAME.DEFAULT.EN_US is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
+        if !haskey(modeldirs, MODELNAME.DEFAULT.EN_US) @ArgumentError("a directory for the 'default' model is mandatory.") end
+        if !haskey(modeldirs, MODELNAME.TYPE.EN_US) @ArgumentError("a directory for the 'type' model is mandatory.") end
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
-        if !haskey(noises, DEFAULT_MODEL_NAME) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
-        if !haskey(noises, TYPE_MODEL_NAME)
-            noises[TYPE_MODEL_NAME] = noises[DEFAULT_MODEL_NAME]
+        if !haskey(noises, MODELNAME.DEFAULT.EN_US) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
+        if !haskey(noises, MODELNAME.TYPE.EN_US)
+            noises[MODELNAME.TYPE.EN_US] = noises[MODELNAME.DEFAULT.EN_US]
             @warn("no noises given for model \"type\" - falling back to noises configuration of model 'default' when typing.")
         end
         _noises = noises
 
         # If the modeldirs point to the default path, download a model if none is present (asumed present if the folder is present)
-        if modeldirs[DEFAULT_MODEL_NAME] == DEFAULT_MODELDIRS[DEFAULT_MODEL_NAME]
-            if !isdir(modeldirs[DEFAULT_MODEL_NAME])
+        if modeldirs[MODELNAME.DEFAULT.EN_US] == DEFAULT_MODELDIRS[MODELNAME.DEFAULT.EN_US]
+            if !isdir(modeldirs[MODELNAME.DEFAULT.EN_US])
                 @info "No 'default' model found in its default location: downloading small english model ($DEFAULT_ENGLISH_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~40 MB)..."
-                modeldepot = joinpath(modeldirs[DEFAULT_MODEL_NAME], "..")
+                modeldepot = joinpath(modeldirs[MODELNAME.DEFAULT.EN_US], "..")
                 download_and_unzip(modeldepot, DEFAULT_ENGLISH_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
             end
         end
-        if modeldirs[TYPE_MODEL_NAME] == DEFAULT_MODELDIRS[TYPE_MODEL_NAME]
-            if !isdir(modeldirs[TYPE_MODEL_NAME])
+        if modeldirs[MODELNAME.TYPE.EN_US] == DEFAULT_MODELDIRS[MODELNAME.TYPE.EN_US]
+            if !isdir(modeldirs[MODELNAME.TYPE.EN_US])
                 @info "No 'type' model found in its default location: download (optional) accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~1 GB)?"
                 answer = ""
                 while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
                     answer = readline()
                 end
                 if answer == "yes"
-                    modeldepot = joinpath(modeldirs[TYPE_MODEL_NAME], "..")
+                    modeldepot = joinpath(modeldirs[MODELNAME.TYPE.EN_US], "..")
                     download_and_unzip(modeldepot, DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
                 else
-                    modeldirs[TYPE_MODEL_NAME] = modeldirs[DEFAULT_MODEL_NAME]
+                    modeldirs[MODELNAME.TYPE.EN_US] = modeldirs[MODELNAME.DEFAULT.EN_US]
                     @warn("Not downloading `type` model: falling back to model `default` for typing.")
                 end
             end
@@ -90,7 +90,7 @@ let
             end
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
-            if modelname == DEFAULT_MODEL_NAME
+            if modelname == MODELNAME.DEFAULT.EN_US
                 grammar = json([keys(commands)..., COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
                 _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
             end
@@ -102,7 +102,7 @@ let
                 kwargs = voiceargs(f_name)[voicearg]
                 if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
                 if haskey(kwargs, :valid_input)
-                    modelname = haskey(kwargs, :model) ? kwargs[:model] : DEFAULT_MODEL_NAME
+                    modelname = haskey(kwargs, :model) ? kwargs[:model] : MODELNAME.DEFAULT.EN_US
                     grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
                     set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
                 end

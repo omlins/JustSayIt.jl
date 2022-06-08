@@ -18,7 +18,7 @@ See also: [`Mouse`](@ref)
 module Keyboard
 
 using PyCall
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, TYPE_MODEL_NAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, MODELNAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
 
 
 ## PYTHON MODULES
@@ -308,7 +308,7 @@ interpret_digits(input::AbstractString)  = (return DIGITS_ENGLISH[input])
 
 @doc "Get next word from speech."
 next_word
-@voiceargs word=>(model=TYPE_MODEL_NAME, ignore_unknown=true) next_word(word::String) = (return word)
+@voiceargs word=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true) next_word(word::String) = (return word)
 
 @doc "Get next letter from speech."
 next_letter

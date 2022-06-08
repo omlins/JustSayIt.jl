@@ -12,9 +12,13 @@ Application Programming Interface (API) of JustSayIt.
 - [`pause_recording`](@ref)
 - [`restart_recording`](@ref)
 
+#### CONSTANTS
+- [`LANG`](@ref)
+- [`MODELNAME`](@ref)
+
 To see a description of a function, macro or module type `?<functionname>`, `?<macroname>` (including the `@`) or `?<modulename>`, respectively.
 """
 module API
-    import ..JustSayIt: @voiceargs, is_next, are_next, pause_recording, restart_recording
-    export @voiceargs, is_next, are_next, pause_recording, restart_recording
+    import ..JustSayIt: @voiceargs, is_next, are_next, pause_recording, restart_recording, LANG, MODELNAME
+    export @voiceargs, is_next, are_next, pause_recording, restart_recording, LANG, MODELNAME
 end

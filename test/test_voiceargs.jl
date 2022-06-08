@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS_ENGLISH
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS_ENGLISH
 import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer
 
 
@@ -15,15 +15,15 @@ import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognize
 @voiceargs (
     nr=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=Keyboard.interpret_digits, use_max_speed=true),
     name=>(valid_input_auto=true),
-    question=>(model=TYPE_MODEL_NAME, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
+    question=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
 ) function ask(nr::Integer, name::Name, question::String...)
     println("[Q$nr] Hi $name, could you please $(join(question," "))?")
 end
 
 commands = Dict("help"  => Help.help,
                 "hello" => hello)
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 
@@ -77,7 +77,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
                 @test voiceargs(:ask)[:question][:ignore_unknown] == true
             end;
             @testset "model" begin
-                @test voiceargs(:ask)[:question][:model] == TYPE_MODEL_NAME
+                @test voiceargs(:ask)[:question][:model] == MODELNAME.TYPE.EN_US
             end;
             @testset "vararg_end" begin
                 @test voiceargs(:ask)[:question][:vararg_end] == "end"

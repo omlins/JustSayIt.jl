@@ -9,7 +9,7 @@ Check if the next token in the speech matches `token`; if yes, return `true`, el
 # Arguments
 - `token::String | AbstractArray{String}`: the token(s) to compare the next token in the speech against.
 !!! note "Advanced keyword arguments"
-	- `modelname::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
+	- `modelname::String=MODELNAME.DEFAULT.EN_US`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
 	- `consume_if_match::Bool=false`: whether the next token is to be consumed in case of a match.
 	- `timeout::Float64=Inf`: timeout after which to abort waiting for a next token to be spoken.
 	- `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
@@ -29,7 +29,7 @@ Check if the next group of tokens in the speech match `token`; if all match, ret
 # Arguments
 - `token::String | AbstractArray{String}`: the token(s) to compare the next token in the speech against.
 !!! note "Advanced keyword arguments"
-	- `modelname::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
+	- `modelname::String=MODELNAME.DEFAULT.EN_US`: the name of the model to be used for the recognition in the token comparison (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
 	- `consume_if_match::Bool=false`: whether the next tokens are to be consumed in case that all match.
 	- `timeout::Float64=Inf`: timeout after which to abort waiting for a next token to be spoken.
 	- `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next tokens (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
@@ -121,7 +121,7 @@ let
         end
 	end
 
-	function next_token(valid_input::AbstractArray{String}; modelname::String=DEFAULT_MODEL_NAME, noise_tokens::AbstractArray{String}=noises(modelname), consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, ignore_unknown::Bool=true)
+	function next_token(valid_input::AbstractArray{String}; modelname::String=MODELNAME.DEFAULT.EN_US, noise_tokens::AbstractArray{String}=noises(modelname), consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, ignore_unknown::Bool=true)
 		recognizer_info = (Symbol(), Symbol(), valid_input, modelname)
 		next_token(recognizer_info, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, force_dynamic_recognizer=true, ignore_unknown=ignore_unknown)
 	end
@@ -134,12 +134,12 @@ let
 		return is_match
 	end
 
-	function is_next(token::Union{String,AbstractArray{String}}, valid_input::AbstractArray{String}; modelname::String=DEFAULT_MODEL_NAME, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
+	function is_next(token::Union{String,AbstractArray{String}}, valid_input::AbstractArray{String}; modelname::String=MODELNAME.DEFAULT.EN_US, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
 		recognizer_info = (Symbol(), Symbol(), valid_input, modelname)
 		_is_next(token, recognizer_info, noise_tokens; consume_if_match=consume_if_match, timeout=timeout, use_partial_recognitions=use_max_speed, force_dynamic_recognizer=true, ignore_unknown=ignore_unknown)
 	end
 
-	function is_next(token::Union{String,AbstractArray{String}}; modelname::String=DEFAULT_MODEL_NAME, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
+	function is_next(token::Union{String,AbstractArray{String}}; modelname::String=MODELNAME.DEFAULT.EN_US, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
 		valid_input = isa(token, String) ? [token] : token
 		is_next(token, valid_input; modelname=modelname, noise_tokens=noise_tokens, consume_if_match=consume_if_match, timeout=timeout, use_max_speed=use_max_speed, ignore_unknown=ignore_unknown)
 	end
@@ -169,18 +169,18 @@ let
 		return is_match, match
 	end
 
-	function are_next(token::Union{String,AbstractArray{String}}, valid_input::AbstractArray{String}; modelname::String=DEFAULT_MODEL_NAME, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
+	function are_next(token::Union{String,AbstractArray{String}}, valid_input::AbstractArray{String}; modelname::String=MODELNAME.DEFAULT.EN_US, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
 		recognizer_info = (Symbol(), Symbol(), valid_input, modelname)
 		_are_next(token, recognizer_info, noise_tokens; consume_if_match=consume_if_match, timeout=timeout, use_partial_recognitions=use_max_speed, force_dynamic_recognizer=true, ignore_unknown=ignore_unknown)
 	end
 
-	function are_next(token::Union{String,AbstractArray{String}}; modelname::String=DEFAULT_MODEL_NAME, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
+	function are_next(token::Union{String,AbstractArray{String}}; modelname::String=MODELNAME.DEFAULT.EN_US, noise_tokens::AbstractArray{String}=noises(modelname), consume_if_match::Bool=false, timeout::Float64=Inf, use_max_speed::Bool=false, ignore_unknown::Bool=false)
 		valid_input = isa(token, String) ? [token] : token
 		are_next(token, valid_input; modelname=modelname, noise_tokens=noise_tokens, consume_if_match=consume_if_match, timeout=timeout, use_max_speed=use_max_speed, ignore_unknown=ignore_unknown)
 	end
 
 	# Create dynamically a recognizer based on the valid input, model and the consumed tokens recognised in the current audio_buffer.
-	function recognizer(valid_input::AbstractArray{String}, noise_tokens::AbstractArray{String}; modelname::String=DEFAULT_MODEL_NAME)
+	function recognizer(valid_input::AbstractArray{String}, noise_tokens::AbstractArray{String}; modelname::String=MODELNAME.DEFAULT.EN_US)
 		ignore_tokens = [noise_tokens..., UNKNOWN_TOKEN]
 		consumed_tokens = join(token_buffer[1:i], " ")
 		if isempty(consumed_tokens)

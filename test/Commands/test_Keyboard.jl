@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, _are_next
 
 
@@ -12,8 +12,8 @@ const SAMPLEDIR_SILENCE = joinpath("samples", "silence")
 
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type)
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 and           = read_wav(joinpath(SAMPLEDIR_TYPE, "and.wav"))

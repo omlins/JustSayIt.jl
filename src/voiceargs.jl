@@ -7,7 +7,7 @@ Declare some or all arguments of the `function` definition to be arguments that 
 - `args`: a voicearg, a pair `voicearg=>kwargs` or a tuple with multiple voiceargs, which can each have kwargs or not (see examples below).
 - `function`: the function definition.
 !!! note "Keyword arguments definable for each voice argument in `args`"
-    - `model::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
+    - `model::String=MODELNAME.DEFAULT.EN_US`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
     - `valid_input::AbstractArray{String}`: the valid speech input (e.g. `["up", "down"]`).
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
     - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
@@ -30,7 +30,7 @@ end
 end
 
 @enum TypeMode words formula
-@voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+@voiceargs (mode=>(valid_input_auto=true), token=>(model=MODELNAME.TYPE.EN_US, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
     #(...)
     return
 end
@@ -200,7 +200,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
     i = 1
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
-        modelname                = haskey(kwargs,:model) ? kwargs[:model] : DEFAULT_MODEL_NAME
+        modelname                = haskey(kwargs,:model) ? kwargs[:model] : MODELNAME.DEFAULT.EN_US
         use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
         ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : USE_IGNORE_UNKNOWN_DEFAULT
         f_arg                    = f_args[voicearg]
