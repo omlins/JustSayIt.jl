@@ -49,7 +49,7 @@ let
         if !haskey(modeldirs, MODELNAME.DEFAULT.EN_US) @ArgumentError("a directory for the 'default' model is mandatory.") end
         if !haskey(modeldirs, MODELNAME.TYPE.EN_US) @ArgumentError("a directory for the 'type' model is mandatory.") end
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
-        if !haskey(noises, MODELNAME.DEFAULT.EN_US) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES_ENGLISH`).") end
+        if !haskey(noises, MODELNAME.DEFAULT.EN_US) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES.EN_US`).") end
         if !haskey(noises, MODELNAME.TYPE.EN_US)
             noises[MODELNAME.TYPE.EN_US] = noises[MODELNAME.DEFAULT.EN_US]
             @warn("no noises given for model \"type\" - falling back to noises configuration of model 'default' when typing.")
