@@ -44,7 +44,7 @@ $(pretty_dict_string(DEFAULT_COMMANDS))
 ```
 
 !!! note "Advanced"
-    # Default `modeldirs`
+    # Default model directories
     ```
     $(pretty_dict_string(DEFAULT_MODELDIRS))
     ```
