@@ -109,7 +109,7 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; command_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Dict{String,String}=DEFAULT_MODELDIRS, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; command_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (command_language ∉ LANG) @KeywordArgumentError("invalid `command_language` (obtained \"$command_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
@@ -126,6 +126,10 @@ function start(; command_language::String=LANG.EN_US, type_languages::Union{Stri
     max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
     if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
+    if isnothing(modeldirs)
+        modelnames = [modelname(MODELTYPE_DEFAULT, command_language); modelname.(MODELTYPE_TYPE, type_languages)]
+        modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
+    end
 
     # Initializations
     @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."
