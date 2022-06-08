@@ -55,7 +55,6 @@ const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{
 const DEFAULT_RECORDER_ID = "default"
 const DEFAULT_READER_ID = "default"
 const COMMAND_RECOGNIZER_ID = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
-const NOISES_ENGLISH = ["huh"]
 const DIGITS_ENGLISH = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".", "space"=>" ")
 const ALPHABET_ENGLISH = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z", "space"=>" ")
 
@@ -67,9 +66,15 @@ const LANG = (; DE    = "de",
                 ES    = "es",
                 FR    = "fr",
              )
+const NOISES = (; DE    = [],
+                  EN_US = ["huh"],
+                  ES    = [],
+                  FR    = [],
+               )
 const MODELNAME = (; DEFAULT = (; zip(keys(LANG), "default_" .* values(LANG))...),
                      TYPE    = (; zip(keys(LANG),    "type_" .* values(LANG))...),
                   )
+
 
 @static if Sys.iswindows()
     const JSI_DATA        = joinpath(ENV["APPDATA"], "JustSayIt")
@@ -86,8 +91,8 @@ end
 
 const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
                                MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"))
-const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES_ENGLISH,
-                               MODELNAME.TYPE.EN_US    => NOISES_ENGLISH)
+const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
+                               MODELNAME.TYPE.EN_US    => NOISES.EN_US)
 
 DEFAULT_MODEL_REPO                 = "https://alphacephei.com/vosk/models"
 DEFAULT_ENGLISH_MODEL_ARCHIVE      = "vosk-model-small-en-us-0.15.zip"
