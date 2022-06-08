@@ -61,20 +61,26 @@ const ALPHABET_ENGLISH = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", 
 const UNKNOWN_TOKEN = "[unk]"
 const PyKey = Union{Char, PyObject}
 
+const MODELTYPE_DEFAULT = "default"
+const MODELTYPE_TYPE    = "type"
+
 const LANG = (; DE    = "de",
-                EN_US = "en_us",
+                EN_US = "en-us",
                 ES    = "es",
                 FR    = "fr",
              )
+
 const NOISES = (; DE    = [],
                   EN_US = ["huh"],
                   ES    = [],
                   FR    = [],
                )
-const MODELNAME = (; DEFAULT = (; zip(keys(LANG), "default_" .* values(LANG))...),
-                     TYPE    = (; zip(keys(LANG),    "type_" .* values(LANG))...),
-                  )
 
+modelname(modeltype::String, language::String) = modeltype * "_" * language
+
+const MODELNAME = (; DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
+                     TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
+                  )
 
 @static if Sys.iswindows()
     const JSI_DATA        = joinpath(ENV["APPDATA"], "JustSayIt")
@@ -89,8 +95,15 @@ else
     const CONFIG_PREFIX   = joinpath(homedir(), ".config", "JustSayIt")
 end
 
-const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                               MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"))
+const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREFIX, "vosk-model-small-de-0.15"),
+                               MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                               MODELNAME.DEFAULT.ES    => joinpath(MODELDIR_PREFIX, "vosk-model-small-es-0.22"),
+                               MODELNAME.DEFAULT.FR    => joinpath(MODELDIR_PREFIX, "vosk-model-small-fr-0.22"),
+                               MODELNAME.TYPE.DE       => joinpath(MODELDIR_PREFIX, "vosk-model-de-0.21"),
+                               MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"),
+                               # NOTE: Currently no large model for ES available.
+                               MODELNAME.TYPE.FR       => joinpath(MODELDIR_PREFIX, "vosk-model-fr-0.22"),
+                               )
 const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
                                MODELNAME.TYPE.EN_US    => NOISES.EN_US)
 
