@@ -38,6 +38,7 @@ let
 
     function init_jsi(default_language::String, type_languages::AbstractArray{String}, commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
+        modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
 
         # Validate and store the commands, adding the help command to it.
         if haskey(commands, COMMAND_NAME_SLEEP) @ArgumentError("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
@@ -48,7 +49,6 @@ let
         _commands = commands
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
         if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
         if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
@@ -89,8 +89,7 @@ let
                             modeldirs[modelname_lang] = modeldirs[modelname_default]
                         else
                             @warn("Not downloading large accurate model for typing language \"$lang\": falling back to small model for typing.")
-                            modelname_lang_small = modelname(MODELTYPE_DEFAULT, lang)
-                            modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname_lang_small]
+                            modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname(MODELTYPE_DEFAULT, lang)]
                             modeldir = modeldirs[modelname_lang]
                             if !isdir(modeldir)
                                 filename = basename(modeldir) * ".zip"
@@ -113,7 +112,7 @@ let
             end
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
-            if modelname == MODELNAME.DEFAULT.EN_US
+            if modelname == modelname_default
                 grammar = json([keys(commands)..., COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
                 _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
             end
@@ -125,7 +124,7 @@ let
                 kwargs = voiceargs(f_name)[voicearg]
                 if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
                 if haskey(kwargs, :valid_input)
-                    modelname = haskey(kwargs, :model) ? kwargs[:model] : MODELNAME.DEFAULT.EN_US
+                    modelname = haskey(kwargs, :model) ? kwargs[:model] : modelname_default
                     grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
                     set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
                 end
