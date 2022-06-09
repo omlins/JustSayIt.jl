@@ -76,7 +76,7 @@ const NOISES = (; DE    = [],
                   FR    = [],
                )
 
-modelname(modeltype::String, language::String) = modeltype * "_" * language
+modelname(modeltype::String, language::String) = modeltype * "-" * language
 
 const MODELNAME = (; DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
                      TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
