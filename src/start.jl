@@ -19,13 +19,13 @@ const DEFAULT_COMMANDS = Dict(
 Start offline, low latency, highly accurate and secure speech to command translation.
 
 # Keyword arguments
-- `command_language::String="$(LANG.EN_US)"`: the language of the voice commands (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
+- `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
 - `type_languages::String|AbstractArray{String}=["$(LANG.EN_US)"]`: the languages used for typing (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
-- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[command_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
+- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 !!! note "Advanced"
-    - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. If `modeldirs` is not set, then it is automatically defined according to the `command_language` and `type_languages` set. Models are downloadable from here: https://alphacephei.com/vosk/models
+    - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. If `modeldirs` is not set, then it is automatically defined according to the `default_language` and `type_languages` set. Models are downloadable from here: https://alphacephei.com/vosk/models
     - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
     - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
 
@@ -56,11 +56,18 @@ $(pretty_dict_string(DEFAULT_COMMANDS))
 
 # Examples
 
-#### Define `command_language` and `type_languages`
+#### Define `default_language` (also used for typing if `type_languages` is not set)
+```
+# Set command and type language to french:
+using JustSayIt
+start(default_language="$(LANG.FR)")
+```
+
+#### Define `default_language` and `type_languages`
 ```
 # Set command language to french and type languages to french and spanish:
 using JustSayIt
-start(command_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
+start(default_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
 ```
 
 #### Define `subset`
@@ -109,13 +116,13 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; command_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
-    if (command_language ∉ LANG) @KeywordArgumentError("invalid `command_language` (obtained \"$command_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+    if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
         if (l ∉ LANG) @KeywordArgumentError("invalid `type_language` (obtained \"$l\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     end
-    if isnothing(commands) commands = DEFAULT_COMMANDS[command_language] end
+    if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
@@ -127,7 +134,7 @@ function start(; command_language::String=LANG.EN_US, type_languages::Union{Stri
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
     if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
     if isnothing(modeldirs)
-        modelnames = [modelname(MODELTYPE_DEFAULT, command_language); modelname.(MODELTYPE_TYPE, type_languages)]
+        modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages)]
         modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
     end
 
