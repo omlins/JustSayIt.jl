@@ -12,13 +12,18 @@ module Help
 
 import ..JustSayIt: command, command_names, next_token, pretty_cmd_string, PyKey
 
-const COMMANDS_KEYWORD = "commands"
+const COMMANDS_KEYWORDS = Dict("de"    => "kommandos",
+                               "en-us" => "commands",
+                               "es"    => "comandos",
+                               "fr"    => "commandes",
+                               )
 
 "Show help for your commands or a spoken command or module."
 function help()
-    valid_input = [COMMANDS_KEYWORD, command_names()...]
+    commands_keyword = COMMANDS_KEYWORDS[default_language()]
+    valid_input = [commands_keyword, command_names()...]
     keyword = next_token(valid_input)
-    if keyword == COMMANDS_KEYWORD
+    if keyword == commands_keyword
         cmd_length_max = maximum(length.(command_names()))
         @info join(["", "Your commands:",
                     map(sort([command_names()...])) do x
