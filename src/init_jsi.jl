@@ -7,6 +7,8 @@
 Initialize the package JustSayIt.
 
 # Arguments
+- `default_language::String`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
+- `type_languages::AbstractArray{String}`: the languages used for typing (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 - `commands::Dict{String, <:Any}`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
@@ -34,7 +36,7 @@ let
     set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
 
 
-    function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
+    function init_jsi(default_language::String, type_languages::AbstractArray{String}, commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
 
         # Validate and store the commands, adding the help command to it.
@@ -45,14 +47,14 @@ let
         end
         _commands = commands
 
-        # Verify that MODELNAME.DEFAULT.EN_US is listed in modeldirs and noises. Set the values for the  other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        if !haskey(modeldirs, MODELNAME.DEFAULT.EN_US) @ArgumentError("a directory for the 'default' model is mandatory.") end
-        if !haskey(modeldirs, MODELNAME.TYPE.EN_US) @ArgumentError("a directory for the 'type' model is mandatory.") end
+        # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
-        if !haskey(noises, MODELNAME.DEFAULT.EN_US) @ArgumentError("a noises list for 'default' model is mandatory (e.g. `NOISES.EN_US`).") end
-        if !haskey(noises, MODELNAME.TYPE.EN_US)
-            noises[MODELNAME.TYPE.EN_US] = noises[MODELNAME.DEFAULT.EN_US]
-            @warn("no noises given for model \"type\" - falling back to noises configuration of model 'default' when typing.")
+        modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
+        if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
+        if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
+        for lang in type_languages
+            if !haskey(modeldirs, modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a model directory for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language \"$lang\" is missing).") end
+            if !haskey(noises,    modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a noises list for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language \"$lang\" is missing).") end
         end
         _noises = noises
 
