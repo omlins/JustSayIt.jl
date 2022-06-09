@@ -41,68 +41,68 @@ end
 
 ## CONSTANTS
 
-const DEFAULT_MODEL_REPO = "https://alphacephei.com/vosk/models"
-const SAMPLERATE = 44100                #[Hz]
-const AUDIO_READ_MAX = 512              #[bytes]
+const DEFAULT_MODEL_REPO      = "https://alphacephei.com/vosk/models"
+const SAMPLERATE              = 44100   #[Hz]
+const AUDIO_READ_MAX          = 512     #[bytes]
 const AUDIO_ALLOC_GRANULARITY = 1024^2  #[bytes]
-const AUDIO_HISTORY_MIN = 1024^2        #[bytes]
-const AUDIO_ELTYPE = Int16
-const AUDIO_IN_CHANNELS = 1
-const COMMAND_NAME_SLEEP = "sleep"
-const COMMAND_NAME_AWAKE = "awake"
-const COMMAND_ABORT = "abortus"
-const VARARG_END = "terminus"
-const VALID_VOICEARGS_KWARGS = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
-const DEFAULT_RECORDER_ID = "default"
-const DEFAULT_READER_ID = "default"
-const COMMAND_RECOGNIZER_ID = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
-const DIGITS_ENGLISH = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".", "space"=>" ")
-const ALPHABET_ENGLISH = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z", "space"=>" ")
+const AUDIO_HISTORY_MIN       = 1024^2  #[bytes]
+const AUDIO_ELTYPE            = Int16
+const AUDIO_IN_CHANNELS       = 1
+const COMMAND_NAME_SLEEP      = "sleep"
+const COMMAND_NAME_AWAKE      = "awake"
+const COMMAND_ABORT           = "abortus"
+const VARARG_END              = "terminus"
+const COMMAND_RECOGNIZER_ID   = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
+const DEFAULT_RECORDER_ID     = "default"
+const DEFAULT_READER_ID       = "default"
+const MODELTYPE_DEFAULT       = "default"
+const MODELTYPE_TYPE          = "type"
+const UNKNOWN_TOKEN           = "[unk]"
+const PyKey                   = Union{Char, PyObject}
+const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
+const DIGITS_ENGLISH          = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".", "space"=>" ")
+const ALPHABET_ENGLISH        = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z", "space"=>" ")
 
-const UNKNOWN_TOKEN = "[unk]"
-const PyKey = Union{Char, PyObject}
+@static if Sys.iswindows()
+    const JSI_DATA            = joinpath(ENV["APPDATA"], "JustSayIt")
+    const MODELDIR_PREFIX     = joinpath(JSI_DATA, "models")
+    const CONFIG_PREFIX       = joinpath(JSI_DATA, "config")
+elseif Sys.isapple()
+    const JSI_DATA            = joinpath(homedir(), "Library", "Application Support", "JustSayIt")
+    const MODELDIR_PREFIX     = joinpath(JSI_DATA, "models")
+    const CONFIG_PREFIX       = joinpath(JSI_DATA, "config")
+else
+    const MODELDIR_PREFIX     = joinpath(homedir(), ".local", "share", "JustSayIt", "models")
+    const CONFIG_PREFIX       = joinpath(homedir(), ".config", "JustSayIt")
+end
 
-const MODELTYPE_DEFAULT = "default"
-const MODELTYPE_TYPE    = "type"
+
+# (FUNCTIONS USED IN CONSTANT DEFINITIONS)
+
+lang_str(code::String)                         = LANG_STR[code]
+modelname(modeltype::String, language::String) = modeltype * "-" * language
+
+
+# (HIERARCHICAL CONSTANTS)
 
 const LANG = (; DE    = "de",
                 EN_US = "en-us",
                 ES    = "es",
                 FR    = "fr",
              )
-
 const LANG_STR = Dict("de"    => "German",
                       "en-us" => "English (United States)",
                       "es"    => "Spanish",
                       "fr"    => "French",
                       )
-
-lang_str(code::String)                         = LANG_STR[code]
-modelname(modeltype::String, language::String) = modeltype * "-" * language
-
 const NOISES = (; DE    = String[],
                   EN_US = String["huh"],
                   ES    = String[],
                   FR    = String[],
                )
-
 const MODELNAME = (; DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
                      TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
                   )
-
-@static if Sys.iswindows()
-    const JSI_DATA        = joinpath(ENV["APPDATA"], "JustSayIt")
-    const MODELDIR_PREFIX = joinpath(JSI_DATA, "models")
-    const CONFIG_PREFIX   = joinpath(JSI_DATA, "config")
-elseif Sys.isapple()
-    const JSI_DATA        = joinpath(homedir(), "Library", "Application Support", "JustSayIt")
-    const MODELDIR_PREFIX = joinpath(JSI_DATA, "models")
-    const CONFIG_PREFIX   = joinpath(JSI_DATA, "config")
-else
-    const MODELDIR_PREFIX = joinpath(homedir(), ".local", "share", "JustSayIt", "models")
-    const CONFIG_PREFIX   = joinpath(homedir(), ".config", "JustSayIt")
-end
-
 const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREFIX, "vosk-model-small-de-0.15"),
                                MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
                                MODELNAME.DEFAULT.ES    => joinpath(MODELDIR_PREFIX, "vosk-model-small-es-0.22"),
@@ -112,7 +112,6 @@ const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREF
                                # NOTE: Currently no large model for ES available.
                                MODELNAME.TYPE.FR       => joinpath(MODELDIR_PREFIX, "vosk-model-fr-0.22"),
                                )
-
 const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
                                MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
                                MODELNAME.DEFAULT.ES    => NOISES.ES,
