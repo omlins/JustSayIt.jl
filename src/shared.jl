@@ -105,8 +105,16 @@ const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREF
                                # NOTE: Currently no large model for ES available.
                                MODELNAME.TYPE.FR       => joinpath(MODELDIR_PREFIX, "vosk-model-fr-0.22"),
                                )
-const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
-                               MODELNAME.TYPE.EN_US    => NOISES.EN_US)
+
+const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
+                               MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
+                               MODELNAME.DEFAULT.ES    => NOISES.ES,
+                               MODELNAME.DEFAULT.FR    => NOISES.FR,
+                               MODELNAME.TYPE.DE       => NOISES.DE,
+                               MODELNAME.TYPE.EN_US    => NOISES.EN_US,
+                               MODELNAME.TYPE.ES       => NOISES.ES,
+                               MODELNAME.TYPE.FR       => NOISES.FR,
+                               )
 
 
 ## FUNCTIONS
