@@ -77,10 +77,13 @@ const LANG_STR = Dict("de"    => "German",
                       "fr"    => "French",
                       )
 
-const NOISES = (; DE    = [],
-                  EN_US = ["huh"],
-                  ES    = [],
-                  FR    = [],
+lang_str(code::String)                         = LANG_STR[code]
+modelname(modeltype::String, language::String) = modeltype * "-" * language
+
+const NOISES = (; DE    = String[],
+                  EN_US = String["huh"],
+                  ES    = String[],
+                  FR    = String[],
                )
 
 const MODELNAME = (; DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
@@ -122,9 +125,6 @@ const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
 
 
 ## FUNCTIONS
-
-modelname(modeltype::String, language::String) = modeltype * "-" * language
-lang_str(code::String) = LANG_STR[code]
 
 function pyimport_pip(modulename::AbstractString; dependency::AbstractString="", channel::AbstractString="conda-forge")
     try
