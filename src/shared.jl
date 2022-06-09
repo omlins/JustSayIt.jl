@@ -42,17 +42,17 @@ end
 ## CONSTANTS
 
 const DEFAULT_MODEL_REPO      = "https://alphacephei.com/vosk/models"
-const SAMPLERATE              = 44100   #[Hz]
-const AUDIO_READ_MAX          = 512     #[bytes]
-const AUDIO_ALLOC_GRANULARITY = 1024^2  #[bytes]
-const AUDIO_HISTORY_MIN       = 1024^2  #[bytes]
+const SAMPLERATE              = 44100       #[Hz]
+const AUDIO_READ_MAX          = 512         #[bytes]
+const AUDIO_ALLOC_GRANULARITY = 1024^2      #[bytes]
+const AUDIO_HISTORY_MIN       = 1024^2      #[bytes]
 const AUDIO_ELTYPE            = Int16
 const AUDIO_IN_CHANNELS       = 1
 const COMMAND_NAME_SLEEP      = "sleep"
 const COMMAND_NAME_AWAKE      = "awake"
 const COMMAND_ABORT           = "abortus"
 const VARARG_END              = "terminus"
-const COMMAND_RECOGNIZER_ID   = "" # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
+const COMMAND_RECOGNIZER_ID   = ""          # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
 const DEFAULT_RECORDER_ID     = "default"
 const DEFAULT_READER_ID       = "default"
 const MODELTYPE_DEFAULT       = "default"
