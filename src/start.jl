@@ -104,8 +104,9 @@ start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "ri
 ```
 using JustSayIt
 modeldirs = Dict(MODELNAME.DEFAULT.EN_US => "$(homedir())/mymodels/vosk-model-small-en-us-0.15",
-                 MODELNAME.TYPE.EN_US    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905")
-start(modeldirs=modeldirs)
+                 MODELNAME.TYPE.EN_US    => "$(homedir())/mymodels/vosk-model-en-us-daanzu-20200905",
+                 MODELNAME.TYPE.FR       => "$(homedir())/mymodels/vosk-model-fr-0.6-linto-2.2.0")
+start(modeldirs=modeldirs, default_language="$(LANG.EN_US)", type_languages=["$(LANG.EN_US)","$(LANG.FR)"])
 ```
 
 #### Define `audio_input_cmd`

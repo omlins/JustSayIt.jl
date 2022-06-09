@@ -20,7 +20,7 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
+    global init_jsi, default_language, type_languages, default_modelname, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
     _default_language::String                                                                           = ""
     _type_languages::AbstractArray{String}                                                              = String[]
     _commands::Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}                            = Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}()
@@ -30,9 +30,10 @@ let
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     default_language()                                                                                  = _default_language
     type_languages()                                                                                    = _type_languages
+    modelname_default()                                                                                 = modelname(MODELTYPE_DEFAULT,_default_language)
     command(name::AbstractString)                                                                       = _commands[name]
     command_names()                                                                                     = keys(_commands)
-    model(name::AbstractString=modelname(MODELTYPE_DEFAULT,_default_language))::PyObject                = _models[name]
+    model(name::AbstractString=modelname_default())::PyObject                                           = _models[name]
     noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
     noises_names()                                                                                      = keys(_noises)
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
@@ -42,7 +43,7 @@ let
 
     function init_jsi(default_language::String, type_languages::AbstractArray{String}, commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
-        modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
+        modelname_default = modelname_default()
 
         # Store the language choice.
         _default_language = default_language
@@ -58,11 +59,11 @@ let
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
-        if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
-        if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
+        if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language ($(lang_str(default_language))) is mandatory (entry \"$modelname_default\" is missing).") end
+        if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language ($(lang_str(default_language))) is mandatory (entry \"$modelname_default\" is missing).") end
         for lang in type_languages
-            if !haskey(modeldirs, modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a model directory for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language \"$lang\" is missing).") end
-            if !haskey(noises,    modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a noises list for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language \"$lang\" is missing).") end
+            if !haskey(modeldirs, modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a model directory for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language $(lang_str(lang)) is missing).") end
+            if !haskey(noises,    modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a noises list for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language $(lang_str(lang)) is missing).") end
         end
         _noises = noises
 
@@ -71,7 +72,7 @@ let
         if modeldir == DEFAULT_MODELDIRS[modelname_default]
             if !isdir(modeldir)
                 filename = basename(modeldir) * ".zip"
-                @info "No model for the default language (\"$default_language\") found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
+                @info "No model for the default language ($(lang_str(default_language))) found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
                 modeldepot = joinpath(modeldir, "..")
                 download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
             end
@@ -83,7 +84,7 @@ let
             if modeldir == DEFAULT_MODELDIRS[modelname_lang]
                 if !isdir(modeldir)
                     filename = basename(modeldir) * ".zip"
-                    @info "No model for the type language (\"$lang\") found in its default location ($(modeldir)): download (optional) accurate large model ($filename) from '$DEFAULT_MODEL_REPO' (~1-2 GB)?"
+                    @info "No model for the type language ($(lang_str(lang))) found in its default location ($(modeldir)): download (optional) accurate large model ($filename) from '$DEFAULT_MODEL_REPO' (~1-2 GB)?"
                     answer = ""
                     while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
                         answer = readline()
@@ -93,15 +94,15 @@ let
                         download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
                     else
                         if lang == default_language
-                            @warn("Not downloading large accurate model for typing the default language (\"$lang\"): falling back to default model for typing.")
+                            @warn("Not downloading large accurate model for typing the default language ($(lang_str(lang))): falling back to default model for typing.")
                             modeldirs[modelname_lang] = modeldirs[modelname_default]
                         else
-                            @warn("Not downloading large accurate model for typing language \"$lang\": falling back to small model for typing.")
+                            @warn("Not downloading large accurate model for typing language $(lang_str(lang)): falling back to small model for typing.")
                             modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname(MODELTYPE_DEFAULT, lang)]
                             modeldir = modeldirs[modelname_lang]
                             if !isdir(modeldir)
                                 filename = basename(modeldir) * ".zip"
-                                @info "No small model for language \"$lang\" found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
+                                @info "No small model for $(lang_str(lang)) found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
                                 modeldepot = joinpath(modeldir, "..")
                                 download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
                             end
