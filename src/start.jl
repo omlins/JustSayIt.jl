@@ -145,10 +145,11 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
 
     # Interprete commands
     @info "Listening for commands..."
-    valid_cmd_names = command_names()
-    cmd_name = ""
-    is_sleeping = false
-    use_max_speed = true
+    modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
+    valid_cmd_names   = command_names()
+    cmd_name          = ""
+    is_sleeping       = false
+    use_max_speed     = true
     try
         while true
             if is_sleeping
@@ -186,14 +187,14 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
             end
             try
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
-                use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=true, ignore_unknown=false)
-                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions=true, ignore_unknown=false)
+                cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                 if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                     reset_all()
                     cmd_name = ""
                 end
                 while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
-                    token = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                    token = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                     if token == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                         reset_all()
                         cmd_name = ""
