@@ -85,23 +85,23 @@ modelname(modeltype::String, language::String) = modeltype * "-" * language
 
 # (HIERARCHICAL CONSTANTS)
 
-const LANG = (; DE    = "de",
-                EN_US = "en-us",
-                ES    = "es",
-                FR    = "fr",
+const LANG = (DE    = "de",
+              EN_US = "en-us",
+              ES    = "es",
+              FR    = "fr",
              )
 const LANG_STR = Dict("de"    => "German",
                       "en-us" => "English (United States)",
                       "es"    => "Spanish",
                       "fr"    => "French",
                       )
-const NOISES = (; DE    = String[],
-                  EN_US = String["huh"],
-                  ES    = String[],
-                  FR    = String[],
+const NOISES = (DE    = String[],
+                EN_US = String["huh"],
+                ES    = String[],
+                FR    = String[],
                )
-const MODELNAME = (; DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
-                     TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
+const MODELNAME = (DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
+                   TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
                   )
 const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREFIX, "vosk-model-small-de-0.15"),
                                MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
