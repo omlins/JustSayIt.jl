@@ -20,9 +20,10 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, default_language, type_languages, default_modelname, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
+    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
     _default_language::String                                                                           = ""
     _type_languages::AbstractArray{String}                                                              = String[]
+    _modelname_default::String                                                                          = ""
     _commands::Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}                            = Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}()
     _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
@@ -30,7 +31,7 @@ let
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     default_language()                                                                                  = _default_language
     type_languages()                                                                                    = _type_languages
-    modelname_default()                                                                                 = modelname(MODELTYPE_DEFAULT,_default_language)
+    modelname_default()                                                                                 = _modelname_default
     command(name::AbstractString)                                                                       = _commands[name]
     command_names()                                                                                     = keys(_commands)
     model(name::AbstractString=modelname_default())::PyObject                                           = _models[name]
@@ -42,12 +43,13 @@ let
 
 
     function init_jsi(default_language::String, type_languages::AbstractArray{String}, commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
+        # Set global Vosk options.
         Vosk.SetLogLevel(vosk_log_level)
-        modelname_default = modelname_default()
 
         # Store the language choice.
-        _default_language = default_language
-        _type_languages   = type_languages
+        _default_language  = default_language
+        _type_languages    = type_languages
+        _modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
 
         # Validate and store the commands, adding the help command to it.
         if haskey(commands, COMMAND_NAME_SLEEP) @ArgumentError("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
@@ -59,8 +61,8 @@ let
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
-        if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language ($(lang_str(default_language))) is mandatory (entry \"$modelname_default\" is missing).") end
-        if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language ($(lang_str(default_language))) is mandatory (entry \"$modelname_default\" is missing).") end
+        if !haskey(modeldirs, _modelname_default) @ArgumentError("a model directory for the default language ($(lang_str(default_language))) is mandatory (entry \"$_modelname_default\" is missing).") end
+        if !haskey(noises,    _modelname_default) @ArgumentError("a noises list for the default language ($(lang_str(default_language))) is mandatory (entry \"$_modelname_default\" is missing).") end
         for lang in type_languages
             if !haskey(modeldirs, modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a model directory for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language $(lang_str(lang)) is missing).") end
             if !haskey(noises,    modelname(MODELTYPE_TYPE, lang)) @ArgumentError("a noises list for each selected type model is mandatory (entry \"$(modelname(MODELTYPE_TYPE,lang))\" for type language $(lang_str(lang)) is missing).") end
@@ -68,8 +70,8 @@ let
         _noises = noises
 
         # If the modeldir for the default language points to the default path, download a model if none is present (asumed present if the folder is present)
-        modeldir = modeldirs[modelname_default]
-        if modeldir == DEFAULT_MODELDIRS[modelname_default]
+        modeldir = modeldirs[_modelname_default]
+        if modeldir == DEFAULT_MODELDIRS[_modelname_default]
             if !isdir(modeldir)
                 filename = basename(modeldir) * ".zip"
                 @info "No model for the default language ($(lang_str(default_language))) found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
@@ -95,7 +97,7 @@ let
                     else
                         if lang == default_language
                             @warn("Not downloading large accurate model for typing the default language ($(lang_str(lang))): falling back to default model for typing.")
-                            modeldirs[modelname_lang] = modeldirs[modelname_default]
+                            modeldirs[modelname_lang] = modeldirs[_modelname_default]
                         else
                             @warn("Not downloading large accurate model for typing language $(lang_str(lang)): falling back to small model for typing.")
                             modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname(MODELTYPE_DEFAULT, lang)]
@@ -121,7 +123,7 @@ let
             end
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
-            if modelname == modelname_default
+            if modelname == _modelname_default
                 grammar = json([keys(commands)..., COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
                 _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
             end
@@ -133,7 +135,7 @@ let
                 kwargs = voiceargs(f_name)[voicearg]
                 if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
                 if haskey(kwargs, :valid_input)
-                    modelname = haskey(kwargs, :model) ? kwargs[:model] : modelname_default
+                    modelname = haskey(kwargs, :model) ? kwargs[:model] : _modelname_default
                     grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
                     set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
                 end
