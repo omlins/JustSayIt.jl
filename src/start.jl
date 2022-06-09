@@ -141,7 +141,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
 
     # Initializations
     @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."
-    init_jsi(default_language, type_languages, commands, modeldirs, noises)
+    init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
     # Interprete commands
