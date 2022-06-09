@@ -41,6 +41,7 @@ end
 
 ## CONSTANTS
 
+const DEFAULT_MODEL_REPO = "https://alphacephei.com/vosk/models"
 const SAMPLERATE = 44100                #[Hz]
 const AUDIO_READ_MAX = 512              #[bytes]
 const AUDIO_ALLOC_GRANULARITY = 1024^2  #[bytes]
@@ -106,10 +107,6 @@ const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREF
                                )
 const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
                                MODELNAME.TYPE.EN_US    => NOISES.EN_US)
-
-DEFAULT_MODEL_REPO                 = "https://alphacephei.com/vosk/models"
-DEFAULT_ENGLISH_MODEL_ARCHIVE      = "vosk-model-small-en-us-0.15.zip"
-DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE = "vosk-model-en-us-daanzu-20200905.zip"
 
 
 ## FUNCTIONS

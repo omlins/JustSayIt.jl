@@ -48,8 +48,8 @@ let
         _commands = commands
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
-        if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
         modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
+        if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
         if !haskey(modeldirs, modelname_default) @ArgumentError("a model directory for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
         if !haskey(noises,    modelname_default) @ArgumentError("a noises list for the default language (\"$default_language\") is mandatory (entry \"$modelname_default\" is missing).") end
         for lang in type_languages
@@ -58,27 +58,48 @@ let
         end
         _noises = noises
 
-        # If the modeldirs point to the default path, download a model if none is present (asumed present if the folder is present)
-        if modeldirs[MODELNAME.DEFAULT.EN_US] == DEFAULT_MODELDIRS[MODELNAME.DEFAULT.EN_US]
-            if !isdir(modeldirs[MODELNAME.DEFAULT.EN_US])
-                @info "No 'default' model found in its default location: downloading small english model ($DEFAULT_ENGLISH_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~40 MB)..."
-                modeldepot = joinpath(modeldirs[MODELNAME.DEFAULT.EN_US], "..")
-                download_and_unzip(modeldepot, DEFAULT_ENGLISH_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
+        # If the modeldir for the default language points to the default path, download a model if none is present (asumed present if the folder is present)
+        modeldir = modeldirs[modelname_default]
+        if modeldir == DEFAULT_MODELDIRS[modelname_default]
+            if !isdir(modeldir)
+                filename = basename(modeldir) * ".zip"
+                @info "No model for the default language (\"$default_language\") found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
+                modeldepot = joinpath(modeldir, "..")
+                download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
             end
         end
-        if modeldirs[MODELNAME.TYPE.EN_US] == DEFAULT_MODELDIRS[MODELNAME.TYPE.EN_US]
-            if !isdir(modeldirs[MODELNAME.TYPE.EN_US])
-                @info "No 'type' model found in its default location: download (optional) accurate large english model ($DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE) from '$DEFAULT_MODEL_REPO' (~1 GB)?"
-                answer = ""
-                while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
-                    answer = readline()
-                end
-                if answer == "yes"
-                    modeldepot = joinpath(modeldirs[MODELNAME.TYPE.EN_US], "..")
-                    download_and_unzip(modeldepot, DEFAULT_ENGLISH_TYPE_MODEL_ARCHIVE, DEFAULT_MODEL_REPO)
-                else
-                    modeldirs[MODELNAME.TYPE.EN_US] = modeldirs[MODELNAME.DEFAULT.EN_US]
-                    @warn("Not downloading `type` model: falling back to model `default` for typing.")
+        # For each of the type languages, if the corresponding modeldir points to the default path, download a model if none is present (asumed present if the folder is present)
+        for lang in type_languages
+            modelname_lang = modelname(MODELTYPE_TYPE, lang)
+            modeldir = modeldirs[modelname_lang]
+            if modeldir == DEFAULT_MODELDIRS[modelname_lang]
+                if !isdir(modeldir)
+                    filename = basename(modeldir) * ".zip"
+                    @info "No model for the type language (\"$lang\") found in its default location ($(modeldir)): download (optional) accurate large model ($filename) from '$DEFAULT_MODEL_REPO' (~1-2 GB)?"
+                    answer = ""
+                    while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
+                        answer = readline()
+                    end
+                    if answer == "yes"
+                        modeldepot = joinpath(modeldir, "..")
+                        download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
+                    else
+                        if lang == default_language
+                            @warn("Not downloading large accurate model for typing the default language (\"$lang\"): falling back to default model for typing.")
+                            modeldirs[modelname_lang] = modeldirs[modelname_default]
+                        else
+                            @warn("Not downloading large accurate model for typing language \"$lang\": falling back to small model for typing.")
+                            modelname_lang_small = modelname(MODELTYPE_DEFAULT, lang)
+                            modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname_lang_small]
+                            modeldir = modeldirs[modelname_lang]
+                            if !isdir(modeldir)
+                                filename = basename(modeldir) * ".zip"
+                                @info "No small model for language \"$lang\" found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
+                                modeldepot = joinpath(modeldir, "..")
+                                download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
+                            end
+                        end
+                    end
                 end
             end
         end
