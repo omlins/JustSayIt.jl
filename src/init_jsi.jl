@@ -21,14 +21,18 @@ init_jsi
 
 let
     global init_jsi, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
+    _default_language::String                                                                           = ""
+    _type_languages::AbstractArray{String}                                                              = String[]
     _commands::Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}                            = Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}()
     _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
     _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
+    default_language()                                                                                  = _default_language
+    type_languages()                                                                                    = _type_languages
     command(name::AbstractString)                                                                       = _commands[name]
     command_names()                                                                                     = keys(_commands)
-    model(name::AbstractString=MODELNAME.DEFAULT.EN_US)::PyObject                                            = _models[name]
+    model(name::AbstractString=modelname(MODELTYPE_DEFAULT,_default_language))::PyObject                = _models[name]
     noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
     noises_names()                                                                                      = keys(_noises)
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
@@ -39,6 +43,10 @@ let
     function init_jsi(default_language::String, type_languages::AbstractArray{String}, commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; vosk_log_level::Integer=-1)
         Vosk.SetLogLevel(vosk_log_level)
         modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
+
+        # Store the language choice.
+        _default_language = default_language
+        _type_languages   = type_languages
 
         # Validate and store the commands, adding the help command to it.
         if haskey(commands, COMMAND_NAME_SLEEP) @ArgumentError("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
