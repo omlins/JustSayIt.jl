@@ -47,6 +47,7 @@ let
     function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; default_language::String=LANG.EN_US, type_languages::AbstractArray{String}=[LANG.EN_US], vosk_log_level::Integer=-1)
         # Set global Vosk options.
         Vosk.SetLogLevel(vosk_log_level)
+        @show modeldirs
 
         # Store the language choice.
         _default_language  = default_language
@@ -146,8 +147,11 @@ let
         for f_name in voicearg_f_names()
             for voicearg in keys(voiceargs(f_name))
                 kwargs = voiceargs(f_name)[voicearg]
-                if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
-                if haskey(kwargs, :valid_input)
+                lang   = haskey(kwargs, :model) ? join(split(kwargs[:model], "-")[2:end], "-") : default_language
+                if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) && (lang == default_language || lang in type_languages)
+                    @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
+                end
+                if (lang == default_language || lang in type_languages) && haskey(kwargs, :valid_input)  # Recognizer are only setup for models in languages that were selected with the arguments default_language or type_languages.
                     modelname = haskey(kwargs, :model) ? kwargs[:model] : _modelname_default
                     grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
                     set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
