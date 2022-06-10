@@ -60,8 +60,7 @@ const MODELTYPE_TYPE          = "type"
 const UNKNOWN_TOKEN           = "[unk]"
 const PyKey                   = Union{Char, PyObject}
 const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
-const DIGITS_ENGLISH          = Dict("zero"=>"0", "one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "dot"=>".", "space"=>" ")
-const ALPHABET_ENGLISH        = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z", "space"=>" ")
+const LATIN_ALPHABET          = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z")
 
 @static if Sys.iswindows()
     const JSI_DATA            = joinpath(ENV["APPDATA"], "JustSayIt")
@@ -95,11 +94,28 @@ const LANG_STR = Dict("de"    => "German",
                       "es"    => "Spanish",
                       "fr"    => "French",
                       )
-const LANG_CODES_SHORT = Dict("german"  => "de",
-                              "english" => "en",
-                              "spanish" => "es",
-                              "french"  => "fr",
-                             )
+const LANG_CODES_SHORT = Dict(
+    LANG.DE    => Dict("deutsch"     => "de",
+                       "englisch"    => "en",
+                       "spanisch"    => "es",
+                       "französisch" => "fr",
+                      ),
+    LANG.EN_US => Dict("german"  => "de",
+                       "english" => "en",
+                       "spanish" => "es",
+                       "french"  => "fr",
+                      ),
+    LANG.ES    => Dict("alemán"  => "de",
+                       "inglés"  => "en",
+                       "español" => "es",
+                       "francés" => "fr",
+                      ),
+    LANG.FR    => Dict("allemand" => "de",
+                       "anglais"  => "en",
+                       "espagnol" => "es",
+                       "français" => "fr",
+                      ),
+)
 const NOISES = (DE    = String[],
                 EN_US = String["huh"],
                 ES    = String[],
@@ -126,6 +142,18 @@ const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
                                MODELNAME.TYPE.ES       => NOISES.ES,
                                MODELNAME.TYPE.FR       => NOISES.FR,
                                )
+const ALPHABET = Dict(
+    LANG.DE    => merge(LATIN_ALPHABET, Dict("leerschlag"=>" ", "ä"=>"ä", "ö"=>"ö", "ü"=>"ü")),
+    LANG.EN_US => merge(LATIN_ALPHABET, Dict("space"=>" ")),
+    LANG.ES    => merge(LATIN_ALPHABET, Dict("espacio"=>" ", "ñ"=>"ñ")),
+    LANG.FR    => merge(LATIN_ALPHABET, Dict("espace"=>" ")),
+)
+const DIGITS = Dict(
+    LANG.DE    => Dict("null"=>"0", "eins"=>"1", "zwei"=>"2", "drei"=>"3",  "vier"=>"4",   "fünf"=>"5",   "sechs"=>"6", "sieben"=>"7", "acht"=>"8",  "neun"=>"9",  "punkt"=>".", "leerschlag"=>" "),
+    LANG.EN_US => Dict("zero"=>"0", "one"=>"1",  "two"=>"2",  "three"=>"3", "four"=>"4",   "five"=>"5",   "six"=>"6",   "seven"=>"7",  "eight"=>"8", "nine"=>"9",  "dot"=>".",   "space"=>" "),
+    LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "espacio"=>" "),
+    LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "espace"=>" "),
+)
 
 
 ## FUNCTIONS
