@@ -19,7 +19,7 @@ module Keyboard
 
 using PyCall
 using ..Exceptions
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, MODELNAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELNAME, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
 
 
 ## PYTHON MODULES
@@ -327,9 +327,9 @@ type
                 nb_keyword_chars += length(keyword_sign)
             end
         else
-            if     (tokengroup_kind == word_kind)     token = next_word()
-            elseif (tokengroup_kind == letter_kind)   token = next_letter()
-            elseif (tokengroup_kind == digit_kind)    token = next_digit()
+            if     (tokengroup_kind == word_kind)     token = next_word(active_lang)
+            elseif (tokengroup_kind == letter_kind)   token = next_letter(active_lang)
+            elseif (tokengroup_kind == digit_kind)    token = next_digit(active_lang)
             elseif (tokengroup_kind == language_kind) lang  = get_language()
             end
             if nb_keyword_chars > 0
@@ -395,30 +395,83 @@ function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::
 end
 
 
-interpret_letters(input::AbstractString) = (return ALPHABET_ENGLISH[input])
-interpret_digits(input::AbstractString)  = (return DIGITS_ENGLISH[input])
+"Get next word from speech."
+function next_word(lang::String)
+    if     (lang == LANG.DE   ) next_word_DE()
+    elseif (lang == LANG.EN_US) next_word_EN_US()
+    elseif (lang == LANG.ES   ) next_word_ES()
+    elseif (lang == LANG.FR   ) next_word_FR()
+    end
+end
 
-@doc "Get next word from speech."
-next_word
-@voiceargs word=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true) next_word(word::String) = (return word)
+@voiceargs word=>(model=MODELNAME.TYPE.DE,    ignore_unknown=true) next_word_DE(word::String)    = (return word)
+@voiceargs word=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true) next_word_EN_US(word::String) = (return word)
+@voiceargs word=>(model=MODELNAME.TYPE.ES,    ignore_unknown=true) next_word_ES(word::String)    = (return word)
+@voiceargs word=>(model=MODELNAME.TYPE.FR,    ignore_unknown=true) next_word_FR(word::String)    = (return word)
 
-@doc "Get next letter from speech."
-next_letter
-@voiceargs letter=>(valid_input=[keys(ALPHABET_ENGLISH)...], interpret_function=interpret_letters, ignore_unknown=true) next_letter(letter::String) = (return letter)
 
-@doc "Get next digit from speech."
-next_digit
-@voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits, ignore_unknown=true) next_digit(digit::String) = (return digit)
+"Get next letter from speech."
+function next_letter(lang::String)
+    if     (lang == LANG.DE   ) next_letter_DE()
+    elseif (lang == LANG.EN_US) next_letter_EN_US()
+    elseif (lang == LANG.ES   ) next_letter_ES()
+    elseif (lang == LANG.FR   ) next_letter_FR()
+    end
+end
 
-@doc "Get the language to start typing in from speech."
-get_language
-@voiceargs lang=>(valid_input=[keys(LANG_CODES_SHORT)...], ignore_unknown=true) function get_language(lang::String)
+interpret_letters_DE(input::AbstractString)    = (return ALPHABET[LANG.DE   ][input])
+interpret_letters_EN_US(input::AbstractString) = (return ALPHABET[LANG.EN_US][input])
+interpret_letters_ES(input::AbstractString)    = (return ALPHABET[LANG.ES   ][input])
+interpret_letters_FR(input::AbstractString)    = (return ALPHABET[LANG.FR   ][input])
+
+@voiceargs letter=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(ALPHABET[LANG.DE   ])...], interpret_function=interpret_letters_DE,    ignore_unknown=true) next_letter_DE(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(ALPHABET[LANG.EN_US])...], interpret_function=interpret_letters_EN_US, ignore_unknown=true) next_letter_EN_US(letter::String) = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(ALPHABET[LANG.ES   ])...], interpret_function=interpret_letters_ES,    ignore_unknown=true) next_letter_ES(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=true) next_letter_FR(letter::String)    = (return letter)
+
+
+
+"Get next digit from speech."
+function next_digit(lang::String)
+    if     (lang == LANG.DE   ) next_digit_DE()
+    elseif (lang == LANG.EN_US) next_digit_EN_US()
+    elseif (lang == LANG.ES   ) next_digit_ES()
+    elseif (lang == LANG.FR   ) next_digit_FR()
+    end
+end
+
+interpret_digits_DE(input::AbstractString)    = (return DIGITS[LANG.DE   ][input])
+interpret_digits_EN_US(input::AbstractString) = (return DIGITS[LANG.EN_US][input])
+interpret_digits_ES(input::AbstractString)    = (return DIGITS[LANG.ES   ][input])
+interpret_digits_FR(input::AbstractString)    = (return DIGITS[LANG.FR   ][input])
+
+@voiceargs digit=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIGITS[LANG.DE   ])...], interpret_function=interpret_digits_DE,    ignore_unknown=true) next_digit_DE(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIGITS[LANG.EN_US])...], interpret_function=interpret_digits_EN_US, ignore_unknown=true) next_digit_EN_US(digit::String) = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIGITS[LANG.ES   ])...], interpret_function=interpret_digits_ES,    ignore_unknown=true) next_digit_ES(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIGITS[LANG.FR   ])...], interpret_function=interpret_digits_FR,    ignore_unknown=true) next_digit_FR(digit::String)    = (return digit)
+
+
+"Get the language to start typing in from speech."
+function get_language(lang::String)
+    if     (lang == LANG.DE   ) get_language_DE()
+    elseif (lang == LANG.EN_US) get_language_EN_US()
+    elseif (lang == LANG.ES   ) get_language_ES()
+    elseif (lang == LANG.FR   ) get_language_FR()
+    end
+end
+
+function _get_language(new_lang::String, lang::String)
     codes       = [keys(LANG_STR)...]
     codes_short = getindex.(split.(codes,"-"), 1)
-    code        = codes[findall(codes_short.== LANG_CODES_SHORT[lang])]
+    code        = codes[findall(codes_short.== LANG_CODES_SHORT[lang][new_lang])]
     if (length(code) > 1) @APIUsageError("swithing language is impossible as ambigous: `type_languages` must not contain multiple region instances of the same language.") end
     return code[1]
 end
+
+@voiceargs new_lang=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(LANG_CODES_SHORT[LANG.DE   ])...], ignore_unknown=true) get_language_DE(new_lang::String)    = _get_language(new_lang, LANG.DE)
+@voiceargs new_lang=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(LANG_CODES_SHORT[LANG.EN_US])...], ignore_unknown=true) get_language_EN_US(new_lang::String) = _get_language(new_lang, LANG.EN_US)
+@voiceargs new_lang=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(LANG_CODES_SHORT[LANG.ES   ])...], ignore_unknown=true) get_language_ES(new_lang::String)    = _get_language(new_lang, LANG.ES)
+@voiceargs new_lang=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(LANG_CODES_SHORT[LANG.FR   ])...], ignore_unknown=true) get_language_FR(new_lang::String)    = _get_language(new_lang, LANG.FR)
 
 
 function type_string(str::String; do_keystrokes::Bool=true)
