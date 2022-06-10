@@ -136,7 +136,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
     if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
     if isnothing(modeldirs)
-        modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages)]
+        modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages); modelname.(MODELTYPE_DEFAULT, type_languages)]  #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
         modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
     end
 
