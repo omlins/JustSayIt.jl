@@ -13,7 +13,7 @@ Initialize the package JustSayIt.
 
 # Keyword arguments
 - `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
-- `type_languages::String|AbstractArray{String}=["$(LANG.EN_US)"]`: the languages used for typing (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
+- `type_languages::String|AbstractArray{String}=["$(LANG.EN_US)"]`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 !!! note "Advanced"
     - `vosk_log_level::Integer=-1`: the vosk log level (see in the Vosk documentation for details).
 
