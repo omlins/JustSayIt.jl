@@ -95,6 +95,11 @@ const LANG_STR = Dict("de"    => "German",
                       "es"    => "Spanish",
                       "fr"    => "French",
                       )
+const LANG_CODES_SHORT = Dict("german"  => "de",
+                              "english" => "en",
+                              "spanish" => "es",
+                              "french"  => "fr",
+                             )
 const NOISES = (DE    = String[],
                 EN_US = String["huh"],
                 ES    = String[],
