@@ -113,7 +113,7 @@ let
                             @warn("Not downloading large accurate model for typing the default language ($(lang_str(lang))): falling back to default model for typing.")
                             modeldirs[modelname_lang] = modeldirs[_modelname_default]
                         else
-                            @warn("Not downloading large accurate model for typing language $(lang_str(lang)): falling back to small model for typing.")
+                            @warn("Not downloading large accurate model for typing in $(lang_str(lang)): falling back to small model for typing.")
                             modeldirs[modelname_lang] = DEFAULT_MODELDIRS[modelname(MODELTYPE_DEFAULT, lang)]
                             modeldir = modeldirs[modelname_lang]
                             if !isdir(modeldir)
