@@ -36,6 +36,8 @@ end
 ## CONSTANTS
 
 const TYPE_MEMORY_ALLOC_GRANULARITY = 32
+const TYPE_END_KEYWORD              = "terminus"
+
 const TYPE_KEYWORDS = Dict(
     LANG.DE    => Dict("language"      => "sprache",
                        "undo"          => "rückgängig",
@@ -45,7 +47,7 @@ const TYPE_KEYWORDS = Dict(
                        "letters"       => "buchstaben",
                        "digits"        => "zahlen",
                        "point"         => "punkt",
-                       "comma"         => "Komma",
+                       "comma"         => "komma",
                        "colon"         => "doppelpunkt",
                        "semicolon"     => "strichpunkt",
                        "exclamation"   => "ausrufezeichen",
@@ -94,7 +96,6 @@ const TYPE_KEYWORDS = Dict(
                        "interrogation" => "interrogation",
                        "paragraph"     => "paragraphe"),
 )
-const TYPE_END_KEYWORD_ENGLISH = "terminus"
 
 
 ## FUNCTIONS
@@ -157,7 +158,7 @@ Type digits only. Supported keywords are:
 type
 @enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
-@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD_ENGLISH, do_keystrokes::Bool=true)
+@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
     active_lang      = type_languages()[1]
     type_memory      = Vector{String}()
