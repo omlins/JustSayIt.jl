@@ -18,7 +18,8 @@ See also: [`Mouse`](@ref)
 module Keyboard
 
 using PyCall
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, MODELNAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
+using ..Exceptions
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, MODELNAME, ALPHABET_ENGLISH, DIGITS_ENGLISH, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
 
 
 ## PYTHON MODULES
@@ -35,7 +36,64 @@ end
 ## CONSTANTS
 
 const TYPE_MEMORY_ALLOC_GRANULARITY = 32
-const TYPE_KEYWORDS_ENGLISH = Dict("undo"=>"undo", "redo"=>"redo", "uppercase"=>"uppercase", "lowercase"=>"lowercase", "letters"=>"letters", "digits"=>"digits", "point"=>"point", "comma"=>"comma", "colon"=>"colon", "semicolon"=>"semicolon", "exclamation"=>"exclamation", "interrogation"=>"interrogation", "paragraph" => "paragraph")
+const TYPE_KEYWORDS = Dict(
+    LANG.DE    => Dict("language"      => "sprache",
+                       "undo"          => "rückgängig",
+                       "redo"          => "wiederholen",
+                       "uppercase"     => "grossschreiben",
+                       "lowercase"     => "kleinschreiben",
+                       "letters"       => "buchstaben",
+                       "digits"        => "zahlen",
+                       "point"         => "punkt",
+                       "comma"         => "Komma",
+                       "colon"         => "doppelpunkt",
+                       "semicolon"     => "strichpunkt",
+                       "exclamation"   => "ausrufezeichen",
+                       "interrogation" => "fragezeichen",
+                       "paragraph"     => "paragraf"),
+    LANG.EN_US => Dict("language"      => "language",
+                       "undo"          => "undo",
+                       "redo"          => "redo",
+                       "uppercase"     => "uppercase",
+                       "lowercase"     => "lowercase",
+                       "letters"       => "letters",
+                       "digits"        => "digits",
+                       "point"         => "point",
+                       "comma"         => "comma",
+                       "colon"         => "colon",
+                       "semicolon"     => "semicolon",
+                       "exclamation"   => "exclamation",
+                       "interrogation" => "interrogation",
+                       "paragraph"     => "paragraph"),
+    LANG.ES    => Dict("language"      => "lenguaje",
+                       "undo"          => "deshacer",
+                       "redo"          => "rehacer",
+                       "uppercase"     => "mayuscula",
+                       "lowercase"     => "minuscula",
+                       "letters"       => "letras",
+                       "digits"        => "cifras",
+                       "point"         => "punto",
+                       "comma"         => "coma",
+                       "colon"         => "dospuntos",
+                       "semicolon"     => "puntoycoma",
+                       "exclamation"   => "exclamación",
+                       "interrogation" => "interrogación",
+                       "paragraph"     => "párrafo"),
+    LANG.FR    => Dict("language"      => "language",
+                       "undo"          => "arrière",
+                       "redo"          => "avant",
+                       "uppercase"     => "majuscule",
+                       "lowercase"     => "minuscule",
+                       "letters"       => "lettres",
+                       "digits"        => "chiffres",
+                       "point"         => "point",
+                       "comma"         => "comma",
+                       "colon"         => "doublepoint",
+                       "semicolon"     => "point-virgule",
+                       "exclamation"   => "exclamation",
+                       "interrogation" => "interrogation",
+                       "paragraph"     => "paragraphe"),
+)
 const TYPE_END_KEYWORD_ENGLISH = "terminus"
 
 
@@ -97,15 +155,17 @@ Type digits only. Supported keywords are:
 - "dot"
 """
 type
-@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind punctuation_kind space_kind
+@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
 @voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD_ENGLISH, do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
+    active_lang      = type_languages()[1]
     type_memory      = Vector{String}()
     tokengroup_str   = ""
     tokengroup_kind  = undefined_kind
     is_typing        = true
     was_keyword      = false
+    was_kwarg        = false
     is_new_group     = false
     is_uppercase     = (mode == text) ? true : false
     was_space        = true # We want the first token to be dealt with as if there had been a space character before (new paragraph).
@@ -115,16 +175,19 @@ type
     ig               = 0  # group index
     it               = 0  # token index
     nb_keyword_chars = 0
-    if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS_ENGLISH)...]
-    elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["uppercase"], TYPE_KEYWORDS_ENGLISH["lowercase"]]
-    elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["letters"]]
-    elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS_ENGLISH["undo"], TYPE_KEYWORDS_ENGLISH["redo"], TYPE_KEYWORDS_ENGLISH["digits"]]
-    end
+    # TODO: here I am:
+    #       CHANGE LANGUAGE: I need to first add a keyword to `language` to change the language of the type model and the default model and of all keywords, including language.
+    #       Then, I need to create a _next_word, etc. function for each lang with default and type models fixed for each arg (voiceargs fixes the recognizers, i.e. languae used to one - even if can be set at init when language choices made!)! Make next_word etc. a gateway!
+    #       Then, english specific things as I uppercase must be made lang dependent.
+    #       set active lang, change with kw lang and change also other lang dependent things with kw lang as type_keywords, etc. do fs for active_lang dependent things - grouped by what f does, e.g. uppercase...
+    #       ADD MULTILANG SUPPORT FOR ALL VOICEARGS: for type, but also Email and internet -> make MODELNAME.TYPE(/MODELNAME.DEFAULT) possible (use default if not model specified...); allow valid_input to be dict with lang codes as keys... (multilang not working for valid_input_auto)
+    #       add interpret f for TypeMode to convert to it...
+    type_keywords = define_type_keywords(mode, end_keyword, active_lang)
     while is_typing
         is_new_group = (all_consumed() && !was_partial_recognition())
         if ig == 0
             ig = 1
-        elseif is_new_group && !was_keyword
+        elseif is_new_group && !was_keyword && !was_kwarg
             if ig > length(type_memory)
                 resize!(type_memory, length(type_memory) + TYPE_MEMORY_ALLOC_GRANULARITY)
             end
@@ -169,14 +232,14 @@ type
             keyword_sign = ""
             for i = 1:length(keywords)
                 keyword = keywords[i]
-                if tokengroup_kind in (letter_kind, digit_kind)
+                if tokengroup_kind in (letter_kind, digit_kind, language_kind)
                     @info "ABORT of keyword interpretation: keyword '$(keywords[i-1])' was followed by another keyword ('$keyword'). However, keyword '$(keywords[i-1])' defines the kind of the next word group and, therefore, no other keyword can follow it."
                     tokengroup_kind = undefined_kind
                     break
                 end
                 if keyword == end_keyword
                     is_typing = false
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["undo"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["undo"]
                     if ig > 1
                         ig -= 1
                         @info "Undo typing of last word group..."
@@ -192,7 +255,7 @@ type
                     else
                         @info "Nothing to undo."
                     end
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["redo"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["redo"]
                     if undo_count > 0 && ig <= length(type_memory)
                         @info "Redo typing of last word group..."
                         if nb_keyword_chars > 0
@@ -213,38 +276,40 @@ type
                     else
                         @info "Nothing to redo."
                     end
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["uppercase"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["uppercase"]
                     is_uppercase = true
-                    keyword_sign = "[$(TYPE_KEYWORDS_ENGLISH["uppercase"])]"
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["lowercase"]
+                    keyword_sign = "[$(TYPE_KEYWORDS[active_lang]["uppercase"])]"
+                elseif keyword == TYPE_KEYWORDS[active_lang]["lowercase"]
                     is_uppercase = false
-                    keyword_sign = "[$(TYPE_KEYWORDS_ENGLISH["lowercase"])]"
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["letters"]
+                    keyword_sign = "[$(TYPE_KEYWORDS[active_lang]["lowercase"])]"
+                elseif keyword == TYPE_KEYWORDS[active_lang]["letters"]
                     tokengroup_kind = letter_kind
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["digits"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["digits"]
                     tokengroup_kind = digit_kind
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["point"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["language"]
+                    tokengroup_kind = language_kind
+                elseif keyword == TYPE_KEYWORDS[active_lang]["point"]
                     push!(punctuation, ".")
                     tokengroup_kind = punctuation_kind
                     is_uppercase = true
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["comma"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["comma"]
                     push!(punctuation, ",")
                     tokengroup_kind = punctuation_kind
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["colon"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["colon"]
                     push!(punctuation, ":")
                     tokengroup_kind = punctuation_kind
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["semicolon"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["semicolon"]
                     push!(punctuation, ";")
                     tokengroup_kind = punctuation_kind
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["exclamation"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["exclamation"]
                     push!(punctuation, "!")
                     tokengroup_kind = punctuation_kind
                     is_uppercase = true
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["interrogation"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["interrogation"]
                     push!(punctuation, "?")
                     tokengroup_kind = punctuation_kind
                     is_uppercase = true
-                elseif keyword == TYPE_KEYWORDS_ENGLISH["paragraph"]
+                elseif keyword == TYPE_KEYWORDS[active_lang]["paragraph"]
                     push!(spaces, "\n")
                     tokengroup_kind = space_kind
                     was_space = true
@@ -253,22 +318,25 @@ type
                 end
             end
             was_keyword = true
-            if     (tokengroup_kind == letter_kind) keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS_ENGLISH["letters"])]"
-            elseif (tokengroup_kind == digit_kind)  keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS_ENGLISH["digits"])]"
+            if     (tokengroup_kind == letter_kind)   keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS[active_lang]["letters"])]"
+            elseif (tokengroup_kind == digit_kind)    keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS[active_lang]["digits"])]"
+            elseif (tokengroup_kind == language_kind) keyword_sign = keyword_sign * "[$(TYPE_KEYWORDS[active_lang]["language"])]"
             end
             if keyword_sign != ""
                 type_string(keyword_sign; do_keystrokes=do_keystrokes)
                 nb_keyword_chars += length(keyword_sign)
             end
         else
-            if     (tokengroup_kind == word_kind)   token = next_word()
-            elseif (tokengroup_kind == letter_kind) token = next_letter()
-            elseif (tokengroup_kind == digit_kind)  token = next_digit()
+            if     (tokengroup_kind == word_kind)     token = next_word()
+            elseif (tokengroup_kind == letter_kind)   token = next_letter()
+            elseif (tokengroup_kind == digit_kind)    token = next_digit()
+            elseif (tokengroup_kind == language_kind) lang  = get_language()
             end
             if nb_keyword_chars > 0
                 type_backspace(;count=nb_keyword_chars, do_keystrokes=do_keystrokes) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
                 nb_keyword_chars = 0
             end
+            token_str = ""
             if (tokengroup_kind == word_kind)
                 if (is_uppercase || startswith(token, "i'") || (token == "i")) token = uppercasefirst(token) end
                 if (was_space) token_str = token
@@ -279,6 +347,16 @@ type
                 token_str = token
             elseif (tokengroup_kind == digit_kind)
                 token_str = token
+            elseif (tokengroup_kind == language_kind)
+                if (lang in type_languages()) active_lang = lang
+                else                          @info "Switch to $(lang_str(lang)) not possible. To type in $(lang_str(lang)), restart JustSayIt with `start(type_languages=[..., \"$lang\"], ...), replacing `...` according to your needs."
+                end
+                keyword_sign = "[$(lang_str(active_lang))]"
+                type_string(keyword_sign; do_keystrokes=do_keystrokes)
+                nb_keyword_chars = length(keyword_sign)
+                if all_consumed() type_keywords = define_type_keywords(mode, end_keyword, active_lang) end
+                was_kwarg = true
+                token_str = ""
             elseif (tokengroup_kind == punctuation_kind)
                 token_str = join(punctuation, "")
                 punctuation = Vector{String}()
@@ -290,18 +368,32 @@ type
             end
             type_string(token_str; do_keystrokes=do_keystrokes)
             tokengroup_str *= token_str
+            was_keyword = false
             it += 1
             undo_count = 0
-            was_keyword = false
-            if !(tokengroup_kind in (punctuation_kind, space_kind)) is_uppercase = false end
+            if !(tokengroup_kind in (punctuation_kind, space_kind, language_kind)) is_uppercase = false end
             if (tokengroup_kind != space_kind) was_space = false end
-            if all_consumed() tokengroup_kind = undefined_kind end
+            if all_consumed()
+                tokengroup_kind = undefined_kind
+                was_kwarg       = false
+            end
             sleep(0.05)
         end
     end
     @info "...stopped typing $(string(mode))."
     return join(type_memory[1:ig-1])
 end
+
+
+function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::String)
+    if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS[active_lang])...]
+    elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["uppercase"], TYPE_KEYWORDS[active_lang]["lowercase"]]
+    elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["letters"]]
+    elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["digits"]]
+    end
+    return type_keywords
+end
+
 
 interpret_letters(input::AbstractString) = (return ALPHABET_ENGLISH[input])
 interpret_digits(input::AbstractString)  = (return DIGITS_ENGLISH[input])
@@ -317,6 +409,17 @@ next_letter
 @doc "Get next digit from speech."
 next_digit
 @voiceargs digit=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=interpret_digits, ignore_unknown=true) next_digit(digit::String) = (return digit)
+
+@doc "Get the language to start typing in from speech."
+get_language
+@voiceargs lang=>(valid_input=[keys(LANG_CODES_SHORT)...], ignore_unknown=true) function get_language(lang::String)
+    codes       = [keys(LANG_STR)...]
+    codes_short = getindex.(split.(codes,"-"), 1)
+    code        = codes[findall(codes_short.== LANG_CODES_SHORT[lang])]
+    if (length(code) > 1) @APIUsageError("swithing language is impossible as ambigous: `type_languages` must not contain multiple region instances of the same language.") end
+    return code[1]
+end
+
 
 function type_string(str::String; do_keystrokes::Bool=true)
     if do_keystrokes
