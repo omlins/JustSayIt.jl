@@ -330,7 +330,7 @@ type
             if     (tokengroup_kind == word_kind)     token = next_word(active_lang)
             elseif (tokengroup_kind == letter_kind)   token = next_letter(active_lang)
             elseif (tokengroup_kind == digit_kind)    token = next_digit(active_lang)
-            elseif (tokengroup_kind == language_kind) lang  = get_language()
+            elseif (tokengroup_kind == language_kind) lang  = get_language(active_lang)
             end
             if nb_keyword_chars > 0
                 type_backspace(;count=nb_keyword_chars, do_keystrokes=do_keystrokes) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
