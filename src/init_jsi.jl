@@ -81,14 +81,14 @@ let
                 download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
             end
         end
-        # For each of the type languages, if the corresponding modeldir points to the default path, download a model if none is present (asumed present if the folder is present)
+        # For each of the type languages, if the corresponding modeldir points to the default path, download a large and small model (for keyword handling etc.) if none is present (asumed present if the folder is present)
         for lang in type_languages
             modelname_lang = modelname(MODELTYPE_TYPE, lang)
             modeldir = modeldirs[modelname_lang]
             if modeldir == DEFAULT_MODELDIRS[modelname_lang]
                 if !isdir(modeldir)
                     filename = basename(modeldir) * ".zip"
-                    @info "No model for the type language ($(lang_str(lang))) found in its default location ($(modeldir)): download (optional) accurate large model ($filename) from '$DEFAULT_MODEL_REPO' (~1-2 GB)?"
+                    @info "No accurate large model for the type language ($(lang_str(lang))) found in its default location ($(modeldir)): download (optional) accurate large model ($filename) from '$DEFAULT_MODEL_REPO' (~1-2 GB)?"
                     answer = ""
                     while !(answer in ["yes", "no"]) println("Type \"yes\" or \"no\":")
                         answer = readline()
@@ -96,6 +96,17 @@ let
                     if answer == "yes"
                         modeldepot = joinpath(modeldir, "..")
                         download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
+                        # Download also the small module for handling of type keywords etc.
+                        modelname_lang = modelname(MODELTYPE_DEFAULT, lang)
+                        modeldir = modeldirs[modelname_lang]
+                        if modeldir == DEFAULT_MODELDIRS[modelname_lang]
+                            if !isdir(modeldir)
+                                filename = basename(modeldir) * ".zip"
+                                @info "No small dynamic model for the type language ($(lang_str(lang))) found in its default location ($(modeldir)): downloading small model ($filename) from '$DEFAULT_MODEL_REPO' (~30-70 MB)..."
+                                modeldepot = joinpath(modeldir, "..")
+                                download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
+                            end
+                        end
                     else
                         if lang == default_language
                             @warn("Not downloading large accurate model for typing the default language ($(lang_str(lang))): falling back to default model for typing.")
