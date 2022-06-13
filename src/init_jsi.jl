@@ -47,7 +47,6 @@ let
     function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; default_language::String=LANG.EN_US, type_languages::AbstractArray{String}=[LANG.EN_US], vosk_log_level::Integer=-1)
         # Set global Vosk options.
         Vosk.SetLogLevel(vosk_log_level)
-        @show modeldirs
 
         # Store the language choice.
         _default_language  = default_language
