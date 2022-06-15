@@ -149,10 +149,10 @@ const ALPHABET = Dict(
     LANG.FR    => merge(LATIN_ALPHABET, Dict("espace"=>" ")),
 )
 const DIGITS = Dict(
-    LANG.DE    => Dict("null"=>"0", "eins"=>"1", "zwei"=>"2", "drei"=>"3",  "vier"=>"4",   "fünf"=>"5",   "sechs"=>"6", "sieben"=>"7", "acht"=>"8",  "neun"=>"9",  "punkt"=>".", "leerzeichen"=>" "),
-    LANG.EN_US => Dict("zero"=>"0", "one"=>"1",  "two"=>"2",  "three"=>"3", "four"=>"4",   "five"=>"5",   "six"=>"6",   "seven"=>"7",  "eight"=>"8", "nine"=>"9",  "dot"=>".",   "space"=>" "),
-    LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "espacio"=>" "),
-    LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "espace"=>" "),
+    LANG.DE    => Dict("null"=>"0", "eins"=>"1", "zwei"=>"2", "drei"=>"3",  "vier"=>"4",   "fünf"=>"5",   "sechs"=>"6", "sieben"=>"7", "acht"=>"8",  "neun"=>"9",  "punkt"=>".", "komma"=>",",   "leerzeichen"=>" "),
+    LANG.EN_US => Dict("zero"=>"0", "one"=>"1",  "two"=>"2",  "three"=>"3", "four"=>"4",   "five"=>"5",   "six"=>"6",   "seven"=>"7",  "eight"=>"8", "nine"=>"9",  "dot"=>".",   "comma"=>",",   "space"=>" "),
+    LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "coma"=>",",    "espacio"=>" "),
+    LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "virgule"=>",", "espace"=>" "),
 )
 
 
