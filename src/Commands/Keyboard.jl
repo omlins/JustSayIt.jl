@@ -19,7 +19,7 @@ module Keyboard
 
 using PyCall
 using ..Exceptions
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum
 
 
 ## PYTHON MODULES
@@ -38,6 +38,12 @@ end
 const TYPE_MEMORY_ALLOC_GRANULARITY = 32
 const TYPE_END_KEYWORD              = "terminus"
 
+const TYPE_MODES = Dict(
+    LANG.DE    => ["text",  "wörter",   "buchstaben", "ziffern"],
+    LANG.EN_US => ["text",  "words",    "letters",    "digits"],
+    LANG.ES    => ["texto", "palabras", "letras",     "cifras"],
+    LANG.FR    => ["text",  "mots",     "lettres",    "chiffres"],
+)
 const TYPE_KEYWORDS = Dict(
     LANG.DE    => Dict("language"      => "sprache",
                        "undo"          => "rückgängig",
@@ -45,7 +51,7 @@ const TYPE_KEYWORDS = Dict(
                        "uppercase"     => "grossschreiben",
                        "lowercase"     => "kleinschreiben",
                        "letters"       => "buchstaben",
-                       "digits"        => "zahlen",
+                       "digits"        => "ziffern",
                        "point"         => "punkt",
                        "comma"         => "komma",
                        "colon"         => "doppelpunkt",
@@ -70,26 +76,26 @@ const TYPE_KEYWORDS = Dict(
     LANG.ES    => Dict("language"      => "lenguaje",
                        "undo"          => "deshacer",
                        "redo"          => "rehacer",
-                       "uppercase"     => "mayuscula",
-                       "lowercase"     => "minuscula",
+                       "uppercase"     => "mayúscula",
+                       "lowercase"     => "minúscula",
                        "letters"       => "letras",
                        "digits"        => "cifras",
                        "point"         => "punto",
                        "comma"         => "coma",
-                       "colon"         => "dospuntos",
-                       "semicolon"     => "puntoycoma",
+                       "colon"         => "dos-puntos",
+                       "semicolon"     => "punto-y-coma",
                        "exclamation"   => "exclamación",
                        "interrogation" => "interrogación",
                        "paragraph"     => "párrafo"),
     LANG.FR    => Dict("language"      => "language",
-                       "undo"          => "arrière",
-                       "redo"          => "avant",
+                       "undo"          => "défaire",
+                       "redo"          => "refaire",
                        "uppercase"     => "majuscule",
                        "lowercase"     => "minuscule",
                        "letters"       => "lettres",
                        "digits"        => "chiffres",
                        "point"         => "point",
-                       "comma"         => "comma",
+                       "comma"         => "virgule",
                        "colon"         => "doublepoint",
                        "semicolon"     => "point-virgule",
                        "exclamation"   => "exclamation",
@@ -99,6 +105,8 @@ const TYPE_KEYWORDS = Dict(
 
 
 ## FUNCTIONS
+
+interpret_typemode(input::AbstractString) = interpret_enum(input, TYPE_MODES)
 
 @doc """
     type `text` | `words` | `letters` | `digits`
@@ -154,13 +162,13 @@ Type digits only. Supported keywords are:
 - "redo"
 - "space"
 - "dot"
+- "comma"
 """
 type
 @enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind punctuation_kind space_kind
 @enum TypeMode text words letters digits
-@voiceargs (mode=>(valid_input_auto=true)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, do_keystrokes::Bool=true)
+@voiceargs (mode=>(valid_input=Tuple(TYPE_MODES), interpret_function=interpret_typemode)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, active_lang=type_languages()[1], do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
-    active_lang      = type_languages()[1]
     type_memory      = Vector{String}()
     tokengroup_str   = ""
     tokengroup_kind  = undefined_kind
@@ -176,13 +184,6 @@ type
     ig               = 0  # group index
     it               = 0  # token index
     nb_keyword_chars = 0
-    # TODO: here I am:
-    #       CHANGE LANGUAGE: I need to first add a keyword to `language` to change the language of the type model and the default model and of all keywords, including language.
-    #       Then, I need to create a _next_word, etc. function for each lang with default and type models fixed for each arg (voiceargs fixes the recognizers, i.e. languae used to one - even if can be set at init when language choices made!)! Make next_word etc. a gateway!
-    #       Then, english specific things as I uppercase must be made lang dependent.
-    #       set active lang, change with kw lang and change also other lang dependent things with kw lang as type_keywords, etc. do fs for active_lang dependent things - grouped by what f does, e.g. uppercase...
-    #       ADD MULTILANG SUPPORT FOR ALL VOICEARGS: for type, but also Email and internet -> make MODELNAME.TYPE(/MODELNAME.DEFAULT) possible (use default if not model specified...); allow valid_input to be dict with lang codes as keys... (multilang not working for valid_input_auto)
-    #       add interpret f for TypeMode to convert to it...
     type_keywords = define_type_keywords(mode, end_keyword, active_lang)
     while is_typing
         is_new_group = (all_consumed() && !was_partial_recognition())
@@ -477,7 +478,7 @@ end
 
 function type_string(str::String; do_keystrokes::Bool=true)
     if do_keystrokes
-        keyboard  = controller("keyboard")
+        keyboard = controller("keyboard")
         keyboard.type(str)
     end
 end
@@ -494,7 +495,7 @@ end
 
 function press_keys(keys::PyKey...)
     keyboard  = controller("keyboard")
-    keys = map(convert_key, keys)
+    keys      = map(convert_key, keys)
     @pywith keyboard.pressed(keys[1:end-1]...) begin
         keyboard.press(keys[end])
         keyboard.release(keys[end])
