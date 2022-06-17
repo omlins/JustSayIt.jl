@@ -1,14 +1,20 @@
 const DEFAULT_COMMANDS = Dict(
-    LANG.DE    => Dict("hilfe"    => Help.help,
-                       "schreib"  => Keyboard.type),
-    LANG.EN_US => Dict("help"     => Help.help,
-                       "type"     => Keyboard.type,
-                       "email"    => Email.email,
-                       "internet" => Internet.internet),
-    LANG.ES    => Dict("ayuda"    => Help.help,
-                       "escribe"  => Keyboard.type),
-    LANG.FR    => Dict("aide"     => Help.help,
-                       "écris"    => Keyboard.type),
+    LANG.DE    => Dict("hilfe"     => Help.help,
+                       "schreiben" => Keyboard.type,
+                       "email"     => Email.email,
+                       "internet"  => Internet.internet),
+    LANG.EN_US => Dict("help"      => Help.help,
+                       "type"      => Keyboard.type,
+                       "email"     => Email.email,
+                       "internet"  => Internet.internet),
+    LANG.ES    => Dict("ayuda"     => Help.help,
+                       "escribir"  => Keyboard.type,
+                       "email"     => Email.email,
+                       "internet"  => Internet.internet),
+    LANG.FR    => Dict("aide"      => Help.help,
+                       "écrire"    => Keyboard.type,
+                       "email"     => Email.email,
+                       "internet"  => Internet.internet),
 )
 
 
@@ -20,7 +26,7 @@ Start offline, low latency, highly accurate and secure speech to command transla
 
 # Keyword arguments
 - `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
-- `type_languages::String|AbstractArray{String}=["$(LANG.EN_US)"]`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
+- `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 - `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
@@ -118,7 +124,7 @@ audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --fo
 start(audio_input_cmd=audio_input_cmd)
 ```
 """
-function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=LANG.EN_US, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
@@ -141,12 +147,16 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
 
     # Initializations
-    @info "JustSayIt: I am initializing (say \"sleep JustSayIt\" to put me to sleep; press CTRL+c to terminate)..."
+    cmd_name_awake = COMMAND_NAME_AWAKE[default_language]
+    cmd_name_sleep = COMMAND_NAME_SLEEP[default_language]
+    cmd_awake_jsi  = (default_language == LANG.EN_US) ? "$cmd_name_awake JustSayIt" : "$cmd_name_awake JSI"
+    cmd_sleep_jsi  = (default_language == LANG.EN_US) ? "$cmd_name_sleep JustSayIt" : "$cmd_name_sleep JSI"
+    @info "JustSayIt: I am initializing (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c to terminate)..."
     init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
     # Interprete commands
-    @info "Listening for commands..."
+    @info "Listening for commands in $(lang_str(default_language))..."
     modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
     valid_cmd_names   = command_names()
     cmd_name          = ""
@@ -155,9 +165,9 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     try
         while true
             if is_sleeping
-                if cmd_name == COMMAND_NAME_AWAKE
+                if cmd_name == cmd_name_awake
                     if is_confirmed() is_sleeping = false end
-                    if (is_sleeping) @info("I heard \"awake\". If you want to awake me, say \"awake JustSayIt\".")
+                    if (is_sleeping) @info("I think I heard \"$cmd_name_awake\". If you want to awake me, say \"$cmd_awake_jsi\".")
                     else             @info("... awake again. Listening for commands...")
                     end
                 end
@@ -178,10 +188,10 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                             rethrow(e)
                         end
                     end
-                elseif cmd_name == COMMAND_NAME_SLEEP
+                elseif cmd_name == cmd_name_sleep
                     if is_confirmed() is_sleeping = true end
-                    if (!is_sleeping) @info("I heard \"sleep\". If you want me to sleep, say \"sleep JustSayIt\".")
-                    else              @info("Going to sleep... (To awake me, just say \"awake JustSayIt\".)")
+                    if (!is_sleeping) @info("I heard \"$cmd_name_sleep\". If you want me to sleep, say \"$cmd_sleep_jsi\".")
+                    else              @info("Going to sleep... (To awake me, just say \"$cmd_awake_jsi\".)")
                     end
                 elseif cmd_name != ""
                     @debug "Invalid command: $cmd_name."
@@ -239,8 +249,11 @@ function is_confirmed()
     end
 end
 
-@voiceargs words=>(valid_input=["just say it"], vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
-    return (join(words, " ") == "just say it")
+
+const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.ES=>["j s i"], LANG.FR=>["j s i"])
+
+@voiceargs words=>(valid_input=Tuple(CONFIRMATION), vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
+    return ([join(words, " ")] == CONFIRMATION[default_language()])
 end
 
 execute(cmd::Function)                  = cmd()
