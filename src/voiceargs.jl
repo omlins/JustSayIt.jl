@@ -8,7 +8,7 @@ Declare some or all arguments of the `function` definition to be arguments that 
 - `function`: the function definition.
 !!! note "Keyword arguments definable for each voice argument in `args`"
     - `model::String=MODELNAME.DEFAULT.<default_language>`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
-    - `valid_input::AbstractArray{String}`: the valid speech input (e.g. `["up", "down"]`).
+    - `valid_input::AbstractArray{String}|NTuple{N,Pair{String,<:AbstractArray{String}}}`: the valid speech input (e.g. `["up", "down"]` or `("de" => ["rauf", "runter"], "en-us" => ["up", "down"], "fr" => ["haut", "bas"], "es" => ["arriba", "abajo"])`).
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
     - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
     - `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
@@ -182,6 +182,8 @@ function handle_valid_inputs!(caller::Module, voiceargs, f_args)
             type = eval_arg(caller, f_args[voicearg][:arg_type])
             voiceargs[voicearg][:valid_input] = generate_valid_input(type)
             if !isa(voiceargs[voicearg][:valid_input], VALID_VOICEARGS_KWARGS[:valid_input]) @ArgumentError("generation of valid input by type inspection failed for voicearg $voicearg (generated: $(voiceargs[voicearg][:valid_input])).") end
+        elseif haskey(voiceargs[voicearg], :valid_input) && !isa(voiceargs[voicearg][:valid_input],AbstractArray{String})
+            voiceargs[voicearg][:valid_input] = Dict(voiceargs[voicearg][:valid_input])
         end
     end
 end
@@ -209,7 +211,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
         voicearg_esc             = esc(voicearg)
         is_vararg                = f_args[voicearg][:slurp]
         if haskey(kwargs, :valid_input)
-            valid_input = kwargs[:valid_input]
+            valid_input = isa(kwargs[:valid_input],AbstractArray{String}) ? kwargs[:valid_input] : :($(kwargs[:valid_input])[default_language()])
             if (use_dynamic_recognizers) recognizer_or_info = :(($f_name_sym, $voicearg_sym, $valid_input, $modelname))
             else                         recognizer_or_info = :(recognizer($f_name_sym, $voicearg_sym))
             end
