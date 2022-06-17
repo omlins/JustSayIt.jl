@@ -48,8 +48,6 @@ const AUDIO_ALLOC_GRANULARITY = 1024^2      #[bytes]
 const AUDIO_HISTORY_MIN       = 1024^2      #[bytes]
 const AUDIO_ELTYPE            = Int16
 const AUDIO_IN_CHANNELS       = 1
-const COMMAND_NAME_SLEEP      = "sleep"
-const COMMAND_NAME_AWAKE      = "awake"
 const COMMAND_ABORT           = "abortus"
 const VARARG_END              = "terminus"
 const COMMAND_RECOGNIZER_ID   = ""          # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
@@ -59,7 +57,7 @@ const MODELTYPE_DEFAULT       = "default"
 const MODELTYPE_TYPE          = "type"
 const UNKNOWN_TOKEN           = "[unk]"
 const PyKey                   = Union{Char, PyObject}
-const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>AbstractArray{String}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
+const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>Union{AbstractArray{String}, NTuple{N,Pair{String,<:AbstractArray{String}}} where {N}}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
 const LATIN_ALPHABET          = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z")
 
 @static if Sys.iswindows()
@@ -80,6 +78,12 @@ end
 
 lang_str(code::String)                         = LANG_STR[code]
 modelname(modeltype::String, language::String) = modeltype * "-" * language
+function modeltype(modelname::String)
+    if     startswith(modelname, MODELTYPE_DEFAULT) return MODELTYPE_DEFAULT
+    elseif startswith(modelname, MODELTYPE_TYPE)    return MODELTYPE_TYPE
+    else                                            @APIUsageError("invalid modelname (obtained: \"$modelname\").")
+    end
+end
 
 
 # (HIERARCHICAL CONSTANTS)
@@ -89,10 +93,20 @@ const LANG = (DE    = "de",
               ES    = "es",
               FR    = "fr",
              )
-const LANG_STR = Dict("de"    => "German",
-                      "en-us" => "English (United States)",
-                      "es"    => "Spanish",
-                      "fr"    => "French",
+const COMMAND_NAME_SLEEP = Dict(LANG.DE    => "schlaf",
+                                LANG.EN_US => "sleep",
+                                LANG.ES    => "duerme",
+                                LANG.FR    => "dors",
+                                )
+const COMMAND_NAME_AWAKE = Dict(LANG.DE    => "erwache",
+                                LANG.EN_US => "awake",
+                                LANG.ES    => "despierta",
+                                LANG.FR    => "reveille",
+                                )
+const LANG_STR = Dict(LANG.DE    => "German",
+                      LANG.EN_US => "English (United States)",
+                      LANG.ES    => "Spanish",
+                      LANG.FR    => "French",
                       )
 const LANG_CODES_SHORT = Dict(
     LANG.DE    => Dict("deutsch"     => "de",
@@ -183,6 +197,7 @@ function pyimport_pip(modulename::AbstractString; dependency::AbstractString="",
     end
 end
 
+
 let
     global tic, toc
     t0::Union{Float64,Nothing} = nothing
@@ -192,6 +207,7 @@ let
     toc(t1::Float64)::Float64 = ( time() - t1 )
 end
 
+
 function pretty_dict_string(dict::Dict{String,<:Any})
     key_length_max = maximum(length.(keys(dict)))
     return join([map(sort([keys(dict)...])) do x
@@ -200,6 +216,14 @@ function pretty_dict_string(dict::Dict{String,<:Any})
                 ], "\n")
 end
 
+
 pretty_cmd_string(cmd::Union{Tuple,NTuple})   = join(map(pretty_cmd_string, cmd), " + ")
 pretty_cmd_string(cmd::PyObject)              = cmd.name
 pretty_cmd_string(cmd)                        = string(cmd)
+
+
+function interpret_enum(input::AbstractString, valid_input::Dict{String, <:AbstractArray{String}})
+    index = findfirst(x -> x==input, valid_input[default_language()])
+    if isnothing(index) @APIUsageError("interpretation not possible: the string $input is not present in the obtained valid_input dictionary ($valid_input).") end
+    return valid_input[LANG.EN_US][index]
+end
