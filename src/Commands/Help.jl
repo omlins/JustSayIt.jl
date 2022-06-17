@@ -10,19 +10,19 @@ To see a description of a function type `?<functionname>`.
 """
 module Help
 
-import ..JustSayIt: default_language, command, command_names, next_token, pretty_cmd_string, PyKey
+import ..JustSayIt: LANG, default_language, command, command_names, next_token, pretty_cmd_string, PyKey
 
-const COMMANDS_KEYWORDS = Dict("de"    => "kommandos",
-                               "en-us" => "commands",
-                               "es"    => "comandos",
-                               "fr"    => "commandes",
+const COMMANDS_KEYWORDS = Dict(LANG.DE    => "kommandos",
+                               LANG.EN_US => "commands",
+                               LANG.ES    => "comandos",
+                               LANG.FR    => "commandes",
                                )
 
 "Show help for your commands or a spoken command or module."
 function help()
     commands_keyword = COMMANDS_KEYWORDS[default_language()]
     valid_input = [commands_keyword, command_names()...]
-    keyword = next_token(valid_input)
+    keyword = next_token(valid_input; ignore_unknown=false)
     if keyword == commands_keyword
         cmd_length_max = maximum(length.(command_names()))
         @info join(["", "Your commands:",
@@ -40,7 +40,7 @@ function help()
             @info "Command $keyword\n   =   Keyboard shortcut $(pretty_cmd_string(cmd))"
         end
     else
-        @info "Keyword not recognized."
+        @info "Help search keyword not recognized."
     end
     return
 end
