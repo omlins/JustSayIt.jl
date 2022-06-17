@@ -54,8 +54,8 @@ let
         _modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
 
         # Validate and store the commands, adding the help command to it.
-        if haskey(commands, COMMAND_NAME_SLEEP) @ArgumentError("the command name $COMMAND_NAME_SLEEP is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
-        if haskey(commands, COMMAND_NAME_AWAKE) @ArgumentError("the command name $COMMAND_NAME_AWAKE is reserved for awaking JustSayIt. Please choose another command name for your command.") end
+        if haskey(commands, COMMAND_NAME_SLEEP[default_language]) @ArgumentError("the command name $COMMAND_NAME_SLEEP[default_language] is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
+        if haskey(commands, COMMAND_NAME_AWAKE[default_language]) @ArgumentError("the command name $COMMAND_NAME_AWAKE[default_language] is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
             if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) @ArgumentError("the command belonging to commmand name $command_name is of an invalid. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
         end
@@ -149,7 +149,7 @@ let
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
             if modelname == _modelname_default
-                grammar = json([keys(commands)..., COMMAND_NAME_SLEEP, COMMAND_NAME_AWAKE, noises[modelname]..., UNKNOWN_TOKEN])
+                grammar = json([keys(commands)..., COMMAND_NAME_SLEEP[default_language], COMMAND_NAME_AWAKE[default_language], noises[modelname]..., UNKNOWN_TOKEN])
                 _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
             end
         end
@@ -157,15 +157,16 @@ let
         # Set up the special recognizers defined by voiceargs.
         for f_name in voicearg_f_names()
             for voicearg in keys(voiceargs(f_name))
-                kwargs = voiceargs(f_name)[voicearg]
-                lang   = haskey(kwargs, :model) ? join(split(kwargs[:model], "-")[2:end], "-") : default_language
-                if haskey(kwargs, :model) && !haskey(modeldirs, kwargs[:model]) && (lang == default_language || lang in type_languages)
-                    @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
-                end
-                if (lang == default_language || lang in type_languages) && haskey(kwargs, :valid_input)  # Recognizer are only setup for models in languages that were selected with the arguments default_language or type_languages.
-                    modelname = haskey(kwargs, :model) ? kwargs[:model] : _modelname_default
-                    grammar = json([kwargs[:valid_input]..., noises[modelname]..., UNKNOWN_TOKEN])
-                    set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
+                kwargs    = voiceargs(f_name)[voicearg]
+                lang      = haskey(kwargs, :model) ? join(split(kwargs[:model], "-")[2:end], "-") : default_language
+                modelname = haskey(kwargs, :model) ? kwargs[:model] : _modelname_default
+                if (modeltype(modelname) == MODELTYPE_DEFAULT && lang in [default_language; type_languages]) || (modeltype(modelname) == MODELTYPE_TYPE && lang in type_languages) # Recognizers are only setup for models that are needed, i.e., models for languages that were selected with the arguments default_language or type_languages.
+                    if !haskey(modeldirs, modelname) @ArgumentError("no directory was given for the model $(kwargs[:model]) required for voicearg $voicearg in function $f_name.") end # NOTE: this error should only ever occur for user defined @voicearg functions; all funtions in submodule Commands must use
+                    if haskey(kwargs, :valid_input)
+                        valid_input = isa(kwargs[:valid_input],AbstractArray{String}) ? kwargs[:valid_input] : kwargs[:valid_input][default_language]
+                        grammar     = json([valid_input..., noises[modelname]..., UNKNOWN_TOKEN])
+                        set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
+                    end
                 end
             end
             @debug "Voiceargs of function `$f_name`:" voiceargs(f_name)
