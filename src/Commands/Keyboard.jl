@@ -48,8 +48,8 @@ const TYPE_KEYWORDS = Dict(
     LANG.DE    => Dict("language"      => "sprache",
                        "undo"          => "rückgängig",
                        "redo"          => "wiederholen",
-                       "uppercase"     => "grossschreiben",
-                       "lowercase"     => "kleinschreiben",
+                       "uppercase"     => "gross",
+                       "lowercase"     => "klein",
                        "letters"       => "buchstaben",
                        "digits"        => "ziffern",
                        "point"         => "punkt",
@@ -96,7 +96,7 @@ const TYPE_KEYWORDS = Dict(
                        "digits"        => "chiffres",
                        "point"         => "point",
                        "comma"         => "virgule",
-                       "colon"         => "doublepoint",
+                       "colon"         => "deux-points",
                        "semicolon"     => "point-virgule",
                        "exclamation"   => "exclamation",
                        "interrogation" => "interrogation",
@@ -121,6 +121,7 @@ Each of the modes supports a set of keywords which can trigger some immediate ac
 
 # Keywords
 - "terminus": end typing.
+- "language": change typing language.
 - "undo": undo typing of last word group.
 - "redo": redo typing of last word group.
 - "uppercase": type the first word of the next word group uppercase (automatic in `text` mode after '.', '!' and '?').
@@ -290,6 +291,7 @@ type
                     tokengroup_kind = digit_kind
                 elseif keyword == TYPE_KEYWORDS[active_lang]["language"]
                     tokengroup_kind = language_kind
+                    @info "Languages initialized for typing: $(join(lang_str.(type_languages()), ", ", " and "))."
                 elseif keyword == TYPE_KEYWORDS[active_lang]["point"]
                     push!(punctuation, ".")
                     tokengroup_kind = punctuation_kind
@@ -340,12 +342,12 @@ type
             end
             token_str = ""
             if (tokengroup_kind == word_kind)
-                if (is_uppercase || startswith(token, "i'") || (token == "i")) token = uppercasefirst(token) end
+                token = handle_uppercase(token, is_uppercase, active_lang)
                 if (was_space) token_str = token
                 else           token_str = " " * token
                 end
             elseif (tokengroup_kind == letter_kind)
-                if (is_uppercase) token = uppercase(token) end
+                if (is_uppercase) token = uppercasefirst(token, active_lang) end
                 token_str = token
             elseif (tokengroup_kind == digit_kind)
                 token_str = token
@@ -394,6 +396,52 @@ function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::
     elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["digits"]]
     end
     return type_keywords
+end
+
+
+function handle_uppercase(token::String, is_uppercase::Bool, active_lang::String)
+    if (is_uppercase) token = uppercasefirst(token, active_lang) end
+    if (active_lang == LANG.EN_US)
+        if (startswith(token, "i'") || (token == "i")) token = uppercasefirst(token) end
+    end
+    return token
+end
+
+
+# This method extends Base.uppercasefirst to put the first letter to uppercase for cases that are not originally supported.
+function Base.uppercasefirst(token::String, active_lang::String)
+    token = uppercasefirst(token)
+    if (active_lang == LANG.ES)
+        if (token[1] == "á") token[1] = "Á"
+        elseif (token[1] == "é") token[1] = "É"
+        elseif (token[1] == "í") token[1] = "Í"
+        elseif (token[1] == "ñ") token[1] = "Ñ"
+        elseif (token[1] == "ó") token[1] = "Ó"
+        elseif (token[1] == "ê") token[1] = "Ê"
+        elseif (token[1] == "ú") token[1] = "Ú"
+        elseif (token[1] == "ü") token[1] = "Ü"
+        elseif (token[1] == "ý") token[1] = "Ý"
+        end
+    elseif (active_lang == LANG.FR)
+        if     (token[1] == "à") token[1] = "À"
+        elseif (token[1] == "â") token[1] = "Â"
+        elseif (token[1] == "ä") token[1] = "Ä"
+        elseif (token[1] == "æ") token[1] = "Æ"
+        elseif (token[1] == "ç") token[1] = "Ç"
+        elseif (token[1] == "è") token[1] = "È"
+        elseif (token[1] == "é") token[1] = "É"
+        elseif (token[1] == "ê") token[1] = "Ê"
+        elseif (token[1] == "ë") token[1] = "Ë"
+        elseif (token[1] == "î") token[1] = "Î"
+        elseif (token[1] == "ï") token[1] = "Ï"
+        elseif (token[1] == "ô") token[1] = "Ô"
+        elseif (token[1] == "œ") token[1] = "Œ"
+        elseif (token[1] == "ù") token[1] = "Ù"
+        elseif (token[1] == "û") token[1] = "Û"
+        elseif (token[1] == "ü") token[1] = "Ü"
+        end
+    end
+    return token
 end
 
 
