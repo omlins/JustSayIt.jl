@@ -1,20 +1,20 @@
 const DEFAULT_COMMANDS = Dict(
-    LANG.DE    => Dict("hilfe"     => Help.help,
-                       "schreiben" => Keyboard.type,
-                       "email"     => Email.email,
-                       "internet"  => Internet.internet),
-    LANG.EN_US => Dict("help"      => Help.help,
-                       "type"      => Keyboard.type,
-                       "email"     => Email.email,
-                       "internet"  => Internet.internet),
-    LANG.ES    => Dict("ayuda"     => Help.help,
-                       "escribir"  => Keyboard.type,
-                       "email"     => Email.email,
-                       "internet"  => Internet.internet),
-    LANG.FR    => Dict("aide"      => Help.help,
-                       "écrire"    => Keyboard.type,
-                       "email"     => Email.email,
-                       "internet"  => Internet.internet),
+    LANG.DE    => Dict("hilfe"    => Help.help,
+                       "schreibe" => Keyboard.type,
+                       "email"    => Email.email,
+                       "internet" => Internet.internet),
+    LANG.EN_US => Dict("help"     => Help.help,
+                       "type"     => Keyboard.type,
+                       "email"    => Email.email,
+                       "internet" => Internet.internet),
+    LANG.ES    => Dict("ayuda"    => Help.help,
+                       "escribe"  => Keyboard.type,
+                       "email"    => Email.email,
+                       "internet" => Internet.internet),
+    LANG.FR    => Dict("aide"     => Help.help,
+                       "écrire"   => Keyboard.type,
+                       "email"    => Email.email,
+                       "internet" => Internet.internet),
 )
 
 
@@ -147,21 +147,21 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
 
     # Initializations
-    cmd_name_awake = COMMAND_NAME_AWAKE[default_language]
-    cmd_name_sleep = COMMAND_NAME_SLEEP[default_language]
-    cmd_awake_jsi  = (default_language == LANG.EN_US) ? "$cmd_name_awake JustSayIt" : "$cmd_name_awake JSI"
-    cmd_sleep_jsi  = (default_language == LANG.EN_US) ? "$cmd_name_sleep JustSayIt" : "$cmd_name_sleep JSI"
-    @info "JustSayIt: I am initializing (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c to terminate)..."
+    @info "JustSayIt: I am initializing..."
     init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
     # Interprete commands
-    @info "Listening for commands in $(lang_str(default_language))..."
     modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
     valid_cmd_names   = command_names()
     cmd_name          = ""
+    cmd_name_awake    = COMMAND_NAME_AWAKE[default_language]
+    cmd_name_sleep    = COMMAND_NAME_SLEEP[default_language]
+    cmd_awake_jsi     = (default_language == LANG.EN_US) ? "$cmd_name_awake JustSayIt" : "$cmd_name_awake JSI"
+    cmd_sleep_jsi     = (default_language == LANG.EN_US) ? "$cmd_name_sleep JustSayIt" : "$cmd_name_sleep JSI"
     is_sleeping       = false
     use_max_speed     = true
+    @info "Listening for commands in $(lang_str(default_language)) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c to terminate)..."
     try
         while true
             if is_sleeping
