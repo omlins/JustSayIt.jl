@@ -52,7 +52,7 @@ end
 @doc SEARCH_DOC
 function search_internet()
     DefaultApplication.open(SEARCH_ENGINE)
-    Keyboard.type(Keyboard.text; end_keyword=ACTIONS[default_language()][1])
+    Keyboard.type(Keyboard.text; end_keyword=ACTIONS[default_language()][1], active_lang=default_language())
     Keyboard.press_keys(Key.enter)
 end
 
