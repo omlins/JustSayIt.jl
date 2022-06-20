@@ -81,6 +81,7 @@ let
                 download_and_unzip(modeldepot, filename, DEFAULT_MODEL_REPO)
             end
         end
+
         # For each of the type languages, if the corresponding modeldir points to the default path, download a large and small model (for keyword handling etc.) if none is present (asumed present if the folder is present)
         for lang in type_languages
             modelname_lang = modelname(MODELTYPE_TYPE, lang)
@@ -137,6 +138,13 @@ let
                     end
                 end
             end
+        end
+
+        # If no type model was set for the default language make it point to the default model.
+        modelname_type = modelname(MODELTYPE_TYPE, default_language)
+        if !haskey(modeldirs, modelname_type)
+            @warn("The default language ($(lang_str(default_language))) was not selected as typing language. The small language model will therefore be used should any command require typing in the default language.")
+            modeldirs[modelname_type] = DEFAULT_MODELDIRS[modelname(MODELTYPE_DEFAULT, default_language)]
         end
 
         # Set up a default recognizer for each model as well as the command name recognizer.
