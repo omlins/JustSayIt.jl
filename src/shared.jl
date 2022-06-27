@@ -133,7 +133,7 @@ const LANG_CODES_SHORT = Dict(
 const NOISES = (DE    = String[],
                 EN_US = String["huh"],
                 ES    = String[],
-                FR    = String[],
+                FR    = String["hum"],
                )
 const MODELNAME = (DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
                    TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
