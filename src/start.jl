@@ -174,7 +174,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
             else
                 if cmd_name in valid_cmd_names
                     cmd = command(string(cmd_name))
-                    if (t0_latency() > 0.0) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
+                    if (t0_latency() > 0.0 && do_perf_debug()) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
                     try
                         latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
                         @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
