@@ -22,7 +22,7 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller
+    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug
     _default_language::String                                                                           = ""
     _type_languages::AbstractArray{String}                                                              = String[]
     _modelname_default::String                                                                          = ""
@@ -31,6 +31,7 @@ let
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
     _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
     _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
+    _do_perf_debug::Bool                                                                                = false
     default_language()                                                                                  = _default_language
     type_languages()                                                                                    = _type_languages
     modelname_default()                                                                                 = _modelname_default
@@ -42,11 +43,14 @@ let
     recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
     controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
     set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
+    do_perf_debug()::Bool                                                                               = _do_perf_debug
+    set_perf_debug()                                                                                    = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
 
 
     function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; default_language::String=LANG.EN_US, type_languages::AbstractArray{String}=[LANG.EN_US], vosk_log_level::Integer=-1)
-        # Set global Vosk options.
+        # Set global options.
         Vosk.SetLogLevel(vosk_log_level)
+        set_perf_debug()
 
         # Store the language choice.
         _default_language  = default_language
