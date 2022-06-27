@@ -306,10 +306,10 @@ let
         end
 		it_result += it
         @debug join([".........................................."
-			"Iterations: $it_result (average Bytes/it_result: $(bytes_read_sum/it_result))"
-        	"READ:      throughput [KB/s]: $(round(bytes_read_sum/t_read_sum/1e3, sigdigits=2)) (average [s]: $(round(t_read_sum/it_result, sigdigits=2)), max [s]: $(round(t_read_max, sigdigits=2)), sum [s]: $(round(t_read_sum, sigdigits=2)))"
-        	"RECOGNISE: throughput [KB/s]: $(round(bytes_read_sum/t_recognize_sum/1e3, sigdigits=2)) (average [s]: $(round(t_recognize_sum/it_result, sigdigits=2)) max [s]: $(round(t_recognize_max, sigdigits=2)), sum [s]: $(round(t_recognize_sum, sigdigits=2)))"
-        	"TOTAL:     effective throughput [KB/s]: $(round(bytes_read_sum/t_sum/1e3, sigdigits=2)) (average [s]: $(round(t_sum/it_result, sigdigits=2)) max [s]: $(round(t_max, sigdigits=2)), sum [s]: $(round(t_sum, sigdigits=2)))"
+			                    "Iterations: $it_result (average Bytes/it_result: $(bytes_read_sum/it_result))"
+        	  do_perf_debug() ? "READ:      throughput [KB/s]: $(round(bytes_read_sum/t_read_sum/1e3, sigdigits=2)) (average [s]: $(round(t_read_sum/it_result, sigdigits=2)), max [s]: $(round(t_read_max, sigdigits=2)), sum [s]: $(round(t_read_sum, sigdigits=2)))" : ""
+        	  do_perf_debug() ? "RECOGNISE: throughput [KB/s]: $(round(bytes_read_sum/t_recognize_sum/1e3, sigdigits=2)) (average [s]: $(round(t_recognize_sum/it_result, sigdigits=2)) max [s]: $(round(t_recognize_max, sigdigits=2)), sum [s]: $(round(t_recognize_sum, sigdigits=2)))" : ""
+        	  do_perf_debug() ? "TOTAL:     effective throughput [KB/s]: $(round(bytes_read_sum/t_sum/1e3, sigdigits=2)) (average [s]: $(round(t_sum/it_result, sigdigits=2)) max [s]: $(round(t_max, sigdigits=2)), sum [s]: $(round(t_sum, sigdigits=2)))" : ""
 			is_partial_result ? "Partial result: $text" : "Result: $text"
 		], "\n")
         if is_partial_result
