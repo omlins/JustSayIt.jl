@@ -3,14 +3,14 @@
 ## Simple basic software usage
 The basic usage of JustSayIt is as simple as launching `Julia` and calling the commands `using JustSayIt` followed by `start`:
 ```julia-repl
-  > julia
-  julia> using JustSayIt
-  julia> start()
+$> julia
+julia> using JustSayIt
+julia> start()
 ```
 
 ## User definable mapping of command names to functions or keyboard shortcuts
 The keyword `commands` of `start` enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
-```julia-repl
+```julia
 # Define custom commands
 using JustSayIt
 commands = Dict("help"      => Help.help,
@@ -36,7 +36,7 @@ start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "ri
 Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
 The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
-```julia-repl
+```julia
 # Listen only to the commands "help" and "type".
 using JustSayIt
 start(subset=["help", "type"])
@@ -48,7 +48,7 @@ More information on customization keywords is obtainable by typing `?start`.
 ## Per command choice between maximum speed or accuracy
 
 The keyword `max_speed_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognized with maximum speed rather than with maximum accuracy, e.g.:
-```julia-repl
+```julia
 # Define custom commands
 using JustSayIt
 commands = Dict("copy"      => (Key.ctrl, 'c'),
@@ -91,7 +91,7 @@ Saying "help commands" lists your available commands in the Julia REPL leading t
 └ upwards   => page_up
 ```
 Saying "help <command name>" shows the help of one of the available commands. Here is, e.g., the output produced when saying "help email":
-```
+```julia-repl
 [ Info: Starting command: help (latency: 6 ms)
 ┌ Info: Command email
 │    =
