@@ -88,6 +88,7 @@ end
 
 # (HIERARCHICAL CONSTANTS)
 
+"Constant named tuple containing names of available languages."
 const LANG = (DE    = "de",
               EN_US = "en-us",
               ES    = "es",
@@ -135,6 +136,7 @@ const NOISES = (DE    = String[],
                 ES    = String[],
                 FR    = String["hum"],
                )
+"Constant named tuple containing modelnames for available languages."
 const MODELNAME = (DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
                    TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
                   )
