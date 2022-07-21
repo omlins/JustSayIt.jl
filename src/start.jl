@@ -24,6 +24,9 @@ const DEFAULT_COMMANDS = Dict(
 
 Start offline, low latency, highly accurate and secure speech to command translation.
 
+!!! note "NOTE: Support for German and Spanish deactivated"
+    Support for German and Spanish is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017
+
 # Keyword arguments
 - `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
 - `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
@@ -125,9 +128,11 @@ start(audio_input_cmd=audio_input_cmd)
 ```
 """
 function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+    if (default_language in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
+        if (l in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
         if (l ∉ LANG) @KeywordArgumentError("invalid `type_language` (obtained \"$l\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     end
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
