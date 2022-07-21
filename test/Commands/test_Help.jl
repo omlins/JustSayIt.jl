@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, _are_next
 
 
@@ -29,8 +29,8 @@ commands = Dict("help"      => Help.help,
                 "page up"   => Key.page_up,
                 "page down" => Key.page_down,
                 );
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 samples = Dict("help"      => read_wav(joinpath(SAMPLEDIR_CMD, "help.wav")),
@@ -69,7 +69,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
         id     = cmd
         start_reading([sample; _2]; id=id)
         set_default_streamer(reader, id)
-        _are_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false) # NOTE: this full recognition call is required to have safe reproducable results in the following help call.
+        _are_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false) # NOTE: this full recognition call is required to have safe reproducable results in the following help call.
         @test_logs (:info,) Help.help()
         stop_reading(id=id)
     end;
@@ -77,7 +77,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
         id = "cut"
         start_reading([samples["cut"]; _2]; id=id)
         set_default_streamer(reader, id)
-        @test_logs (:info,"Keyword not recognized.") Help.help()
+        @test_logs (:info,"Help search keyword not recognized.") Help.help()
         stop_reading(id=id)
     end;
     recognizer(COMMAND_RECOGNIZER_ID).Reset()

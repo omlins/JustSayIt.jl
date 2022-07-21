@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS_ENGLISH
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS
 import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer
 
 
@@ -13,17 +13,17 @@ import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognize
 @voiceargs (n1=>(valid_input_auto=true), n2=>(valid_input_auto=true)) hi(n1::Name, n2::Name) = println("hi $n1 and $n2")
 
 @voiceargs (
-    nr=>(valid_input=[keys(DIGITS_ENGLISH)...], interpret_function=Keyboard.interpret_digits, use_max_speed=true),
+    nr=>(valid_input=(LANG.EN_US=>[keys(DIGITS[LANG.EN_US])...],LANG.FR=>[keys(DIGITS[LANG.FR])...]), interpret_function=Keyboard.interpret_digits_EN_US, use_max_speed=true),
     name=>(valid_input_auto=true),
-    question=>(model=TYPE_MODEL_NAME, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
+    question=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
 ) function ask(nr::Integer, name::Name, question::String...)
     println("[Q$nr] Hi $name, could you please $(join(question," "))?")
 end
 
 commands = Dict("help"  => Help.help,
                 "hello" => hello)
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 
@@ -59,7 +59,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
                 @test voiceargs(:hello)[:space][:valid_input] == ["world", "universe"]
                 @test voiceargs(:hi)[:n1][:valid_input] == ["julia", "python"]
                 @test voiceargs(:hi)[:n2][:valid_input] == ["julia", "python"]
-                @test voiceargs(:ask)[:nr][:valid_input] == [keys(DIGITS_ENGLISH)...]
+                @test voiceargs(:ask)[:nr][:valid_input] == Dict(LANG.EN_US=>[keys(DIGITS[LANG.EN_US])...],LANG.FR=>[keys(DIGITS[LANG.FR])...])
                 @test voiceargs(:ask)[:name][:valid_input] == ["julia", "python"]
             end;
             @testset "valid_input_auto" begin
@@ -68,7 +68,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
                 @test voiceargs(:ask)[:name][:valid_input_auto] == true
             end;
             @testset "interpret_function" begin
-                @test voiceargs(:ask)[:nr][:interpret_function] == Keyboard.interpret_digits
+                @test voiceargs(:ask)[:nr][:interpret_function] == Keyboard.interpret_digits_EN_US
             end;
             @testset "use_max_speed" begin
                 @test voiceargs(:ask)[:nr][:use_max_speed] == true
@@ -77,7 +77,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
                 @test voiceargs(:ask)[:question][:ignore_unknown] == true
             end;
             @testset "model" begin
-                @test voiceargs(:ask)[:question][:model] == TYPE_MODEL_NAME
+                @test voiceargs(:ask)[:question][:model] == MODELNAME.TYPE.EN_US
             end;
             @testset "vararg_end" begin
                 @test voiceargs(:ask)[:question][:vararg_end] == "end"

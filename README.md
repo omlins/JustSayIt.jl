@@ -153,7 +153,7 @@ JustSayIt commands map to regular Julia functions. Function arguments can be eas
 ```
 ```julia
     @enum TypeMode words formula
-    @voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+    @voiceargs (mode=>(valid_input_auto=true), token=>(model=MODELNAME.TYPE.EN_US, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
         #(...)
         return
     end

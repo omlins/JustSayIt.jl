@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, _are_next
 
 
@@ -12,8 +12,8 @@ const SAMPLEDIR_SILENCE = joinpath("samples", "silence")
 
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type)
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 and           = read_wav(joinpath(SAMPLEDIR_TYPE, "and.wav"))
@@ -84,7 +84,7 @@ tests_digits  = Dict("05261.78 394" => [digits; _5;   _zero; five; two; six; one
                      "056"          => [digits; _5;   _zero; five; _5; six; _5; undo; _5; undo; _5; redo; _5; redo; _5; redo;                    _5; terminus; _5],
                     );
 
-tests_text    = Dict("Let's type some words: the Julia programming language."                => [text; _5;   let_s; type; some; words;   _5; colon; _5;               the; _5; uppercase; _5;  julia; _5; uppercase; lowercase; _5; programming; language; _5; point;                _5; terminus; _5],
+tests_text    = Dict("Let's type some words: Julia programming."                             => [text; _5;   let_s; type; some; words;   _5; colon; _5;               uppercase; _5; julia; uppercase; lowercase; _5; programming; _5; point;                _5; terminus; _5],
                      "Let's type some letters: cscs."                                        => [text; _5;   let_s; type; some; letters; _5; colon; _5; letters; _5;  space; c; s; c; s; _5; point;                                                                                  _5; terminus; _5],
                      "Let's type some digits: 07.6."                                         => [text; _5;   let_s; type; some; digits;  _5; colon; _5; digits;  _5;  space; _zero; seven; dot; six; _5; point;                                                               _5; terminus; _5],
                      "Let's try some interrogation exclamation point and paragraph:.,:;!?\n" => [text; _5;   let_s; _try; some; interrogation; exclamation; point; and; paragraph; _5; colon;  point; comma; colon; semicolon; exclamation; interrogation; _5; paragraph;            _5; terminus; _5],

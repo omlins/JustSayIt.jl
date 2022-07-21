@@ -7,8 +7,8 @@ Declare some or all arguments of the `function` definition to be arguments that 
 - `args`: a voicearg, a pair `voicearg=>kwargs` or a tuple with multiple voiceargs, which can each have kwargs or not (see examples below).
 - `function`: the function definition.
 !!! note "Keyword arguments definable for each voice argument in `args`"
-    - `model::String=DEFAULT_MODEL_NAME`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
-    - `valid_input::AbstractArray{String}`: the valid speech input (e.g. `["up", "down"]`).
+    - `model::String=MODELNAME.DEFAULT.<default_language>`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
+    - `valid_input::AbstractArray{String}|NTuple{N,Pair{String,<:AbstractArray{String}}}`: the valid speech input (e.g. `["up", "down"]` or `("de" => ["rauf", "runter"], "en-us" => ["up", "down"], "fr" => ["haut", "bas"], "es" => ["arriba", "abajo"])`).
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
     - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
     - `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
@@ -30,7 +30,7 @@ end
 end
 
 @enum TypeMode words formula
-@voiceargs (mode=>(valid_input_auto=true), token=>(model=TYPE_MODEL_NAME, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+@voiceargs (mode=>(valid_input_auto=true), token=>(model=MODELNAME.TYPE.EN_US, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
     #(...)
     return
 end
@@ -182,6 +182,8 @@ function handle_valid_inputs!(caller::Module, voiceargs, f_args)
             type = eval_arg(caller, f_args[voicearg][:arg_type])
             voiceargs[voicearg][:valid_input] = generate_valid_input(type)
             if !isa(voiceargs[voicearg][:valid_input], VALID_VOICEARGS_KWARGS[:valid_input]) @ArgumentError("generation of valid input by type inspection failed for voicearg $voicearg (generated: $(voiceargs[voicearg][:valid_input])).") end
+        elseif haskey(voiceargs[voicearg], :valid_input) && !isa(voiceargs[voicearg][:valid_input],AbstractArray{String})
+            voiceargs[voicearg][:valid_input] = Dict(voiceargs[voicearg][:valid_input])
         end
     end
 end
@@ -200,7 +202,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
     i = 1
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
-        modelname                = haskey(kwargs,:model) ? kwargs[:model] : DEFAULT_MODEL_NAME
+        modelname                = haskey(kwargs,:model) ? kwargs[:model] : :(modelname_default())
         use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
         ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : USE_IGNORE_UNKNOWN_DEFAULT
         f_arg                    = f_args[voicearg]
@@ -209,7 +211,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
         voicearg_esc             = esc(voicearg)
         is_vararg                = f_args[voicearg][:slurp]
         if haskey(kwargs, :valid_input)
-            valid_input = kwargs[:valid_input]
+            valid_input = isa(kwargs[:valid_input],AbstractArray{String}) ? kwargs[:valid_input] : :($(kwargs[:valid_input])[default_language()])
             if (use_dynamic_recognizers) recognizer_or_info = :(($f_name_sym, $voicearg_sym, $valid_input, $modelname))
             else                         recognizer_or_info = :(recognizer($f_name_sym, $voicearg_sym))
             end

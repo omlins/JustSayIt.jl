@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, command_names, command, noises_names, noises, model, recognizer
 
 @testset "$(basename(@__FILE__))" begin
@@ -11,10 +11,10 @@ import JustSayIt: init_jsi, finalize_jsi, command_names, command, noises_names, 
                         "type"    => Keyboard.type,
                         "redo"    => (Key.ctrl, Key.shift, 'z'),
                         "upwards" => Key.page_up)
-        modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                         TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
-        mynoises  = Dict(DEFAULT_MODEL_NAME => ["huh"],
-                         TYPE_MODEL_NAME    => ["huhuh"])
+        modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                         MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+        mynoises  = Dict(MODELNAME.DEFAULT.EN_US => ["huh"],
+                         MODELNAME.TYPE.EN_US    => ["huhuh"])
         init_jsi(commands, modeldirs, mynoises)
         @testset "commands" begin
             @test command_names() == keys(commands)
@@ -25,14 +25,14 @@ import JustSayIt: init_jsi, finalize_jsi, command_names, command, noises_names, 
         end;
         @testset "noises" begin
             @test noises_names() == keys(mynoises)
-            @test noises(DEFAULT_MODEL_NAME) == ["huh"]
-            @test noises(TYPE_MODEL_NAME) == ["huhuh"]
+            @test noises(MODELNAME.DEFAULT.EN_US) == ["huh"]
+            @test noises(MODELNAME.TYPE.EN_US) == ["huhuh"]
         end;
         @testset "models" begin
-            @test isa(model(DEFAULT_MODEL_NAME), PyObject)
+            @test isa(model(MODELNAME.DEFAULT.EN_US), PyObject)
         end;
         @testset "recognizers" begin
-            @test isa(recognizer(DEFAULT_MODEL_NAME), PyObject)
+            @test isa(recognizer(MODELNAME.DEFAULT.EN_US), PyObject)
             @test isa(recognizer(COMMAND_RECOGNIZER_ID), PyObject)
         end;
         finalize_jsi()

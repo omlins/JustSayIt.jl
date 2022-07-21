@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: DEFAULT_MODEL_NAME, TYPE_MODEL_NAME, MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
 
 
@@ -29,8 +29,8 @@ commands = Dict("help"      => Help.help,
                 "page up"   => Key.page_up,
                 "page down" => Key.page_down,
                 );
-modeldirs = Dict(DEFAULT_MODEL_NAME => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 TYPE_MODEL_NAME    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 samples = Dict("help"      => read_wav(joinpath(SAMPLEDIR_CMD, "help.wav")),
@@ -64,8 +64,8 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
 @testset "$(basename(@__FILE__))" begin
     @testset "1. dynamic recognizers" begin
         valid_input = ["world", "universe"]
-        @test isa(recognizer(valid_input, noises(DEFAULT_MODEL_NAME)), PyObject)
-        @test isa(recognizer(valid_input, noises(TYPE_MODEL_NAME); modelname=TYPE_MODEL_NAME), PyObject)
+        @test isa(recognizer(valid_input, noises(MODELNAME.DEFAULT.EN_US)), PyObject)
+        @test isa(recognizer(valid_input, noises(MODELNAME.TYPE.EN_US); modelname=MODELNAME.TYPE.EN_US), PyObject)
     end;
     @testset "2. single-word recognitions ($cmd)" for cmd in singleword_cmds
         sample = samples[cmd]
@@ -104,7 +104,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         start_reading([sample; _05]; id=id)
         set_default_streamer(reader, id)
         @testset "_is_next" begin
-            @test _is_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
+            @test _is_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=true, ignore_unknown=false)
         end;
         # NOTE: The recogniser resets implied by dynamic recognisers in the following tests seem to break these tests.
         # @testset "is_next" begin
@@ -114,7 +114,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         #     @test is_next(["cat", cmd, "dog"]; use_max_speed=true, ignore_unknown=false)
         # end;
         @testset "next_token" begin
-            token = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=true, ignore_unknown=false)
+            token = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=true, ignore_unknown=false)
             @test token == cmd
         end;
         stop_reading(id=id)
@@ -125,7 +125,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         start_reading([sample; _2]; id=id)
         set_default_streamer(reader, id)
         @testset "_is_next" begin
-            @test _is_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false)
+            @test _is_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false)
         end;
         # NOTE: The recogniser resets implied by dynamic recognisers in the following tests seem to break these tests.
         # @testset "is_next" begin
@@ -135,7 +135,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         #     @test is_next(["cat", cmd, "dog"]; use_max_speed=false, ignore_unknown=false)
         # end;
         @testset "next_token" begin
-            token = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false)
+            token = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false)
             @test token == cmd
         end;
         stop_reading(id=id)
@@ -147,7 +147,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         set_default_streamer(reader, id)
         @testset "_are_next" begin
             tokens = String.(split(cmd))
-            is_match, match = _are_next(tokens, recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false)
+            is_match, match = _are_next(tokens, recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false)
             @test is_match
             @test join(match, " ") == cmd
         end;
@@ -164,8 +164,8 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
             @test join(match, " ") == cmd
         end;
         @testset "next_token" begin
-            token  = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false)
-            tokens = token * " " * next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(DEFAULT_MODEL_NAME); use_partial_recognitions=false, ignore_unknown=false)
+            token  = next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false)
+            tokens = token * " " * next_token(recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false)
             @test tokens == cmd
         end;
         stop_reading(id=id)
