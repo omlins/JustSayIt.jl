@@ -1,0 +1,4 @@
+[deps]
+DocExtensions = "cbdad009-89f1-4e05-85a0-06b07b50707d"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+JustSayIt = "d7252348-293e-4f11-8d42-c8418dda4315"
