@@ -54,14 +54,14 @@ $(pretty_dict_string(DEFAULT_COMMANDS))
 
 !!! note "Advanced"
     # Default model directories
-    ```
-    $(pretty_dict_string(DEFAULT_MODELDIRS))
-    ```
-
+```
+$(pretty_dict_string(DEFAULT_MODELDIRS))
+```
+!!! note "Advanced"
     # Default `noises`
-    ```
-    $(pretty_dict_string(DEFAULT_NOISES))
-    ```
+```
+$(pretty_dict_string(DEFAULT_NOISES))
+```
 
 # Examples
 
