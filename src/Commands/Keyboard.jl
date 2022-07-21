@@ -44,21 +44,37 @@ const TYPE_MODES = Dict(
     LANG.ES    => ["texto", "palabras", "letras",     "cifras"],
     LANG.FR    => ["text",  "mots",     "lettres",    "chiffres"],
 )
+
+# TODO: as a workaround for an issue with the dynamic German and Spanish models, the English model is used...
 const TYPE_KEYWORDS = Dict(
-    LANG.DE    => Dict("language"      => "sprache",
-                       "undo"          => "rückgängig",
-                       "redo"          => "wiederholen",
-                       "uppercase"     => "gross",
-                       "lowercase"     => "klein",
-                       "letters"       => "buchstaben",
-                       "digits"        => "ziffern",
-                       "point"         => "punkt",
-                       "comma"         => "komma",
-                       "colon"         => "doppelpunkt",
-                       "semicolon"     => "strichpunkt",
-                       "exclamation"   => "ausrufezeichen",
-                       "interrogation" => "fragezeichen",
-                       "paragraph"     => "paragraf"),
+    # LANG.DE    => Dict("language"      => "sprache",
+    #                    "undo"          => "rückgängig",
+    #                    "redo"          => "wiederholen",
+    #                    "uppercase"     => "gross",
+    #                    "lowercase"     => "klein",
+    #                    "letters"       => "buchstaben",
+    #                    "digits"        => "ziffern",
+    #                    "point"         => "punkt",
+    #                    "comma"         => "komma",
+    #                    "colon"         => "doppelpunkt",
+    #                    "semicolon"     => "strichpunkt",
+    #                    "exclamation"   => "ausrufezeichen",
+    #                    "interrogation" => "fragezeichen",
+    #                    "paragraph"     => "paragraf"),
+    LANG.DE   => Dict("language"      => "language",
+                       "undo"          => "undo",
+                       "redo"          => "redo",
+                       "uppercase"     => "uppercase",
+                       "lowercase"     => "lowercase",
+                       "letters"       => "letters",
+                       "digits"        => "digits",
+                       "point"         => "point",
+                       "comma"         => "comma",
+                       "colon"         => "colon",
+                       "semicolon"     => "semicolon",
+                       "exclamation"   => "exclamation",
+                       "interrogation" => "interrogation",
+                       "paragraph"     => "paragraph"),
     LANG.EN_US => Dict("language"      => "language",
                        "undo"          => "undo",
                        "redo"          => "redo",
@@ -73,20 +89,34 @@ const TYPE_KEYWORDS = Dict(
                        "exclamation"   => "exclamation",
                        "interrogation" => "interrogation",
                        "paragraph"     => "paragraph"),
-    LANG.ES    => Dict("language"      => "lenguaje",
-                       "undo"          => "deshacer",
-                       "redo"          => "rehacer",
-                       "uppercase"     => "mayúscula",
-                       "lowercase"     => "minúscula",
-                       "letters"       => "letras",
-                       "digits"        => "cifras",
-                       "point"         => "punto",
-                       "comma"         => "coma",
-                       "colon"         => "dos-puntos",
-                       "semicolon"     => "punto-y-coma",
-                       "exclamation"   => "exclamación",
-                       "interrogation" => "interrogación",
-                       "paragraph"     => "párrafo"),
+    # LANG.ES    => Dict("language"      => "lenguaje",
+    #                    "undo"          => "deshacer",
+    #                    "redo"          => "rehacer",
+    #                    "uppercase"     => "mayúscula",
+    #                    "lowercase"     => "minúscula",
+    #                    "letters"       => "letras",
+    #                    "digits"        => "cifras",
+    #                    "point"         => "punto",
+    #                    "comma"         => "coma",
+    #                    "colon"         => "dos-puntos",
+    #                    "semicolon"     => "punto-y-coma",
+    #                    "exclamation"   => "exclamación",
+    #                    "interrogation" => "interrogación",
+    #                    "paragraph"     => "párrafo"),
+    LANG.ES    => Dict("language"      => "language",
+                       "undo"          => "undo",
+                       "redo"          => "redo",
+                       "uppercase"     => "uppercase",
+                       "lowercase"     => "lowercase",
+                       "letters"       => "letters",
+                       "digits"        => "digits",
+                       "point"         => "point",
+                       "comma"         => "comma",
+                       "colon"         => "colon",
+                       "semicolon"     => "semicolon",
+                       "exclamation"   => "exclamation",
+                       "interrogation" => "interrogation",
+                       "paragraph"     => "paragraph"),
     LANG.FR    => Dict("language"      => "language",
                        "undo"          => "défaire",
                        "redo"          => "refaire",
@@ -96,7 +126,7 @@ const TYPE_KEYWORDS = Dict(
                        "digits"        => "chiffres",
                        "point"         => "point",
                        "comma"         => "virgule",
-                       "colon"         => "deux-points",
+                       "colon"         => "deux",
                        "semicolon"     => "point-virgule",
                        "exclamation"   => "exclamation",
                        "interrogation" => "interrogation",
@@ -166,7 +196,7 @@ Type digits only. Supported keywords are:
 - "comma"
 """
 type
-@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind punctuation_kind space_kind
+@enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind direct_kind
 @enum TypeMode text words letters digits
 @voiceargs (mode=>(valid_input=Tuple(TYPE_MODES), interpret_function=interpret_typemode)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, active_lang=type_languages()[1], do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
@@ -179,8 +209,7 @@ type
     is_new_group     = false
     is_uppercase     = (mode == text) ? true : false
     was_space        = true # We want the first token to be dealt with as if there had been a space character before (new paragraph).
-    punctuation      = Vector{String}()
-    spaces           = Vector{String}()
+    direct_input     = Vector{String}()
     undo_count       = 0
     ig               = 0  # group index
     it               = 0  # token index
@@ -201,10 +230,10 @@ type
         end
         if is_new_group && (tokengroup_kind == undefined_kind)
             reset_all(; hard=true, exclude_active=true)      # NOTE: a reset is required to avoid that the dynamic recognizers generated in is_next and are_next include the previous recognition as desired for normal command recognition.
-            if is_next(type_keywords; use_max_speed=true, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, active_lang))
+            if is_next(type_keywords; use_max_speed=true, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, (active_lang==LANG.FR) ? active_lang : LANG.EN_US ))  # TODO: as a workaround for an issue with the dynamic German and Spanish models, the English model is used; once this issue is fixed, the modelname should be set again as: modelname=modelname(MODELTYPE_DEFAULT, active_lang)
                 keywords = String[]
                 try
-                    are_keywords, keywords = are_next(type_keywords; consume_if_match=true, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, active_lang))
+                    are_keywords, keywords = are_next(type_keywords; consume_if_match=true, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, (active_lang==LANG.FR) ? active_lang : LANG.EN_US))  # TODO: as a workaround for an issue with the dynamic German and Spanish models, the English model is used; once this issue is fixed, the modelname should be set again as: modelname=modelname(MODELTYPE_DEFAULT, active_lang)
                 catch e
                     if isa(e, InsecureRecognitionException)
                         are_keywords = false
@@ -293,29 +322,29 @@ type
                     tokengroup_kind = language_kind
                     @info "Languages initialized for typing: $(join(lang_str.(type_languages()), ", ", " and "))."
                 elseif keyword == TYPE_KEYWORDS[active_lang]["point"]
-                    push!(punctuation, ".")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, ".")
+                    tokengroup_kind = direct_kind
                     is_uppercase = true
                 elseif keyword == TYPE_KEYWORDS[active_lang]["comma"]
-                    push!(punctuation, ",")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, ",")
+                    tokengroup_kind = direct_kind
                 elseif keyword == TYPE_KEYWORDS[active_lang]["colon"]
-                    push!(punctuation, ":")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, ":")
+                    tokengroup_kind = direct_kind
                 elseif keyword == TYPE_KEYWORDS[active_lang]["semicolon"]
-                    push!(punctuation, ";")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, ";")
+                    tokengroup_kind = direct_kind
                 elseif keyword == TYPE_KEYWORDS[active_lang]["exclamation"]
-                    push!(punctuation, "!")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, "!")
+                    tokengroup_kind = direct_kind
                     is_uppercase = true
                 elseif keyword == TYPE_KEYWORDS[active_lang]["interrogation"]
-                    push!(punctuation, "?")
-                    tokengroup_kind = punctuation_kind
+                    push!(direct_input, "?")
+                    tokengroup_kind = direct_kind
                     is_uppercase = true
                 elseif keyword == TYPE_KEYWORDS[active_lang]["paragraph"]
-                    push!(spaces, "\n")
-                    tokengroup_kind = space_kind
+                    push!(direct_input, "\n")
+                    tokengroup_kind = direct_kind
                     was_space = true
                 else
                     @info "Unkown keyword." #NOTE: this should never occur as the are_next should only match known keywords.
@@ -361,12 +390,9 @@ type
                 if all_consumed() type_keywords = define_type_keywords(mode, end_keyword, active_lang) end
                 was_kwarg = true
                 token_str = ""
-            elseif (tokengroup_kind == punctuation_kind)
-                token_str = join(punctuation, "")
-                punctuation = Vector{String}()
-            elseif (tokengroup_kind == space_kind)
-                token_str = join(spaces, "")
-                spaces = Vector{String}()
+            elseif (tokengroup_kind == direct_kind)
+                token_str = join(direct_input, "")
+                direct_input = Vector{String}()
             elseif (tokengroup_kind == word_kind)
                 @info "Unkown token group." #NOTE: this should never occur.
             end
@@ -375,8 +401,10 @@ type
             was_keyword = false
             it += 1
             undo_count = 0
-            if !(tokengroup_kind in (punctuation_kind, space_kind, language_kind)) is_uppercase = false end
-            if (tokengroup_kind != space_kind) was_space = false end
+            if !(tokengroup_kind in (direct_kind, language_kind)) is_uppercase = false end
+            if (tokengroup_kind != direct_kind) || (token_str[end] ∉ [" ", "\n", "\t"] )
+                was_space = false
+            end
             if all_consumed()
                 tokengroup_kind = undefined_kind
                 was_kwarg       = false
@@ -389,8 +417,17 @@ type
 end
 
 
+# function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::String)
+#     if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS[active_lang])...]
+#     elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["uppercase"], TYPE_KEYWORDS[active_lang]["lowercase"]]
+#     elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["letters"]]
+#     elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["digits"]]
+#     end
+#     return type_keywords
+# end
+
 function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::String)
-    if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS[active_lang])...]
+    if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS[(active_lang==LANG.FR) ? active_lang : LANG.EN_US])...]  # TODO: as a workaround for an issue with the dynamic German and Spanish models, the English model is used; once this issue is fixed, the line should be: type_keywords = [end_keyword, values(TYPE_KEYWORDS[active_lang])...]
     elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["uppercase"], TYPE_KEYWORDS[active_lang]["lowercase"]]
     elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["letters"]]
     elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["digits"]]
