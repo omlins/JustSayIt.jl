@@ -4,7 +4,7 @@ Module Help
 Provides functions for displaying help about the commands during speech recognition.
 
 # Functions
-- [`help`](@ref)
+- [`Help.help`](@ref)
 
 To see a description of a function type `?<functionname>`.
 """

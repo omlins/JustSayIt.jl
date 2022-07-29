@@ -5,8 +5,8 @@ Provides functions for navigating in the internet by voice.
 
 # Functions
 
-###### Searching
-- [`search`](@ref)
+###### Navigate the internet
+- [`Internet.internet`](@ref)
 
 To see a description of a function type `?<functionname>`.
 

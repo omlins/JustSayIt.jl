@@ -6,10 +6,7 @@ Provides functions for controlling the keyboard by voice.
 # Functions
 
 ###### Typing
-- [`type`](@ref)
-
-###### Special keys
-- [`page`](@ref)
+- [`Keyboard.type`](@ref)
 
 To see a description of a function type `?<functionname>`.
 
