@@ -2,6 +2,7 @@ reflinks = Dict(
     "[Conda.jl]"                        => "https://github.com/JuliaPy/Conda.jl",
     "[IJulia]"                          => "https://github.com/JuliaLang/IJulia.jl",
     "[Julia]"                           => "https://julialang.org",
+    "[Julia package manager]"           => "https://docs.julialang.org/en/v1/stdlib/Pkg/",
     "[Julia REPL]"                      => "https://docs.julialang.org/en/v1/stdlib/REPL/",
     "[JustSayIt.jl]"                    => "https://github.com/omlins/JustSayIt.jl",
     "[MacroTools.jl]"                   => "https://github.com/FluxML/MacroTools.jl",

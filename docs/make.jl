@@ -1,4 +1,5 @@
 using JustSayIt
+using JustSayIt.API
 using Documenter
 using DocExtensions
 using DocExtensions.DocumenterExtensions
@@ -26,8 +27,6 @@ makedocs(;
         collapselevel    = 1,
         sidebar_sitename = true,
         edit_link        = "main",
-        #assets           = [asset("https://img.shields.io/github/stars/omlins/JustSayIt.jl.svg", class = :ico)],
-        #warn_outdated    = true,
     ),
     pages   = [
         "Introduction and Quick Start"  => "index.md",
