@@ -18,7 +18,7 @@ Declare some or all arguments of the `function` definition to be arguments that 
     - `vararg_timeout::AbstractFloat`: timeout after which to abort waiting for a next token to be spoken (only valid if the function argument is a vararg).
 
 # Examples
-```jldoctest
+```
 @voiceargs (b, c) function f(a, b::String, c::String, d)
     #(...)
     return
