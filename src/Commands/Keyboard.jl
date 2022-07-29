@@ -6,10 +6,7 @@ Provides functions for controlling the keyboard by voice.
 # Functions
 
 ###### Typing
-- [`type`](@ref)
-
-###### Special keys
-- [`page`](@ref)
+- [`Keyboard.type`](@ref)
 
 To see a description of a function type `?<functionname>`.
 
@@ -27,9 +24,12 @@ import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey,
 const Pynput = PyNULL()
 
 function __init__()
-    ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-    copy!(Pynput, pyimport_pip("pynput"))
-    set_controller("keyboard", Pynput.keyboard.Controller())
+    if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
+    if ENV["JSI_USE_PYTHON"] == "1"
+        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
+        copy!(Pynput, pyimport_pip("pynput"))
+        set_controller("keyboard", Pynput.keyboard.Controller())
+    end
 end
 
 

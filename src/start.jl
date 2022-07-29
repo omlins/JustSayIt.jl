@@ -47,21 +47,6 @@ Start offline, low latency, highly accurate and secure speech to command transla
 
 To see a description of a submodule, type `?<modulename>`.
 
-# Default `commands`
-```
-$(pretty_dict_string(DEFAULT_COMMANDS))
-```
-
-!!! note "Advanced"
-    # Default model directories
-```
-$(pretty_dict_string(DEFAULT_MODELDIRS))
-```
-!!! note "Advanced"
-    # Default `noises`
-```
-$(pretty_dict_string(DEFAULT_NOISES))
-```
 
 # Examples
 
@@ -125,6 +110,21 @@ start(modeldirs=modeldirs, default_language="$(LANG.EN_US)", type_languages=["$(
 using JustSayIt
 audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --format=S16_LE`
 start(audio_input_cmd=audio_input_cmd)
+```
+
+# Default `commands`
+```
+$(pretty_dict_string(DEFAULT_COMMANDS))
+```
+
+# Default model directories
+```
+$(pretty_dict_string(DEFAULT_MODELDIRS))
+```
+
+# Default `noises`
+```
+$(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
 function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N

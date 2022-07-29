@@ -6,13 +6,13 @@ Provides functions for controlling the mouse by voice.
 # Functions
 
 ###### Button control
-- [`click_left`](@ref)
-- [`click_middle`](@ref)
-- [`click_right`](@ref)
-- [`press_left`](@ref)
-- [`release_left`](@ref)
-- [`click_double`](@ref)
-- [`click_triple`](@ref)
+- [`Mouse.click_left`](@ref)
+- [`Mouse.click_middle`](@ref)
+- [`Mouse.click_right`](@ref)
+- [`Mouse.press_left`](@ref)
+- [`Mouse.release_left`](@ref)
+- [`Mouse.click_double`](@ref)
+- [`Mouse.click_triple`](@ref)
 
 To see a description of a function type `?<functionname>`.
 
@@ -29,9 +29,12 @@ import ..JustSayIt: pyimport_pip, controller, set_controller
 const Pynput = PyNULL()
 
 function __init__()
-    ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-    copy!(Pynput, pyimport_pip("pynput"))
-    set_controller("mouse", Pynput.mouse.Controller())
+    if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
+    if ENV["JSI_USE_PYTHON"] == "1"
+        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
+        copy!(Pynput, pyimport_pip("pynput"))
+        set_controller("mouse", Pynput.mouse.Controller())
+    end
 end
 
 

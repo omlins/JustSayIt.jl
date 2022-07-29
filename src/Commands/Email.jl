@@ -5,8 +5,8 @@ Provides functions for operations in an Email client.
 
 # Functions
 
-###### Open inbox
-- [`inbox`](@ref)
+###### Manage e-mails
+- [`Email.email`](@ref)
 
 To see a description of a function type `?<functionname>`.
 

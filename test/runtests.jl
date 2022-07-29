@@ -3,7 +3,7 @@ push!(LOAD_PATH, "../src")
 excludedfiles = [ "test_excluded.jl"];
 
 function runtests()
-    exename      = joinpath(Sys.BINDIR, Base.julia_exename())
+    exename      = Base.julia_cmd()
     testdir      = pwd()
     istest(f)    = endswith(f, ".jl") && startswith(basename(f), "test_")
     ispretest(f) = endswith(f, ".jl") && startswith(basename(f), "pretest_")    # NOTE: pretest_JustSayIt1.jl, pretest_JustSayIt2.jl test the Python related installations (restart needed after first installation!).
