@@ -81,6 +81,7 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
+            ENV["JSI_USE_PYTHON"] = "0"
             using JustSayIt
             DocMeta.setdocmeta!(JustSayIt, :DocTestSetup, :(using JustSayIt); recursive=true)
             doctest(JustSayIt)'
