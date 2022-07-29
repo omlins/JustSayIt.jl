@@ -1,3 +1,4 @@
+ENV["JSI_USE_PYTHON"] = "0"
 using JustSayIt
 using JustSayIt.API
 using Documenter
