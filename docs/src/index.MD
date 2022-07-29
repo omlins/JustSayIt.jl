@@ -8,19 +8,24 @@ Furthermore, JustSayIt provides an **unprecedented highly generic extension to t
 Finally, JustSayIt puts a small load on the CPU, using only one core, and can therefore run continuously without harming the computer usage experience.
 
 ## Quick start
-1. Connect your best microphone (a good recording quality is key to a great voice control experience!)
-2. Install [Julia] if you do not have it yet.
-3. Execute the following in your shell to install and run JustSayIt:
+1\. Connect your best microphone (a good recording quality is key to a great voice control experience!)
+
+2\. Install [Julia] if you do not have it yet.
+
+3\. Execute the following in your shell to install and run JustSayIt:
+
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add https://github.com/omlins/JustSayIt.jl
+  pkg> add JustSayIt.jl
   pkg> <backspace button>
 julia> using JustSayIt
 julia> start()
 ```
-4. Say "help commands" and then, e.g., "help type".
-5. Try some commands and then look through the rest of the documentation!
+
+4\. Say "help commands" and then, e.g., "help type".
+
+5\. Try some commands and then look through the rest of the documentation!
 
 ## Dependencies
 JustSayIt's primary dependencies are [vosk], [sounddevice], [pynput], [PyCall.jl], [Conda.jl] and [MacroTools.jl].
@@ -30,3 +35,4 @@ JustSayIt is programmed in a highly portable manner relying exclusively on porta
 
 ## Your contributions
 This project needs your contribution! There are a lot of commands for all different kind of operations to be programmed! Note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Please open an issue to discuss the addition of new features beforehand.
+[here](./../Project.toml))
