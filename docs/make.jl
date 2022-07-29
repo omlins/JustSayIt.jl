@@ -29,7 +29,7 @@ makedocs(;
     repo     = "https://github.com/omlins/JustSayIt.jl/blob/{commit}{path}#{line}",
     sitename = "JustSayIt.jl",
     format   = Documenter.HTML(;
-        prettyurls       = get(ENV, "CI", "false") == "true",
+        prettyurls       = true, #get(ENV, "CI", "false") == "true",
         canonical        = "https://omlins.github.io/JustSayIt.jl",
         collapselevel    = 1,
         sidebar_sitename = true,
