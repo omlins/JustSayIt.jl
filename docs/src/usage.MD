@@ -1,15 +1,26 @@
 # Usage
 
+## Fully automatic installation
+After installing [Julia] - if not yet installed - JustSayIt can be installed directly with the [Julia package manager] from the [Julia REPL]:
+```julia-repl
+julia>]
+  pkg> add JustSayIt.jl
+```
+All dependencies are automatically installed. Python dependencies are automatically installed in a local Miniconda environment, set up by [Conda.jl]. Default language models are automatically downloaded at first usage of JustSayIt.
+
+
 ## Simple basic software usage
-The basic usage of JustSayIt is as simple as launching `Julia` and calling the commands `using JustSayIt` followed by `start`:
+The basic usage of JustSayIt is as simple as launching the [Julia REPL] and calling the commands `using JustSayIt` followed by `start()`:
 ```julia-repl
 $> julia
 julia> using JustSayIt
 julia> start()
 ```
+More information on customization keywords of [`start`](@ref) is given in the following subsections and in the [Software reference](@ref).
+
 
 ## User definable mapping of command names to functions or keyboard shortcuts
-The keyword `commands` of `start` enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
+The keyword `commands` of [`start`](@ref) enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
 ```julia
 # Define custom commands
 using JustSayIt
@@ -33,21 +44,19 @@ commands = Dict("help"      => Help.help,
 start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards"])
 ```
 
-Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
+Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` in the [Julia REPL] to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
-The keyword `subset` of `start` enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
+The keyword `subset` of [`start`](@ref) enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia
 # Listen only to the commands "help" and "type".
 using JustSayIt
 start(subset=["help", "type"])
 ```
 
-More information on customization keywords is obtainable by typing `?start`.
-
 
 ## Per command choice between maximum speed or accuracy
 
-The keyword `max_speed_subset` of `start` enables to define a subset of the `commands` for which the command names are to be recognized with maximum speed rather than with maximum accuracy, e.g.:
+The keyword `max_speed_subset` of [`start`](@ref) enables to define a subset of the `commands` for which the command names are to be recognized with maximum speed rather than with maximum accuracy, e.g.:
 ```julia
 # Define custom commands
 using JustSayIt
@@ -67,7 +76,7 @@ Note furthermore that a good recording quality is important in order to achieve 
 
 
 ## Help on commands callable by voice
-Saying "help commands" lists your available commands in the Julia REPL leading to, e.g., the following output:
+Saying "help commands" lists your available commands in the [Julia REPL] leading to, e.g., the following output:
 ```julia-repl
 ┌ Info:
 │ Your commands:
@@ -90,7 +99,7 @@ Saying "help commands" lists your available commands in the Julia REPL leading t
 │ undo      => ctrl + z
 └ upwards   => page_up
 ```
-Saying "help <command name>" shows the help of one of the available commands. Here is, e.g., the output produced when saying "help email":
+Saying "help <command name>", where `<command name>` is to be replaced with one of the available commands, shows the help for the corresponding command. Here is, e.g., the output produced when saying "help email":
 ```julia-repl
 [ Info: Starting command: help (latency: 6 ms)
 ┌ Info: Command email
@@ -103,7 +112,7 @@ Saying "help <command name>" shows the help of one of the available commands. He
 │    
 └        •  open outbox
 ```
-Note that the submodules `Email` and `Internet` contain still very little functionality. Yet, they illustrate how submodules for all kind of operations can be programmed.
+Note that the submodules [`Email`](@ref) and [`Internet`](@ref) contain still very little functionality. Yet, they illustrate how submodules for all kind of operations can be programmed.
 
 
 ## Sleep and wake up by voice
@@ -111,7 +120,7 @@ Saying "sleep JustSayIt" puts JustSayIt to sleep. It will not execute any comman
 
 
 ## Fast command programming with voice argument functions
-JustSayIt commands map to regular Julia functions. Function arguments can be easily passed by voice thanks to the `@voiceargs` macro. It allows to declare arguments in standard function definitions to be directly obtainable by voice. It, furthermore, allows to define speech recognition parameters for each voice argument as, e.g., the valid speech input. The following shows some examples:
+JustSayIt commands map to regular Julia functions. Function arguments can be easily passed by voice thanks to the [`@voiceargs`](@ref) macro. It allows to declare arguments in standard function definitions to be directly obtainable by voice. It, furthermore, allows to define speech recognition parameters for each voice argument as, e.g., the valid speech input. The following shows some examples:
 
 ```julia
   @voiceargs (b, c) function f(a, b::String, c::String, d)
@@ -132,59 +141,8 @@ JustSayIt commands map to regular Julia functions. Function arguments can be eas
         return
     end
 ```
-Detailed information on `@voiceargs` is obtainable by typing `?@voiceargs`.
+Detailed information on [`@voiceargs`](@ref) is found in the [High-level API reference](@ref).
 
-While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom `@voiceargs` functions thanks to the API of JustSayIt (`JustSayIt.API`). The following example shows how 1) a weather forecast search function (`weather`) can be programmed, 2) a command name to function mapping defined, and then 3) JustSayIt started using these customly defined commands. The command `weather` programmed here allows to find out how the weather is `today` or `tomorrow` - just say "weather today" or "weather tomorrow". Furthermore, if you say "help weather", it will show in the Julia REPL the function documentation written here. To run this example, type in the Julia REPL `include("path-to-file")` or simply copy-paste the code below inside (the corresponding file can be found [here](config_examples/config_custom_function.jl)).
+While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom [`@voiceargs`](@ref) functions thanks to the API of JustSayIt ([`JustSayIt.API`](@ref)). It is illustrated in [this example](@ref Quick-definition-and-usage-of-custom-function). More information on the JustSayIt API is given in the [High-level API reference](@ref).
 
-```julia
-using JustSayIt
-using JustSayIt.API       # Import JustSayIt API to write @voicearg functions
-using DefaultApplication  # To install type: `]` and then `add DefaultApplication`
-
-# 1) Define a custom weather forecast search function.
-@doc """
-    weather `today` | `tomorrow`
-
-Find out how the weather is `today` or `tomorrow`.
-"""
-weather
-@enum Day today tomorrow
-@voiceargs day=>(valid_input_auto=true, use_max_accuracy=true) function weather(day::Day)
-    DefaultApplication.open("https://www.google.com/search?q=weather+$day")
-end
-
-# 2) Define command name to function mapping, calling custom function
-commands = Dict("help"      => Help.help,
-                "weather"   => weather,
-                );
-
-# 3) Start JustSayIt with the custom commands.
-start(commands=commands)
-```
-More information on the JustSayIt API is obtainable by typing `?JustSayIt.API`.
-
-Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `@include_config` permits to conveniently `include` files from this folder. More information is obtainable by typing `?@include_config`.
-
-
-## Module documentation callable from the Julia REPL / IJulia
-The module documentation can be called from the [Julia REPL] or in [IJulia]:
-```julia-repl
-julia> using JustSayIt
-julia>?
-help?> JustSayIt
-search: JustSayIt start
-
-  Module JustSayIt
-
-  Enables offline, low latency, highly accurate speech to command translation and is usable as software or API.
-
-  (...)
-```
-
-## Fully automatic installation
-After installing [Julia] - if not yet installed - JustSayIt can be installed directly with the [Julia package manager](https://docs.julialang.org/en/v1/stdlib/Pkg/index.html) from the [Julia REPL]:
-```julia-repl
-julia>]
-  pkg> add https://github.com/omlins/JustSayIt.jl
-```
-All dependencies are automatically installed. Python dependencies are automatically installed in a local mini-conda environment, set up by [Conda.jl]. Default language models are automatically downloaded at first usage of JustSayIt.
+Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: [`@include_config`](@ref) permits to conveniently `include` files from this folder.
