@@ -35,4 +35,3 @@ JustSayIt is programmed in a highly portable manner relying exclusively on porta
 
 ## Your contributions
 This project needs your contribution! There are a lot of commands for all different kind of operations to be programmed! Note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Please open an issue to discuss the addition of new features beforehand.
-[here](./assets/config_examples/config_custom_function.jl))
