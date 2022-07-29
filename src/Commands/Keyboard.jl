@@ -24,8 +24,12 @@ import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey,
 const Pynput = PyNULL()
 
 function __init__()
-    copy!(Pynput, pyimport_pip("pynput"))
-    set_controller("keyboard", Pynput.keyboard.Controller())
+    if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
+    if ENV["JSI_USE_PYTHON"] == "1"
+        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
+        copy!(Pynput, pyimport_pip("pynput"))
+        set_controller("keyboard", Pynput.keyboard.Controller())
+    end
 end
 
 
