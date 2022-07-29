@@ -11,6 +11,9 @@ const EXAMPLEROOT = joinpath(@__DIR__, "..", "config_examples")
 
 DocMeta.setdocmeta!(JustSayIt, :DocTestSetup, :(using JustSayIt); recursive=true)
 
+@info "Copy examples folder to assets"
+Base.Filesystem.cp(EXAMPLEROOT, joinpath(DOCSRC, "assets", "config_examples"); force=true)
+
 
 @info "Preprocessing .MD-files..."
 include("reflinks.jl")
