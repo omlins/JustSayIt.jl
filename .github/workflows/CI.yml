@@ -22,7 +22,7 @@ jobs:
         version:
           - '1.6' # Minimum required Julia version.
           - '1'   # Latest stable 1.x release of Julia
-          - 'nightly'
+          #- 'nightly'
         os:
           - ubuntu-latest
           - macOS-latest
