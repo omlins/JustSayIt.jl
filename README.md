@@ -5,7 +5,7 @@
 [![CI](https://github.com/omlins/JustSayIt.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/omlins/JustSayIt.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/omlins/JustSayIt.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/omlins/JustSayIt.jl)
 
-> :warning: JustSayIt was presented in a talk at JuliaCon 2022: [video of the talk](https://www.youtube.com/watch?v=W7oQb7pLc04), ([abstract](https://pretalx.com/juliacon-2022/talk/H3N8UN))
+> :warning: JustSayIt was presented in a talk at JuliaCon 2022: [video of the talk](https://www.youtube.com/watch?v=W7oQb7pLc04), [abstract](https://pretalx.com/juliacon-2022/talk/H3N8UN)
 
 > :warning: the demo video promised in the JuliaCon 2022 talk will come soon!
 
