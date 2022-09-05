@@ -26,7 +26,7 @@ let
     _default_language::String                                                                           = ""
     _type_languages::AbstractArray{String}                                                              = String[]
     _modelname_default::String                                                                          = ""
-    _commands::Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}                            = Dict{String, Union{Function, PyKey, NTuple{N,PyKey} where N}}()
+    _commands                                                                                           = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N}}}() # NOTE: specifying the exact Dict type of the commands leads to a crash that appears to be due to erronous compilation.
     _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
     _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
@@ -61,7 +61,12 @@ let
         if haskey(commands, COMMAND_NAME_SLEEP[default_language]) @ArgumentError("the command name $COMMAND_NAME_SLEEP[default_language] is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_AWAKE[default_language]) @ArgumentError("the command name $COMMAND_NAME_AWAKE[default_language] is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
-            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) @ArgumentError("the command belonging to commmand name $command_name is of an invalid. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) @ArgumentError("the command belonging to commmand name $cmd_name is of an invalid type. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ) and arrays containing any combination of the afore noted.") end
+            if isa(commands[cmd_name], Array)
+                for subcmd in commands[cmd_name]
+                    if (!(typeof(subcmd) <: eltype(values(_commands))) || isa(subcmd, Array)) @ArgumentError("a sub-command ($subcmd) belonging to commmand name $cmd_name is of an invalid type ($(typeof(subcmd))). Valid sub-commands are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+                end
+            end
         end
         _commands = commands
 
