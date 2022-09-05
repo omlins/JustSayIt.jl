@@ -30,7 +30,7 @@ Start offline, low latency, highly accurate and secure speech to command transla
 # Keyword arguments
 - `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
 - `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
-- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
+- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 !!! note "Advanced"
@@ -71,7 +71,7 @@ using JustSayIt
 start(subset=["help", "type"])
 ```
 
-#### Define custom `commands` - functions and keyboard shortcuts - and a `max_speed_subset`
+#### Define custom `commands` - functions, keyboard shortcuts and sequences of those - and a `max_speed_subset`
 ```
 using JustSayIt
 commands = Dict("help"      => Help.help,
@@ -90,8 +90,10 @@ commands = Dict("help"      => Help.help,
                 "redo"      => (Key.ctrl, Key.shift, 'z'),
                 "upwards"   => Key.page_up,
                 "downwards" => Key.page_down,
+                "take"      => [Mouse.click_double, (Key.ctrl, 'c')],
+                "replace"   => [Mouse.click_double, (Key.ctrl, 'v')],
                 );
-start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards"])
+start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards", "take"])
 ```
 
 #### Define custom `modeldirs`
