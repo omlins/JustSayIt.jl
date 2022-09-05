@@ -17,7 +17,7 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add JustSayIt.jl
+  pkg> add JustSayIt
   pkg> <backspace button>
 julia> using JustSayIt
 julia> start()
@@ -35,3 +35,7 @@ JustSayIt is programmed in a highly portable manner relying exclusively on porta
 
 ## Your contributions
 This project needs your contribution! There are a lot of commands for all different kind of operations to be programmed! Note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Please open an issue to discuss the addition of new features beforehand.
+
+## Contributors
+The principal contributors to [JustSayIt.jl] are (ordered by the significance of the relative contributions):
+- Dr. Samuel Omlin ([@omlins](https://github.com/omlins)), CSCS - Swiss National Supercomputing Centre, ETH Zurich

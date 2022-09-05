@@ -4,7 +4,7 @@
 After installing [Julia] - if not yet installed - JustSayIt can be installed directly with the [Julia package manager] from the [Julia REPL]:
 ```julia-repl
 julia>]
-  pkg> add JustSayIt.jl
+  pkg> add JustSayIt
 ```
 All dependencies are automatically installed. Python dependencies are automatically installed in a local Miniconda environment, set up by [Conda.jl]. Default language models are automatically downloaded at first usage of JustSayIt.
 

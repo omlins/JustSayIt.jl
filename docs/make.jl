@@ -12,7 +12,7 @@ const EXAMPLEROOT = joinpath(@__DIR__, "..", "config_examples")
 
 DocMeta.setdocmeta!(JustSayIt, :DocTestSetup, :(using JustSayIt); recursive=true)
 
-@info "Copy examples folder to assets"
+@info "Copy examples folder to assets..."
 mkpath(DOCASSETS)
 cp(EXAMPLEROOT, joinpath(DOCASSETS, "config_examples"); force=true)
 
