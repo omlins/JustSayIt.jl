@@ -1,7 +1,7 @@
 name = "JustSayIt"
 uuid = "d7252348-293e-4f11-8d42-c8418dda4315"
-authors = ["Samuel Omlin and contributors"]
-version = "0.1.0"
+authors = ["Samuel Omlin"]
+version = "0.1.1"
 
 [deps]
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
