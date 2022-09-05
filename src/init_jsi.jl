@@ -7,7 +7,7 @@
 Initialize the package JustSayIt.
 
 # Arguments
-- `commands::Dict{String, <:Any}`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut.
+- `commands::Dict{String, <:Any}`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those.
 - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. Models are downloadable from here: https://alphacephei.com/vosk/models
 - `noises::Dict{String, <:AbstractArray{String}}`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
 
