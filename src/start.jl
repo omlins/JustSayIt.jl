@@ -264,3 +264,4 @@ end
 execute(cmd::Function)                  = cmd()
 execute(cmd::PyKey)                     = Keyboard.press_keys(cmd)
 execute(cmd::NTuple{N,PyKey} where {N}) = Keyboard.press_keys(cmd...)
+execute(cmd::Array)                     = for subcmd in cmd execute(subcmd) end
