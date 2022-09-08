@@ -20,7 +20,7 @@ More information on customization keywords of [`start`](@ref) is given in the fo
 
 
 ## User definable mapping of command names to functions or keyboard shortcuts
-The keyword `commands` of [`start`](@ref) enables to freely define a mapping of command names to functions or keyboard shortcuts, e.g.:
+The keyword `commands` of [`start`](@ref) enables to freely define a mapping of command names to functions or keyboard shortcuts or sequences of those, e.g.:
 ```julia
 # Define custom commands
 using JustSayIt
@@ -40,12 +40,16 @@ commands = Dict("help"      => Help.help,
                 "redo"      => (Key.ctrl, Key.shift, 'z'),
                 "upwards"   => Key.page_up,
                 "downwards" => Key.page_down,
+                "take"      => [Mouse.click_double, (Key.ctrl, 'c')],
+                "replace"   => [Mouse.click_double, (Key.ctrl, 'v')],
                 );
-start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards"])
+start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards", "take"])
 ```
 
 Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` in the [Julia REPL] to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
+A mapping of a command name to a sequence of commands can be defined by using as mapping target an array whose elements are functions or keyboard shortcuts (e.g., `[Mouse.click_double, (Key.ctrl, 'c')]`). This enables to express new complex actions without programming. In the above example, "take" double clicks the word below the mouse curser to select it and then copies it; "replace" double clicks the word below the mouse curser to select it and then replaces it.
+ 
 The keyword `subset` of [`start`](@ref) enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia
 # Listen only to the commands "help" and "type".
