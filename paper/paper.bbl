@@ -1,0 +1,45 @@
+\begin{thebibliography}{1}
+
+\bibitem{conda_jl}
+Guillaume Fraux.
+{Conda.jl}: {C}onda managing {J}ulia binary dependencies.
+\url{https://github.com/JuliaPy/Conda.jl}, 2015.
+
+\bibitem{sounddevice}
+Matthias Geier.
+{sounddevice}: {P}lay and {R}ecord {S}ound with {P}ython.
+\url{https://github.com/spatialaudio/python-sounddevice}, 2015.
+
+\bibitem{macrotools_jl}
+Mike Innes, Julia Computing, and contributors.
+{MacroTools.jl}: a library of tools for working with {J}ulia code and
+  expressions.
+\url{https://github.com/FluxML/MacroTools.jl}, 2015.
+
+\bibitem{pycall_jl}
+Steven~G Johnson and contributors.
+{PyCall.jl}: {P}ackage to call {P}ython functions from the {J}ulia language.
+\url{https://github.com/JuliaPy/PyCall.jl}, 2022.
+
+\bibitem{pynput}
+Moses Palmer.
+{pynput}.
+\url{https://github.com/spatialaudio/python-sounddevice}, 2015.
+
+\bibitem{povey2011kaldi}
+Daniel Povey, Arnab Ghoshal, Gilles Boulianne, Lukas Burget, Ondrej Glembek,
+  Nagendra Goel, Mirko Hannemann, Petr Motlicek, Yanmin Qian, Petr Schwarz, Jan
+  Silovsky, Georg Stemmer, and Karel Vesely.
+The kaldi speech recognition toolkit.
+In {\em IEEE 2011 workshop on automatic speech recognition and understanding}.
+  IEEE Signal Processing Society, 2011.
+IEEE Catalog No.: CFP11SRW-USB.
+
+\bibitem{vosk}
+Nickolay~V. Shmyrev and other contributors.
+{Vosk Speech Recognition Toolkit}: {O}ffline speech recognition {API} for
+  {A}ndroid, i{OS}, {R}aspberry {P}i and servers with {P}ython, {J}ava, {C\#}
+  and {N}ode.
+\url{https://github.com/alphacep/vosk-api}, 2020.
+
+\end{thebibliography}

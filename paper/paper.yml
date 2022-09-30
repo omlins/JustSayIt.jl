@@ -1,0 +1,19 @@
+title: "JustSayIt.jl: A Fresh Approach to Open Source Voice Assistant Development"
+keywords:
+  - Julia
+  - Python
+  - Voice Assistant
+  - Speech-to-command
+  - Speech-to-text
+  - Low Latency
+  - Language extension
+  - Voice function arguments
+authors:
+  - name: Samuel Omlin
+    orcid: 0000-0000-0000-000X
+    affiliation: 1
+affiliations:
+  - name: Swiss National Supercomputing Centre (CSCS), ETH Zurich, Lugano, Switzerland
+    index: 1
+date: September 2022
+bibliography: ref.bib

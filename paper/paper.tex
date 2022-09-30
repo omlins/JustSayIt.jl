@@ -1,0 +1,117 @@
+
+% JuliaCon proceedings template
+\documentclass{juliacon}
+\setcounter{page}{1}
+
+\hypersetup{hidelinks} % hide ugly link boxes
+
+\begin{document}
+
+\input{header}
+
+\maketitle
+
+\begin{abstract}
+We present \texttt{JustSayIt.jl}, a software and high-level API for offline, low latency and secure translation of human speech to computer commands or text, leveraging the Vosk Speech Recognition Toolkit. The API includes an unprecedented, highly generic extension to the Julia programming language, which allows to declare arguments in standard function definitions to be obtainable by voice. As a result, it empowers any programmer to quickly write new commands that take arguments from human voice.
+\end{abstract}
+
+\section{Introduction}
+Leading software companies have heavily invested in voice assistant software since the dawn of the century. However, they naturally prioritize use cases that directly or indirectly bring economic profit. As a result, their developments cover, e.g., the needs of the entertainment sector abundantly, but those of academia and software development only poorly. There is particularly little support for Linux, whereas it is the preferred operating system for many software developers and computational scientists. The open source voice assistant project MyCroft fully supports Linux, but provides little tools that appear helpful for productive work in academia and software development; moreover, adding new skills to MyCroft seems to be complex for average users and appears to require considerable knowledge about the specificities of MyCroft. \texttt{JustSayIt.jl} addresses these shortcomings by providing a lightweight framework for easily extensible, offline, low latency, highly accurate and secure speech to command or text translation on Linux, MacOS and Windows.
+
+\section{JustSayIt API and software}
+JustSayIt's high-level API allows to declare arguments in standard Julia function definitions to be obtainable by voice, which constitutes an unprecedented, highly generic extension to the Julia programming language. For such functions, JustSayIt automatically generates a wrapper method that takes care of the complexity of retrieving the arguments from the speakers voice, including interpretation and conversion of the voice arguments to potentially any data type. JustSayIt commands are implemented with such voice argument functions and are triggered by a user definable mapping of command names to functions. As a result, it empowers programmers without knowledge of speech recognition to quickly write new commands that take their arguments from the speakers voice. Fig.~\ref{fig:code-voicearg} shows an executable example of 1) a simple voice argument function, which enables a quick weather forecast search by voice (lines 7-11), 2) a definition of a command name to function mapping (lines 14-15), which uses the function defined above, and 3) the launching of the JustSayIt software with the defined command name to function mapping (line 18).
+
+\begin{figure}[t]
+\begin{lstlisting}[language = Julia, numbers=left, numberstyle=\tiny\color{gray}]
+using JustSayIt
+using JustSayIt.API
+using DefaultApplication
+@enum Day today tomorrow
+
+#1) Define a custom weather forecast search function
+@voiceargs day=>(valid_input_auto=true) function
+weather(day::Day)
+    DefaultApplication.open(
+     "https://www.google.com/search?q=weather+$day")
+end
+
+#2) Define command name to function mapping, 
+#   calling the custom function.
+commands = Dict("help"    => Help.help,
+                "weather" => weather)
+
+# 3) Start JustSayIt with the custom commands.
+start(commands=commands)
+
+\end{lstlisting}
+
+    \caption{Definition and usage of custom weather forecast search function in JustSayIt.}
+	\label{fig:code-voicearg}
+\end{figure}
+
+
+JustSayIt provides a lot of powerful functionality that does not require programming (Fig.~\ref{fig:code-noprog}); it enables mapping of command names 
+\begin{itemize}
+\item to predefined functions as, e.g., for typing text with the keyboard (line 7) or controlling the mouse (lines 8-12),
+\item to keyboard shortcuts (lines 13-16), and
+\item to sequences of functions or keyboard shortcuts (lines 17-20).
+\end{itemize}
+The predefined function for typing text (Fig.~\ref{fig:code-noprog}, line 7) enables the dictation of full text, words, letters or digits. Each of the modes supports a set of keywords which can trigger some immediate action or modify the handling of subsequent speech input. A particularity of JustSayIt’s speech to text approach is its strategy for the recognition of these keywords: the speech is analyzed in word groups which are naturally delimited by longer silences; then, keywords are only considered as such if their word group does not contain anything else then keywords. This allows to determine whether a word that is recognized as a keyword should trigger some action or be typed instead.
+
+JustSayIt is designed for full multi-language speech-to-command and speech-to-text support for the over twenty languages available with the Vosk Speech Recognition Toolkit\footnote{supported as of today: English, French, German (partial) and Spanish (partial)} \cite{vosk}.  Languages are selectable with keyword arguments (e.g., Fig.~\ref{fig:code-noprog}, line 26).
+
+
+
+\begin{figure}[t]
+\begin{lstlisting}[language = Julia, numbers=left, numberstyle=\tiny\color{gray}]
+using JustSayIt
+
+#1) Define mapping of command names to functions, 
+#   keyboard shortcuts and command sequences.
+commands = Dict(
+    "help"      => Help.help,
+    "type"      => Keyboard.type,
+    "ma"        => Mouse.click_left,
+    "middle"    => Mouse.click_middle,
+    "right"     => Mouse.click_right,
+    "hold"      => Mouse.press_left,
+    "release"   => Mouse.release_left,
+    "undo"      => (Key.ctrl, 'z'),
+    "redo"      => (Key.ctrl, Key.shift, 'z'),
+    "page up"   => Key.page_up,
+    "page down" => Key.page_down,
+    "take"      => [Mouse.click_double, 
+                    (Key.ctrl, 'c')],
+    "replace"   => [Mouse.click_double, 
+                    (Key.ctrl, 'v')]
+    )
+
+#2) Start JustSayIt, activating max speed 
+#   recognition for a subset of the commands.
+start(commands=commands, 
+      type_languages=["en-us", "fr"], 
+      max_speed_subset=["ma", "middle", "right", 
+      "hold", "release", "page up", "page down", 
+      "take"])
+\end{lstlisting}
+
+    \caption{Usage of some of JustSayIt's powerful functionalities that do not require programming: making use of predefined functions, keyboard shortcuts and command sequences.}
+	\label{fig:code-noprog}
+\end{figure}
+
+
+
+\section{Speech recognition algorithm}
+JustSayIt implements a novel algorithm for high performance context dependent recognition of spoken commands which leverages the Vosk Speech Recognition Toolkit \cite{vosk} (which in turn relies on the Kaldi speech recognition toolkit \cite{povey2011kaldi}). A specialized high performance recognizer is defined for each function argument that is obtainable by voice and has a restriction on the valid input. In addition, when beneficial for recognition accuracy, the recognizer for a voice argument is generated dynamically depending on the command path taken before the argument. To enable minimal latency for single word commands (latency refers here to the time elapsed between a command is spoken and executed), the latter can be triggered when appropriate upon bare recognition of the corresponding sounds without waiting for silence as normally done for the confirmation of recognitions (this behaviour can be activated for each command individually, see Fig.~\ref{fig:code-noprog}, lines 26-28). Thus, JustSayIt is suitable for commands where a perceivable latency would be unacceptable, as, e.g., mouse clicks. For example, for the single word command "ma" (mapped to the left mouse button) latencies between 5 ms and 24 ms with a median of 6 ms were measured on a regular notebook\footnote{100 samples were taken on a Lenovo ThinkPad P15 Gen 1 notebook with a 12-core Intel i7-10750H CPU @ 2.60GHz and 64 GB DDR4 memory.}. JustSayIt achieves this low latency using only one CPU core and can therefore run continuously without harming the computer usage experience.
+
+\section{Python integration}
+JustSayIt makes best use of both Julia and Python rather than limiting itself to one language: it leverages Julia's performance and metaprogramming capabilities\footnote{using \texttt{MacroTools.jl} \cite{macrotools_jl} where helpful} and Python's larger ecosystem where no Julia package is considered suitable. The Vosk Speech Recognition Toolkit, a C++ library, is used via its convenient Python bindings, available as the Python module \texttt{vosk}. JustSayIt relies on \texttt{PyCall.jl} \cite{pycall_jl} and \texttt{Conda.jl} \cite{conda_jl} for a straightforward integration of Python modules as, e.g., \texttt{vosk}, \texttt{pynput} \cite{pynput} and \texttt{sounddevice} \cite{sounddevice}. All Python dependencies are fully automatically installed into an isolated Python environment.
+
+\section{Conclusions}
+The JustSayIt API's possibility to declare arguments in standard Julia function definitions to be obtainable by voice constitutes an unprecedented, highly generic extension to the Julia programming language. Moreover, it allows JustSayIt to combine accuracy, performance and security with extensibility of particular ease and generality.
+The great and effortless extensibility and the possibility for straightforward integration of Python modules into JustSayIt provide an ideal basis to unite the world-wide Julia and Python communities in the development of this open source project.
+The JustSayIt project demonstrates that the development of our future voice assistants can take a fresh and new path that is neither driven by the priorities and economic interests of global software companies nor by a small open source community of speech recognition experts; instead, the entire world-wide open source community is empowered to contribute in shaping our future daily assistants.
+
+\input{bib.tex}
+
+\end{document}
