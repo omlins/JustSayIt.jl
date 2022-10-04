@@ -7,7 +7,7 @@
 
 > :warning: JustSayIt was presented in a talk at JuliaCon 2022: [video of the talk](https://www.youtube.com/watch?v=W7oQb7pLc04), [abstract](https://pretalx.com/juliacon-2022/talk/H3N8UN)
 
-> :warning: the demo video promised in the JuliaCon 2022 talk will come soon!
+> :warning: The demo video promised in the JuliaCon 2022 talk will come soon!
 
 This is the source repository of the Julia package `JustSayIt.jl`. Please head to the [documentation website](https://omlins.github.io/JustSayIt.jl) to learn about its usage:
 [![Preview](docs/preview.png)](https://omlins.github.io/JustSayIt.jl/)
