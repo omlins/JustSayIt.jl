@@ -36,6 +36,8 @@ function help()
             @info "Command $keyword" ""=Base.Docs.doc(cmd)
         elseif isa(cmd, PyKey)
             @info "Command $keyword\n   =   Keyboard key $(pretty_cmd_string(cmd))"
+        elseif isa(cmd, Array)
+            @info "Command $keyword\n   =   Command sequence $(pretty_cmd_string(cmd))"
         else
             @info "Command $keyword\n   =   Keyboard shortcut $(pretty_cmd_string(cmd))"
         end
