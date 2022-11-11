@@ -222,6 +222,7 @@ function pretty_dict_string(dict::Dict{String,<:Any})
 end
 
 
+pretty_cmd_string(cmd::Array)                 = join(map(pretty_cmd_string, cmd), "  ->  ")
 pretty_cmd_string(cmd::Union{Tuple,NTuple})   = join(map(pretty_cmd_string, cmd), " + ")
 pretty_cmd_string(cmd::PyObject)              = cmd.name
 pretty_cmd_string(cmd)                        = string(cmd)
