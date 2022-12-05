@@ -20,10 +20,13 @@ const COMMANDS_KEYWORDS = Dict(LANG.DE    => "kommandos",
 
 "Show help for your commands or a spoken command or module."
 function help()
-    commands_keyword = COMMANDS_KEYWORDS[default_language()]
-    valid_input = [commands_keyword, command_names()...]
+    valid_input = [COMMANDS_KEYWORDS[default_language()], command_names()...]
     keyword = next_token(valid_input; ignore_unknown=false)
-    if keyword == commands_keyword
+    help(keyword)
+end
+
+function help(keyword)
+    if keyword == COMMANDS_KEYWORDS[default_language()]
         cmd_length_max = maximum(length.(command_names()))
         @info join(["", "Your commands:",
                     map(sort([command_names()...])) do x
@@ -36,6 +39,10 @@ function help()
             @info "Command $keyword" ""=Base.Docs.doc(cmd)
         elseif isa(cmd, PyKey)
             @info "Command $keyword\n   =   Keyboard key $(pretty_cmd_string(cmd))"
+        elseif isa(cmd, String)
+            @info "Command $keyword\n   =   Type word $(pretty_cmd_string(cmd))"
+        elseif isa(cmd, Dict)
+            @info "Command $keyword\n   =   Activate additional commands for $keyword"
         elseif isa(cmd, Array)
             @info "Command $keyword\n   =   Command sequence $(pretty_cmd_string(cmd))"
         else
