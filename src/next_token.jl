@@ -40,8 +40,8 @@ are_next
 
 let
     global next_token, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
-    recognizers_to_reset = Vector{PyObject}()
-    active_recognizer::Union{Nothing, PyObject} = nothing
+    recognizers_to_reset = Vector{Recognizer}() 		      # NOTE: only persistent recognizer will need to be reset; temporary recognizers will automatically be removed by the python garbage collector (see __del__ in Vosk source).
+    active_recognizer::Union{Nothing, Recognizer} = nothing
     was_partial_result = false
     token_buffer = Vector{String}()
     i = 0
@@ -49,15 +49,17 @@ let
 	was_partial_recognition()::Bool = was_partial_result
 
 
-    function _next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
+    function _next_token(recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
 		ignore_tokens = ignore_unknown ? [noise_tokens..., UNKNOWN_TOKEN] : noise_tokens
 		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
 			 restart_recognition = true
 		end
 		if (!was_partial_result) do_delayed_resets(;hard=false) end                                 # When a result was found, then soft resets that were previously delayed to keep latency minimal can now be performed.
-		if (recognizer != active_recognizer && was_partial_result && !isnothing(active_recognizer)) # Reset the active recognizer if a new recognizer will become active. #NOTE: Reset after a result is not needed and a hard reset leads to the following Vosk error in that case: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
-			if restart_recognition push!(recognizers_to_reset, active_recognizer)
-			else                   reset(active_recognizer; hard=true)
+		if !isnothing(active_recognizer) && active_recognizer.is_persistent
+			if (recognizer != active_recognizer && was_partial_result) # Reset the active recognizer if a new recognizer will become active. #NOTE: Reset after a result is not needed and a hard reset leads to the following Vosk error in that case: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
+				if restart_recognition push!(recognizers_to_reset, active_recognizer)
+				else                   reset(active_recognizer; hard=true)
+				end
 			end
 		end
 		t  = 0.0
@@ -78,7 +80,7 @@ let
 					if !startswith(join(tokens, " "), join(token_buffer[1:i], " "))  # NOTE: a maybe cheaper, but less safe alternative would probably be `!issubset(token_buffer[1:i], tokens)`. It is less safe as issubset will not guarantee the order (for the same reason, it might be more expensive in the end: more cases to test...).
 						@debug "Insecurity - after restart?:" restart=restart_recognition
 						msg = "Insecurity in recognition: the tokens recognised in the previous (partial) recognition that have been consumed are not a subset of the tokens now recognised (token_buffer: $(token_buffer[1:i]); tokens: $tokens)"
-						if (is_partial_result) recognizer.Reset() end                #NOTE: Reset after a result is not needed and leads to the following Vosk error: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
+						if (is_partial_result && recognizer.is_persistent) reset(recognizer; hard=true) end                #NOTE: Reset after a result is not needed and leads to the following Vosk error: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
 				        reset_token_buffer()
 						reset_audio()
 						active_recognizer = nothing
@@ -106,7 +108,7 @@ let
     end
 
 
-	function next_token(recognizer::PyObject, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
+	function next_token(recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
 		if force_dynamic_recognizer @APIUsageError("forcing dynamic recogniser is not possible, if a recognizer is given.") end
 		_next_token(recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=restart_recognition, ignore_unknown=ignore_unknown)
 	end
@@ -127,7 +129,7 @@ let
 	end
 
 	#NOTE: this function will only consume the next token if `consume_if_match` is set true and the token matches.
-	function _is_next(token::Union{String,AbstractArray{String}}, recognizer_or_info::Union{PyObject, Tuple{Symbol,Symbol,<:AbstractArray{String},String}}, noise_tokens::AbstractArray{String}; consume_if_match::Bool=false, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=false)
+	function _is_next(token::Union{String,AbstractArray{String}}, recognizer_or_info::Union{Recognizer, Tuple{Symbol,Symbol,<:AbstractArray{String},String}}, noise_tokens::AbstractArray{String}; consume_if_match::Bool=false, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=false)
 		test_token = next_token(recognizer_or_info, noise_tokens; consume=true, timeout=timeout, use_partial_recognitions=use_partial_recognitions, force_dynamic_recognizer=force_dynamic_recognizer, ignore_unknown=ignore_unknown)
 		is_match = isa(token, String) ? (test_token == token) : (test_token in token)
 		if !(consume_if_match && is_match) i -= 1 end # Correct the token_buffer index in order to return the same token again in the next next_token call.
@@ -145,7 +147,7 @@ let
 	end
 
 	#NOTE: this function will only consume the next tokens if `consume_if_match` is set true and all the tokens match.
-	function _are_next(token::Union{String,AbstractArray{String}}, recognizer_or_info::Union{PyObject, Tuple{Symbol,Symbol,<:AbstractArray{String},String}}, noise_tokens::AbstractArray{String}; consume_if_match::Bool=false, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=false)
+	function _are_next(token::Union{String,AbstractArray{String}}, recognizer_or_info::Union{Recognizer, Tuple{Symbol,Symbol,<:AbstractArray{String},String}}, noise_tokens::AbstractArray{String}; consume_if_match::Bool=false, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=false)
 		match = String[]
 		test_token = next_token(recognizer_or_info, noise_tokens; consume=true, timeout=timeout, use_partial_recognitions=use_partial_recognitions, force_dynamic_recognizer=force_dynamic_recognizer, ignore_unknown=ignore_unknown)
 		consumed = 1
@@ -192,7 +194,7 @@ let
 		end
 		@debug "Dynamic recognizer created for the following grammar: $valid_strings"
 		grammar = json(valid_strings)
-		return Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
+		return Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), false)
 	end
 
     function reset_token_buffer()
@@ -201,9 +203,9 @@ let
     end
 
 	# #NOTE: this function which is to be called after consuming a partial result, continues with the recognition until a result is obtained.
-	function reset(recognizer::PyObject; timeout::Float64=60.0, hard::Bool=true)
+	function reset(recognizer::Recognizer; timeout::Float64=60.0, hard::Bool=true)
 		@debug "Resetting recognizer ($(hard ? "hard" : "soft") reset)."
-		if (hard) recognizer.Reset()                                                                    # NOTE: a hard reset may lead to a audio cut in the middle of speech and as a result recognise some tokens twice etc.
+		if (hard) recognizer.pyobject.Reset()                                                           # NOTE: a hard reset may lead to a audio cut in the middle of speech and as a result recognise some tokens twice etc.
 		else      next_recognition(recognizer; timeout=timeout, restart=true, reset_audio_buffer=false) # NOTE: as soft reset will lead to lost tokens, if it is not followed by a restart
 		end
 	    return
@@ -213,12 +215,12 @@ let
 		for r in recognizers_to_reset
 			reset(r; timeout=timeout, hard=hard)
 		end
-		recognizers_to_reset = Vector{PyObject}()
+		recognizers_to_reset = Vector{Recognizer}()
 	end
 
-	function force_reset_previous(recognizer::Union{PyObject, Nothing}; timeout::Float64=60.0, hard::Bool=false)
+	function force_reset_previous(recognizer::Union{Recognizer, Nothing}; timeout::Float64=60.0, hard::Bool=false)
 		if (recognizer != active_recognizer && was_partial_result && !isnothing(active_recognizer)) # Reset the active recognizer if a new recognizer will become active.
-			reset(active_recognizer; timeout=timeout, hard=hard)
+			if (active_recognizer.is_persistent) reset(active_recognizer; timeout=timeout, hard=hard) end
 			do_delayed_resets(;timeout=timeout, hard=hard)
 			reset_token_buffer()
 			reset_audio()
@@ -228,7 +230,7 @@ let
 	end
 
 	function reset_all(; timeout::Float64=60.0, hard::Bool=false, exclude_active::Bool=false)
-		if (!exclude_active && !isnothing(active_recognizer)) reset(active_recognizer; timeout=timeout, hard=hard) end
+		if (!exclude_active && !isnothing(active_recognizer) && active_recognizer.is_persistent) reset(active_recognizer; timeout=timeout, hard=hard) end
 		do_delayed_resets(;timeout=timeout, hard=hard)
 		reset_token_buffer()
 		reset_audio()
@@ -258,8 +260,8 @@ let
     t0_latency()::Float64 = _t0_latency
 	reset_audio()         = (i = 0; return)
 
-    function next_partial_recognition(recognizer::PyObject; timeout::Float64=60.0, restart::Bool=false, reset_audio_buffer::Bool=false, streamer = default_streamer())
-        is_partial_result = true
+    function next_partial_recognition(recognizer::Recognizer; timeout::Float64=60.0, restart::Bool=false, reset_audio_buffer::Bool=false, streamer = default_streamer())
+    	is_partial_result = true
         partial_result    = ""
         text              = ""
 		if (reset_audio_buffer) i = 0 end
@@ -285,13 +287,13 @@ let
 				else
 					audio = (bytes_read < AUDIO_READ_MAX) ? pybytes(audio_chunk[1:bytes_read]) : pybytes(audio_chunk) #NOTE: an allocation should only be done if bytes_read < AUDIO_READ_MAX (required in order to avoid having random data at the end of the audio_chunk).
 				end
-                tic();  exitcode = recognizer.AcceptWaveform(audio);  t_recognize_sum+=toc(); t_recognize_max=max(t_recognize_max,toc())  #; println("t_recognize: $(toc())")
+                tic();  exitcode = recognizer.pyobject.AcceptWaveform(audio);  t_recognize_sum+=toc(); t_recognize_max=max(t_recognize_max,toc())  #; println("t_recognize: $(toc())")
                 is_partial_result = (exitcode == 0)
                 if is_partial_result
-                    partial_result = recognizer.PartialResult()
+                    partial_result = recognizer.pyobject.PartialResult()
                     if (partial_result != partial_result_old) text = (JSON.parse(partial_result))["partial"] end
                 else
-                    result = recognizer.Result()
+                    result = recognizer.pyobject.Result()
                     text = (JSON.parse(result))["text"]
                 end
                 bytes_read_sum += bytes_read
@@ -327,7 +329,7 @@ let
         return text, is_partial_result, has_timed_out
     end
 
-    function next_recognition(recognizer::PyObject; timeout::Float64=120.0, restart::Bool=false, reset_audio_buffer::Bool=false)
+    function next_recognition(recognizer::Recognizer; timeout::Float64=120.0, restart::Bool=false, reset_audio_buffer::Bool=false)
         is_partial_result = true
         text = ""
         t  = 0.0
