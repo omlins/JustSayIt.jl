@@ -183,9 +183,12 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                     cmd = command(string(cmd_name))
                     if (t0_latency() > 0.0 && do_perf_debug()) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
                     try
-                        latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
-                        @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
-                        execute(cmd)
+                        if !isa(cmd, Dict)
+                            latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
+                            @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
+                        end
+                        execute(cmd, string(cmd_name))
+                        valid_cmd_names = command_names() # This is needed as new commands have potentially been activated...
                     catch e
                         if isa(e, InsecureRecognitionException)
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
@@ -263,7 +266,28 @@ const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.
     return ([join(words, " ")] == CONFIRMATION[default_language()])
 end
 
-execute(cmd::Function)                  = cmd()
-execute(cmd::PyKey)                     = Keyboard.press_keys(cmd)
-execute(cmd::NTuple{N,PyKey} where {N}) = Keyboard.press_keys(cmd...)
-execute(cmd::Array)                     = for subcmd in cmd execute(subcmd) end
+execute(cmd::Function, cmd_name::String)                  = cmd()
+execute(cmd::PyKey, cmd_name::String)                     = Keyboard.press_keys(cmd)
+execute(cmd::NTuple{N,PyKey} where {N}, cmd_name::String) = Keyboard.press_keys(cmd...)
+execute(cmd::String, cmd_name::String)                    = Keyboard.type_string(cmd)
+execute(cmd::Cmd, cmd_name::String)                       = if !activate(cmd) run(cmd; wait=false) end
+execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd execute(subcmd, cmd_name) end
+
+function execute(cmd::Dict, cmd_name::String)
+    @info "Activating commands: $cmd_name"
+    activate_commands(commands=cmd, cmd_name=cmd_name)
+    Help.help(Help.COMMANDS_KEYWORDS[default_language()])
+end
+
+function activate(cmd::Cmd)
+    app = cmd.exec[1]
+    open_apps = Pywinctl.getAppsWithName(app, condition=Pywinctl.Re.STARTSWITH) # Todo: instead a regular expression should be passed. It should check that there is no character before it and no character class after it.
+    is_open = length(open_apps) > 0
+    if is_open
+        open_app = open_apps[1]
+        windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # If there are multiple open windows for the given application take the first window.
+        window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
+        window.activate()
+    end
+    return is_open
+end
