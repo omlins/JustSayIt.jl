@@ -96,7 +96,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         end;
         stop_reading(id=id)
     end;
-    recognizer(COMMAND_RECOGNIZER_ID).Reset()
+    reset(recognizer(COMMAND_RECOGNIZER_ID), hard=true)
     reset_all(hard=true)
     @testset "4. token buffering - max speed ($cmd)" for cmd in singleword_cmds
         sample = samples[cmd]
