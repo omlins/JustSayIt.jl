@@ -80,7 +80,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
         @test_logs (:info,"Help search keyword not recognized.") Help.help()
         stop_reading(id=id)
     end;
-    recognizer(COMMAND_RECOGNIZER_ID).Reset()
+    reset(recognizer(COMMAND_RECOGNIZER_ID), hard=true)
     reset_all(hard=true)
 end;
 
