@@ -16,7 +16,7 @@ module Keyboard
 
 using PyCall
 using ..Exceptions
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum, UNKNOWN_TOKEN
 
 
 ## PYTHON MODULES
@@ -180,10 +180,12 @@ Type words only (upper and lower case). Supported keywords are:
 - "lowercase"
 
 #### `letters`
-Type letters only. Supported keywords are:
+Type letters only (upper and lower case). Supported keywords are:
 - "terminus"
 - "undo"
 - "redo"
+- "uppercase"
+- "lowercase"
 - "space"
 
 #### `digits`
@@ -198,7 +200,7 @@ Type digits only. Supported keywords are:
 type
 @enum TokenGroupKind undefined_kind keyword_kind word_kind letter_kind digit_kind language_kind direct_kind
 @enum TypeMode text words letters digits
-@voiceargs (mode=>(valid_input=Tuple(TYPE_MODES), interpret_function=interpret_typemode)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, active_lang=type_languages()[1], do_keystrokes::Bool=true)
+@voiceargs (mode=>(valid_input=Tuple(TYPE_MODES), interpret_function=interpret_typemode)) function type(mode::TypeMode; end_keyword::String=TYPE_END_KEYWORD, exit_on_unknown=false, max_word_groups=Inf, active_lang=type_languages()[1], do_keystrokes::Bool=true)
     @info "Typing $(string(mode))..."
     type_memory      = Vector{String}()
     tokengroup_str   = ""
@@ -227,6 +229,7 @@ type
             tokengroup_str = ""
             ig += 1
             it = 0
+            if (ig > max_word_groups) break end
         end
         if is_new_group && (tokengroup_kind == undefined_kind)
             reset_all(; hard=true, exclude_active=true)      # NOTE: a reset is required to avoid that the dynamic recognizers generated in is_next and are_next include the previous recognition as desired for normal command recognition.
@@ -270,7 +273,7 @@ type
                     break
                 end
                 if keyword == end_keyword
-                    is_typing = false
+                        is_typing = false
                 elseif keyword == TYPE_KEYWORDS[active_lang]["undo"]
                     if ig > 1
                         ig -= 1
@@ -360,6 +363,7 @@ type
                 nb_keyword_chars += length(keyword_sign)
             end
         else
+            token = ""
             if     (tokengroup_kind == word_kind)     token = next_word(active_lang)
             elseif (tokengroup_kind == letter_kind)   token = next_letter(active_lang)
             elseif (tokengroup_kind == digit_kind)    token = next_digit(active_lang)
@@ -369,47 +373,51 @@ type
                 type_backspace(;count=nb_keyword_chars, do_keystrokes=do_keystrokes) # NOTE: the removal of keyword signs must be done after the call to obtain the next token, in order to have it visible until it is spoken.
                 nb_keyword_chars = 0
             end
-            token_str = ""
-            if (tokengroup_kind == word_kind)
-                token = handle_uppercase(token, is_uppercase, active_lang)
-                if (was_space) token_str = token
-                else           token_str = " " * token
-                end
-            elseif (tokengroup_kind == letter_kind)
-                if (is_uppercase) token = uppercasefirst(token) end
-                token_str = token
-            elseif (tokengroup_kind == digit_kind)
-                token_str = token
-            elseif (tokengroup_kind == language_kind)
-                if (lang in type_languages()) active_lang = lang
-                else                          @info "Switch to $(lang_str(lang)) not possible. To type in $(lang_str(lang)), restart JustSayIt with `start(type_languages=[..., \"$lang\"], ...), replacing `...` according to your needs."
-                end
-                keyword_sign = "[$(lang_str(active_lang))]"
-                type_string(keyword_sign; do_keystrokes=do_keystrokes)
-                nb_keyword_chars = length(keyword_sign)
-                if all_consumed() type_keywords = define_type_keywords(mode, end_keyword, active_lang) end
-                was_kwarg = true
+            if token == UNKNOWN_TOKEN
+                if (exit_on_unknown) is_typing = false end
+            else  
                 token_str = ""
-            elseif (tokengroup_kind == direct_kind)
-                token_str = join(direct_input, "")
-                direct_input = Vector{String}()
-            elseif (tokengroup_kind == word_kind)
-                @info "Unkown token group." #NOTE: this should never occur.
+                if (tokengroup_kind == word_kind)
+                    token = handle_uppercase(token, is_uppercase, active_lang)
+                    if (was_space) token_str = token
+                    else           token_str = " " * token
+                    end
+                elseif (tokengroup_kind == letter_kind)
+                    if (is_uppercase) token = uppercasefirst(token) end
+                    token_str = token
+                elseif (tokengroup_kind == digit_kind)
+                    token_str = token
+                elseif (tokengroup_kind == language_kind)
+                    if (lang in type_languages()) active_lang = lang
+                    else                          @info "Switch to $(lang_str(lang)) not possible. To type in $(lang_str(lang)), restart JustSayIt with `start(type_languages=[..., \"$lang\"], ...), replacing `...` according to your needs."
+                    end
+                    keyword_sign = "[$(lang_str(active_lang))]"
+                    type_string(keyword_sign; do_keystrokes=do_keystrokes)
+                    nb_keyword_chars = length(keyword_sign)
+                    if all_consumed() type_keywords = define_type_keywords(mode, end_keyword, active_lang) end
+                    was_kwarg = true
+                    token_str = ""
+                elseif (tokengroup_kind == direct_kind)
+                    token_str = join(direct_input, "")
+                    direct_input = Vector{String}()
+                elseif (tokengroup_kind == word_kind)
+                    @info "Unkown token group." #NOTE: this should never occur.
+                end
+                type_string(token_str; do_keystrokes=do_keystrokes)
+                tokengroup_str *= token_str
+                was_keyword = false
+                it += 1
+                undo_count = 0
+                if !(tokengroup_kind in (direct_kind, language_kind)) is_uppercase = false end
+                if (tokengroup_kind != direct_kind) || (token_str[end] ∉ [" ", "\n", "\t"] )
+                    was_space = false
+                end
+                if all_consumed()
+                    tokengroup_kind = undefined_kind
+                    was_kwarg       = false
+                end
+                sleep(0.0001)
             end
-            type_string(token_str; do_keystrokes=do_keystrokes)
-            tokengroup_str *= token_str
-            was_keyword = false
-            it += 1
-            undo_count = 0
-            if !(tokengroup_kind in (direct_kind, language_kind)) is_uppercase = false end
-            if (tokengroup_kind != direct_kind) || (token_str[end] ∉ [" ", "\n", "\t"] )
-                was_space = false
-            end
-            if all_consumed()
-                tokengroup_kind = undefined_kind
-                was_kwarg       = false
-            end
-            sleep(0.05)
         end
     end
     @info "...stopped typing $(string(mode))."
@@ -429,7 +437,7 @@ end
 function define_type_keywords(mode::TypeMode, end_keyword::String, active_lang::String)
     if     (mode == text)    type_keywords = [end_keyword, values(TYPE_KEYWORDS[(active_lang==LANG.FR) ? active_lang : LANG.EN_US])...]  # TODO: as a workaround for an issue with the dynamic German and Spanish models, the English model is used; once this issue is fixed, the line should be: type_keywords = [end_keyword, values(TYPE_KEYWORDS[active_lang])...]
     elseif (mode == words)   type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["uppercase"], TYPE_KEYWORDS[active_lang]["lowercase"]]
-    elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["letters"]]
+    elseif (mode == letters) type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["uppercase"], TYPE_KEYWORDS[active_lang]["lowercase"], TYPE_KEYWORDS[active_lang]["letters"]]
     elseif (mode == digits)  type_keywords = [end_keyword, TYPE_KEYWORDS[active_lang]["undo"], TYPE_KEYWORDS[active_lang]["redo"], TYPE_KEYWORDS[active_lang]["digits"]]
     end
     return type_keywords
@@ -445,7 +453,7 @@ function handle_uppercase(token::String, is_uppercase::Bool, active_lang::String
 end
 
 
-"Get next word from speech."
+    "Get next word from speech."
 function next_word(lang::String)
     if     (lang == LANG.DE   ) next_word_DE()
     elseif (lang == LANG.EN_US) next_word_EN_US()
@@ -462,10 +470,14 @@ end
 
 "Get next letter from speech."
 function next_letter(lang::String)
-    if     (lang == LANG.DE   ) next_letter_DE()
-    elseif (lang == LANG.EN_US) next_letter_EN_US()
-    elseif (lang == LANG.ES   ) next_letter_ES()
-    elseif (lang == LANG.FR   ) next_letter_FR()
+    if is_next(UNKNOWN_TOKEN, [keys(ALPHABET[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+        return UNKNOWN_TOKEN
+    else
+        if     (lang == LANG.DE   ) next_letter_DE()
+        elseif (lang == LANG.EN_US) next_letter_EN_US()
+        elseif (lang == LANG.ES   ) next_letter_ES()
+        elseif (lang == LANG.FR   ) next_letter_FR()
+        end
     end
 end
 
@@ -474,19 +486,23 @@ interpret_letters_EN_US(input::AbstractString) = (return ALPHABET[LANG.EN_US][in
 interpret_letters_ES(input::AbstractString)    = (return ALPHABET[LANG.ES   ][input])
 interpret_letters_FR(input::AbstractString)    = (return ALPHABET[LANG.FR   ][input])
 
-@voiceargs letter=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(ALPHABET[LANG.DE   ])...], interpret_function=interpret_letters_DE,    ignore_unknown=true) next_letter_DE(letter::String)    = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(ALPHABET[LANG.EN_US])...], interpret_function=interpret_letters_EN_US, ignore_unknown=true) next_letter_EN_US(letter::String) = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(ALPHABET[LANG.ES   ])...], interpret_function=interpret_letters_ES,    ignore_unknown=true) next_letter_ES(letter::String)    = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=true) next_letter_FR(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(ALPHABET[LANG.DE   ])...], interpret_function=interpret_letters_DE,    ignore_unknown=false) next_letter_DE(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(ALPHABET[LANG.EN_US])...], interpret_function=interpret_letters_EN_US, ignore_unknown=false) next_letter_EN_US(letter::String) = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(ALPHABET[LANG.ES   ])...], interpret_function=interpret_letters_ES,    ignore_unknown=false) next_letter_ES(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=false) next_letter_FR(letter::String)    = (return letter)
 
 
 
 "Get next digit from speech."
 function next_digit(lang::String)
-    if     (lang == LANG.DE   ) next_digit_DE()
-    elseif (lang == LANG.EN_US) next_digit_EN_US()
-    elseif (lang == LANG.ES   ) next_digit_ES()
-    elseif (lang == LANG.FR   ) next_digit_FR()
+    if is_next(UNKNOWN_TOKEN, [keys(DIGITS[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+        return UNKNOWN_TOKEN
+    else
+        if     (lang == LANG.DE   ) next_digit_DE()
+        elseif (lang == LANG.EN_US) next_digit_EN_US()
+        elseif (lang == LANG.ES   ) next_digit_ES()
+        elseif (lang == LANG.FR   ) next_digit_FR()
+        end
     end
 end
 
@@ -495,10 +511,10 @@ interpret_digits_EN_US(input::AbstractString) = (return DIGITS[LANG.EN_US][input
 interpret_digits_ES(input::AbstractString)    = (return DIGITS[LANG.ES   ][input])
 interpret_digits_FR(input::AbstractString)    = (return DIGITS[LANG.FR   ][input])
 
-@voiceargs digit=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIGITS[LANG.DE   ])...], interpret_function=interpret_digits_DE,    ignore_unknown=true) next_digit_DE(digit::String)    = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIGITS[LANG.EN_US])...], interpret_function=interpret_digits_EN_US, ignore_unknown=true) next_digit_EN_US(digit::String) = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIGITS[LANG.ES   ])...], interpret_function=interpret_digits_ES,    ignore_unknown=true) next_digit_ES(digit::String)    = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIGITS[LANG.FR   ])...], interpret_function=interpret_digits_FR,    ignore_unknown=true) next_digit_FR(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIGITS[LANG.DE   ])...], interpret_function=interpret_digits_DE,    ignore_unknown=false) next_digit_DE(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIGITS[LANG.EN_US])...], interpret_function=interpret_digits_EN_US, ignore_unknown=false) next_digit_EN_US(digit::String) = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIGITS[LANG.ES   ])...], interpret_function=interpret_digits_ES,    ignore_unknown=false) next_digit_ES(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIGITS[LANG.FR   ])...], interpret_function=interpret_digits_FR,    ignore_unknown=false) next_digit_FR(digit::String)    = (return digit)
 
 
 "Get the language to start typing in from speech."
@@ -541,16 +557,63 @@ function type_backspace(; count::Integer=1, do_keystrokes::Bool=true)
     end
 end
 
-function press_keys(keys::PyKey...)
-    keyboard  = controller("keyboard")
-    keys      = map(convert_key, keys)
-    @pywith keyboard.pressed(keys[1:end-1]...) begin
-        keyboard.press(keys[end])
-        keyboard.release(keys[end])
+let     
+    global press_keys, prefix, set_prefix, reset_prefix
+    _prefix                    = []
+    prefix()                   = _prefix
+    set_prefix(keys::PyKey...) = (_prefix = keys)
+    reset_prefix()             = (_prefix = [])
+
+    function press_keys(keys::PyKey...)
+        keyboard  = controller("keyboard")
+        keys      = map(convert_key, [prefix()..., keys...])
+        @pywith keyboard.pressed(keys[1:end-1]...) begin
+            keyboard.press(keys[end])
+            keyboard.release(keys[end])
+        end
     end
 end
 
 convert_key(key::Char)     = string(key)
 convert_key(key::PyObject) = key
+
+
+"Type letters (abort on unknown)."
+type_letters() = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language())
+
+"Type digits (abort on unknown)."
+type_digits() = type(digits; exit_on_unknown=true, max_word_groups=1, active_lang=default_language())
+
+"Type words in lowercase (separated with space)."
+type_lowercase() = type_fixedcase(lower)
+
+"Type first words in uppercase, then lowercase (separated with space)."
+type_uppercase() = type_fixedcase(upper)
+
+"Type words in flatcase (lowercase, squashed together without separator)."
+type_flatcase() = type_fixedcase(flat)
+
+"Type words in snakecase (lowercase, separated with underscore)."
+type_snakecase() = type_fixedcase(snake)
+
+"Type words in camelcase (each word's first letter uppercase and squashed together without separator)."
+type_camelcase() = type_fixedcase(camel)
+
+"Type words in constantcase (uppercase, separated with underscore)."
+type_constantcase() = type_fixedcase(constant)
+
+@enum Case lower upper flat snake camel constant
+function type_fixedcase(case::Case)
+    words_str = Keyboard.type(Keyboard.words; max_word_groups=1, active_lang=default_language(), do_keystrokes=false)
+    words = split(words_str)
+    if     (case == lower   ) type_string(join(lowercase.(words), " "))
+    elseif (case == upper   ) type_string(uppercasefirst(join(lowercase.(words), " ")))
+    elseif (case == flat    ) type_string(join(lowercase.(words)))
+    elseif (case == snake   ) type_string(join(lowercase.(words), "_"))
+    elseif (case == camel   ) type_string(join(uppercasefirst.(words)))
+    elseif (case == constant) type_string(join(uppercase.(words), "_"))
+    end
+end
+
 
 end # module Keyboard
