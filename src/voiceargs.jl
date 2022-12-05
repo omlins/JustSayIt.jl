@@ -78,9 +78,9 @@ let
     _f_voiceargs::Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}                            = Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}()
     voiceargs(f_name::Symbol)::Dict{Symbol, Dict{Symbol, Any}}                             = _f_voiceargs[f_name]
     voicearg_f_names()::Base.KeySet{Symbol, Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}} = keys(_f_voiceargs)
-    recognizer(f_name::Symbol, voicearg::Symbol)::PyObject                                 = _f_voiceargs[f_name][voicearg][:recognizer]
+    recognizer(f_name::Symbol, voicearg::Symbol)::Recognizer                               = _f_voiceargs[f_name][voicearg][:recognizer]
     set_voiceargs(f_name::Symbol, v::Dict{Symbol, Dict{Symbol, Any}})                      = (_f_voiceargs[f_name] = v; return)
-    set_recognizer(f_name::Symbol, voicearg::Symbol, r::PyObject)                          = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
+    set_recognizer(f_name::Symbol, voicearg::Symbol, r::Recognizer)                          = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
 end
 
 
