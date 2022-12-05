@@ -10,6 +10,7 @@ const Wave        = PyNULL()
 const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
+const Pywinctl    = PyNULL()
 
 
 function __init__()
@@ -38,6 +39,7 @@ function __init__()
         copy!(Zipfile,     pyimport("zipfile"))
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
+        copy!(Pywinctl,    pyimport_pip("pywinctl"))
     end
 end
 
@@ -225,6 +227,7 @@ end
 pretty_cmd_string(cmd::Array)                 = join(map(pretty_cmd_string, cmd), "  ->  ")
 pretty_cmd_string(cmd::Union{Tuple,NTuple})   = join(map(pretty_cmd_string, cmd), " + ")
 pretty_cmd_string(cmd::PyObject)              = cmd.name
+pretty_cmd_string(cmd::Dict)                  = "... => ..."
 pretty_cmd_string(cmd)                        = string(cmd)
 
 
@@ -232,4 +235,12 @@ function interpret_enum(input::AbstractString, valid_input::Dict{String, <:Abstr
     index = findfirst(x -> x==input, valid_input[default_language()])
     if isnothing(index) @APIUsageError("interpretation not possible: the string $input is not present in the obtained valid_input dictionary ($valid_input).") end
     return valid_input[LANG.EN_US][index]
+end
+
+
+# Types
+
+mutable struct Recognizer
+    pyobject::PyObject
+    is_persistent::Bool
 end
