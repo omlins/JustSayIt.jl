@@ -22,29 +22,68 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug
-    _default_language::String                                                                           = ""
-    _type_languages::AbstractArray{String}                                                              = String[]
-    _modelname_default::String                                                                          = ""
-    _commands                                                                                           = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N}}}() # NOTE: specifying the exact Dict type of the commands leads to a crash that appears to be due to erronous compilation.
-    _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
-    _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
-    _recognizers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
-    _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
-    _do_perf_debug::Bool                                                                                = false
-    default_language()                                                                                  = _default_language
-    type_languages()                                                                                    = _type_languages
-    modelname_default()                                                                                 = _modelname_default
-    command(name::AbstractString)                                                                       = _commands[name]
-    command_names()                                                                                     = keys(_commands)
-    model(name::AbstractString=modelname_default())::PyObject                                           = _models[name]
-    noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
-    noises_names()                                                                                      = keys(_noises)
-    recognizer(id::AbstractString)::PyObject                                                            = _recognizers[id]
-    controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
-    set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
-    do_perf_debug()::Bool                                                                               = _do_perf_debug
-    set_perf_debug()                                                                                    = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
+    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, activate_commands
+    _default_language::String                                 = ""
+    _type_languages::AbstractArray{String}                    = String[]
+    _modelname_default::String                                = ""
+    _commands                                                 = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N, String, Cmd, Dict}}}() # NOTE: specifying the exact Dict type of the commands leads to a crash that appears to be due to erronous compilation.
+    _commands_global                                          = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N, String, Cmd, Dict}}}() # ...
+    _activ_command_path                                       = Dict{String, Any}()
+    _activ_command_leafs                                      = Dict{String, Any}()
+    _activ_command_dicts                                      = Dict{String, Any}()
+    _models::Dict{String, PyObject}                           = Dict{String, PyObject}()
+    _noises::Dict{String, <:AbstractArray{String}}            = Dict{String, Array{String}}()
+    _recognizers::Dict{String, Recognizer}                    = Dict{String, Recognizer}()
+    _controllers::Dict{String, PyObject}                      = Dict{String, PyObject}()
+    _do_perf_debug::Bool                                      = false
+    default_language()                                        = _default_language
+    type_languages()                                          = _type_languages
+    modelname_default()                                       = _modelname_default
+    command(name::AbstractString)                             = _commands[name]
+    command_names()                                           = keys(_commands)
+    model(name::AbstractString=modelname_default())::PyObject = _models[name]
+    noises(modelname::AbstractString)                         = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
+    noises_names()                                            = keys(_noises)
+    recognizer(id::AbstractString)::Recognizer                = _recognizers[id]
+    controller(name::AbstractString)::PyObject                = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
+    set_controller(name::AbstractString, c::PyObject)         = (_controllers[name] = c; return)
+    do_perf_debug()::Bool                                     = _do_perf_debug
+    set_perf_debug()                                          = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
+
+    function activate_commands(; commands::Dict=Dict(), cmd_name::String="")
+        if cmd_name == ""
+            _activ_command_path  = Dict{String, Any}()
+            _activ_command_leafs = Dict{String, Any}(cn => nothing for cn in keys(_commands_global))
+            _activ_command_dicts = [_commands_global]
+        else
+            leafs = _activ_command_leafs
+            path  = _activ_command_path
+            level = 1
+            while !haskey(leafs, cmd_name)
+                level += 1
+                node  = collect(keys(path))[1] # NOTE: path contains always only one key on each level.
+                leafs = leafs[node]
+                path  = path[node]
+            end
+            if !isempty(keys(path))
+                node = collect(keys(path))[1] # NOTE: path contains always only one key on each level.
+                delete!(path, node)
+                leafs[node] = nothing
+                _activ_command_dicts = _activ_command_dicts[1:level]
+            end
+            path[cmd_name]  = Dict{String, Any}()
+            leafs[cmd_name] = Dict{String, Any}(cn => nothing for cn in keys(commands))
+            push!(_activ_command_dicts, commands)
+        end
+        _commands = _activ_command_dicts[1]
+        for c in _activ_command_dicts[2:end]
+            _commands = merge(_commands, c) #TODO: Is this needed here? delete!(_commands, cmd_name) I don't think so. Merging multiple times will still always give the same result and there might also be other commands associated to the command name.
+        end
+        grammar = json([command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], noises(modelname_default())..., UNKNOWN_TOKEN])
+        if !isnothing(_recognizers[COMMAND_RECOGNIZER_ID]) _recognizers[COMMAND_RECOGNIZER_ID].is_persistent = false end # Mark recognizer as temporary to avoid that it will be reset for no benefit.
+        _recognizers[COMMAND_RECOGNIZER_ID] = Recognizer(Vosk.KaldiRecognizer(model(), SAMPLERATE, grammar), true)
+        return
+    end
 
 
     function init_jsi(commands::Dict{String, <:Any}, modeldirs::Dict{String, String}, noises::Dict{String, <:AbstractArray{String}}; default_language::String=LANG.EN_US, type_languages::AbstractArray{String}=[LANG.EN_US], vosk_log_level::Integer=-1)
@@ -68,7 +107,7 @@ let
                 end
             end
         end
-        _commands = commands
+        _commands_global = commands
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
@@ -164,12 +203,9 @@ let
                 @ArgumentError("directory $(modeldirs[modelname]) does not exist.$tilde_errmsg")
             end
             _models[modelname] = Vosk.Model(modeldirs[modelname])
-            _recognizers[modelname] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE)
-            if modelname == _modelname_default
-                grammar = json([keys(commands)..., COMMAND_NAME_SLEEP[default_language], COMMAND_NAME_AWAKE[default_language], noises[modelname]..., UNKNOWN_TOKEN])
-                _recognizers[COMMAND_RECOGNIZER_ID] = Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar)
-            end
+            _recognizers[modelname] = Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE), true)
         end
+        activate_commands()
 
         # Set up the special recognizers defined by voiceargs.
         for f_name in voicearg_f_names()
@@ -182,7 +218,7 @@ let
                     if haskey(kwargs, :valid_input)
                         valid_input = isa(kwargs[:valid_input],AbstractArray{String}) ? kwargs[:valid_input] : kwargs[:valid_input][default_language]
                         grammar     = json([valid_input..., noises[modelname]..., UNKNOWN_TOKEN])
-                        set_recognizer(f_name, voicearg, Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar))
+                        set_recognizer(f_name, voicearg, Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), true))
                     end
                 end
             end
