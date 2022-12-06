@@ -52,7 +52,7 @@ let
     function _next_token(recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
 		ignore_tokens = ignore_unknown ? [noise_tokens..., UNKNOWN_TOKEN] : noise_tokens
 		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
-			 restart_recognition = true
+			restart_recognition = true
 		end
 		if (!was_partial_result) do_delayed_resets(;hard=false) end                                 # When a result was found, then soft resets that were previously delayed to keep latency minimal can now be performed.
 		if !isnothing(active_recognizer) && active_recognizer.is_persistent
@@ -114,10 +114,10 @@ let
 	end
 
 	function next_token(recognizer_info::Tuple{Symbol,Symbol,<:AbstractArray{String},String}, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=true)
-		if (i >= length(token_buffer)) && !was_partial_result && !force_dynamic_recognizer  # If all tokens in the buffer were consumed and the last recognition was not partial, then we can swap the recogniser without having to consider the last recognitions (i.e., get the recognizer created in init_jsi)...
+		if (i >= length(token_buffer)) && !was_partial_result && !force_dynamic_recognizer && !use_static_recognizers()  # If all tokens in the buffer were consumed and the last recognition was not partial, then we can swap the recogniser without having to consider the last recognitions (i.e., get the recognizer created in init_jsi)...
 			f_name, voicearg = recognizer_info[1:2]
 			next_token(recognizer(f_name, voicearg), noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, ignore_unknown=ignore_unknown)
-		else                                                                                # ...else, we are swapping the recognizer while the recognition was only partial and/or not all tokens consumed. Thus, the new recognizer needs to include the audio of the last partial recognition and must be able to recognize the already consumed tokens, i.e., be dynamically created.
+		else      								                                                                         # ...else, we are swapping the recognizer while the recognition was only partial and/or not all tokens consumed. Thus, the new recognizer needs to include the audio of the last partial recognition and must be able to recognize the already consumed tokens, i.e., be dynamically created.
 			valid_input, modelname = recognizer_info[3:4]
 			next_token(recognizer(valid_input, noise_tokens; modelname=modelname), noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=true, ignore_unknown=ignore_unknown)
         end
