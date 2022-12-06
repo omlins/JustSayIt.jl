@@ -22,7 +22,7 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, activate_commands
+    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, use_static_recognizers, activate_commands
     _default_language::String                                 = ""
     _type_languages::AbstractArray{String}                    = String[]
     _modelname_default::String                                = ""
@@ -36,6 +36,7 @@ let
     _recognizers::Dict{String, Recognizer}                    = Dict{String, Recognizer}()
     _controllers::Dict{String, PyObject}                      = Dict{String, PyObject}()
     _do_perf_debug::Bool                                      = false
+    _use_static_recognizers                                   = false
     default_language()                                        = _default_language
     type_languages()                                          = _type_languages
     modelname_default()                                       = _modelname_default
@@ -49,7 +50,9 @@ let
     set_controller(name::AbstractString, c::PyObject)         = (_controllers[name] = c; return)
     do_perf_debug()::Bool                                     = _do_perf_debug
     set_perf_debug()                                          = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
-
+    use_static_recognizers()::Bool                            = _use_static_recognizers
+    set_static_recognizers_usage()                            = if haskey(ENV,"JSI_USE_STATIC_RECOGNIZERS") _use_static_recognizers = (parse(Int64,ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
+    
     function activate_commands(; commands::Dict=Dict(), cmd_name::String="")
         if cmd_name == ""
             _activ_command_path  = Dict{String, Any}()
@@ -80,7 +83,7 @@ let
             _commands = merge(_commands, c) #TODO: Is this needed here? delete!(_commands, cmd_name) I don't think so. Merging multiple times will still always give the same result and there might also be other commands associated to the command name.
         end
         grammar = json([command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], noises(modelname_default())..., UNKNOWN_TOKEN])
-        if !isnothing(_recognizers[COMMAND_RECOGNIZER_ID]) _recognizers[COMMAND_RECOGNIZER_ID].is_persistent = false end # Mark recognizer as temporary to avoid that it will be reset for no benefit.
+        if haskey(_recognizers, COMMAND_RECOGNIZER_ID) _recognizers[COMMAND_RECOGNIZER_ID].is_persistent = false end # Mark recognizer as temporary to avoid that it will be reset for no benefit.
         _recognizers[COMMAND_RECOGNIZER_ID] = Recognizer(Vosk.KaldiRecognizer(model(), SAMPLERATE, grammar), true)
         return
     end
@@ -90,6 +93,7 @@ let
         # Set global options.
         Vosk.SetLogLevel(vosk_log_level)
         set_perf_debug()
+        set_static_recognizers_usage()
 
         # Store the language choice.
         _default_language  = default_language
@@ -224,7 +228,7 @@ let
             end
             @debug "Voiceargs of function `$f_name`:" voiceargs(f_name)
         end
-
+    
         # Call the garbage collector to avoid having it running right after starting to use JustSayIt.
         GC.gc()
     end
