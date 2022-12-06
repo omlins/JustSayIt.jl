@@ -1,6 +1,6 @@
 name = "JustSayIt"
 uuid = "d7252348-293e-4f11-8d42-c8418dda4315"
-authors = ["Samuel Omlin and contributors"]
+authors = ["Samuel Omlin"]
 version = "0.1.0"
 
 [deps]
