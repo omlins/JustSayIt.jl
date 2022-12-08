@@ -39,14 +39,17 @@ See also: [`is_next`](@ref)
 are_next
 
 let
-    global next_token, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
-    recognizers_to_reset = Vector{Recognizer}() 		      # NOTE: only persistent recognizer will need to be reset; temporary recognizers will automatically be removed by the python garbage collector (see __del__ in Vosk source).
+    global next_token, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, force_restart_recognition, is_active, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
+    _force_restart_recognition = false
+	recognizers_to_reset = Vector{Recognizer}() 		      # NOTE: only persistent recognizer will need to be reset; temporary recognizers will automatically be removed by the python garbage collector (see __del__ in Vosk source).
     active_recognizer::Union{Nothing, Recognizer} = nothing
     was_partial_result = false
     token_buffer = Vector{String}()
     i = 0
 	all_consumed()::Bool            = (i >= length(token_buffer))
 	was_partial_recognition()::Bool = was_partial_result
+	force_restart_recognition()		= (_force_restart_recognition = true)
+	is_active(r::Recognizer) 		= (r == active_recognizer)
 
 
     function _next_token(recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
@@ -54,6 +57,7 @@ let
 		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
 			restart_recognition = true
 		end
+		if (_force_restart_recognition) restart_recognition = true; _force_restart_recognition = false end
 		if (!was_partial_result) do_delayed_resets(;hard=false) end                                 # When a result was found, then soft resets that were previously delayed to keep latency minimal can now be performed.
 		if !isnothing(active_recognizer) && active_recognizer.is_persistent
 			if (recognizer != active_recognizer && was_partial_result) # Reset the active recognizer if a new recognizer will become active. #NOTE: Reset after a result is not needed and a hard reset leads to the following Vosk error in that case: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
@@ -182,7 +186,7 @@ let
 	end
 
 	# Create dynamically a recognizer based on the valid input, model and the consumed tokens recognised in the current audio_buffer.
-	function recognizer(valid_input::AbstractArray{String}, noise_tokens::AbstractArray{String}; modelname::String=modelname_default())
+	function recognizer(valid_input::AbstractArray{String}, noise_tokens::AbstractArray{String}; modelname::String=modelname_default(), is_persistent=false)
 		ignore_tokens = [noise_tokens..., UNKNOWN_TOKEN]
 		consumed_tokens = join(token_buffer[1:i], " ")
 		if isempty(consumed_tokens)
@@ -194,7 +198,7 @@ let
 		end
 		@debug "Dynamic recognizer created for the following grammar: $valid_strings"
 		grammar = json(valid_strings)
-		return Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), false)
+		return Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), is_persistent)
 	end
 
     function reset_token_buffer()
