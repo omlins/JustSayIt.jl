@@ -453,7 +453,7 @@ function handle_uppercase(token::String, is_uppercase::Bool, active_lang::String
 end
 
 
-    "Get next word from speech."
+"Get next word from speech."
 function next_word(lang::String)
     if     (lang == LANG.DE   ) next_word_DE()
     elseif (lang == LANG.EN_US) next_word_EN_US()
@@ -469,8 +469,8 @@ end
 
 
 "Get next letter from speech."
-function next_letter(lang::String)
-    if is_next(UNKNOWN_TOKEN, [keys(ALPHABET[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+function next_letter(lang::String; ignore_unknown=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(ALPHABET[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
         return UNKNOWN_TOKEN
     else
         if     (lang == LANG.DE   ) next_letter_DE()
@@ -486,16 +486,16 @@ interpret_letters_EN_US(input::AbstractString) = (return ALPHABET[LANG.EN_US][in
 interpret_letters_ES(input::AbstractString)    = (return ALPHABET[LANG.ES   ][input])
 interpret_letters_FR(input::AbstractString)    = (return ALPHABET[LANG.FR   ][input])
 
-@voiceargs letter=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(ALPHABET[LANG.DE   ])...], interpret_function=interpret_letters_DE,    ignore_unknown=false) next_letter_DE(letter::String)    = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(ALPHABET[LANG.EN_US])...], interpret_function=interpret_letters_EN_US, ignore_unknown=false) next_letter_EN_US(letter::String) = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(ALPHABET[LANG.ES   ])...], interpret_function=interpret_letters_ES,    ignore_unknown=false) next_letter_ES(letter::String)    = (return letter)
-@voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=false) next_letter_FR(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(ALPHABET[LANG.DE   ])...], interpret_function=interpret_letters_DE,    ignore_unknown=true) next_letter_DE(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(ALPHABET[LANG.EN_US])...], interpret_function=interpret_letters_EN_US, ignore_unknown=true) next_letter_EN_US(letter::String) = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(ALPHABET[LANG.ES   ])...], interpret_function=interpret_letters_ES,    ignore_unknown=true) next_letter_ES(letter::String)    = (return letter)
+@voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=true) next_letter_FR(letter::String)    = (return letter)
 
 
 
 "Get next digit from speech."
-function next_digit(lang::String)
-    if is_next(UNKNOWN_TOKEN, [keys(DIGITS[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+function next_digit(lang::String; ignore_unknown=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIGITS[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
         return UNKNOWN_TOKEN
     else
         if     (lang == LANG.DE   ) next_digit_DE()
@@ -511,10 +511,10 @@ interpret_digits_EN_US(input::AbstractString) = (return DIGITS[LANG.EN_US][input
 interpret_digits_ES(input::AbstractString)    = (return DIGITS[LANG.ES   ][input])
 interpret_digits_FR(input::AbstractString)    = (return DIGITS[LANG.FR   ][input])
 
-@voiceargs digit=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIGITS[LANG.DE   ])...], interpret_function=interpret_digits_DE,    ignore_unknown=false) next_digit_DE(digit::String)    = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIGITS[LANG.EN_US])...], interpret_function=interpret_digits_EN_US, ignore_unknown=false) next_digit_EN_US(digit::String) = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIGITS[LANG.ES   ])...], interpret_function=interpret_digits_ES,    ignore_unknown=false) next_digit_ES(digit::String)    = (return digit)
-@voiceargs digit=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIGITS[LANG.FR   ])...], interpret_function=interpret_digits_FR,    ignore_unknown=false) next_digit_FR(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIGITS[LANG.DE   ])...], interpret_function=interpret_digits_DE,    ignore_unknown=true) next_digit_DE(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIGITS[LANG.EN_US])...], interpret_function=interpret_digits_EN_US, ignore_unknown=true) next_digit_EN_US(digit::String) = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIGITS[LANG.ES   ])...], interpret_function=interpret_digits_ES,    ignore_unknown=true) next_digit_ES(digit::String)    = (return digit)
+@voiceargs digit=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIGITS[LANG.FR   ])...], interpret_function=interpret_digits_FR,    ignore_unknown=true) next_digit_FR(digit::String)    = (return digit)
 
 
 "Get the language to start typing in from speech."
@@ -577,6 +577,11 @@ end
 convert_key(key::Char)     = string(key)
 convert_key(key::PyObject) = key
 
+"Type one letter."
+function type_letter()
+    token = next_letter(default_language())
+    if (token != UNKNOWN_TOKEN) type_string(token) end
+end
 
 "Type letters (abort on unknown)."
 type_letters() = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language())
