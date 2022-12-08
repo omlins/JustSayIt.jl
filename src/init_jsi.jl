@@ -22,7 +22,7 @@ See also: [`finalize_jsi`](@ref)
 init_jsi
 
 let
-    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, use_static_recognizers, activate_commands
+    global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, use_static_recognizers, update_commands
     _default_language::String                                 = ""
     _type_languages::AbstractArray{String}                    = String[]
     _modelname_default::String                                = ""
@@ -53,12 +53,15 @@ let
     use_static_recognizers()::Bool                            = _use_static_recognizers
     set_static_recognizers_usage()                            = if haskey(ENV,"JSI_USE_STATIC_RECOGNIZERS") _use_static_recognizers = (parse(Int64,ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
     
-    function activate_commands(; commands::Dict=Dict(), cmd_name::String="")
-        if cmd_name == ""
-            _activ_command_path  = Dict{String, Any}()
-            _activ_command_leafs = Dict{String, Any}(cn => nothing for cn in keys(_commands_global))
-            _activ_command_dicts = [_commands_global]
-        else
+    function initialize_commands(commands)
+        _activ_command_path  = Dict{String, Any}()
+        _activ_command_leafs = Dict{String, Any}(cn => nothing for cn in keys(commands))
+        _activ_command_dicts = [commands]
+        _commands_global     = commands
+    end
+
+    function update_commands(; commands::Dict=Dict(), cmd_name::String="")
+        if cmd_name != ""
             leafs = _activ_command_leafs
             path  = _activ_command_path
             level = 1
@@ -82,9 +85,12 @@ let
         for c in _activ_command_dicts[2:end]
             _commands = merge(_commands, c) #TODO: Is this needed here? delete!(_commands, cmd_name) I don't think so. Merging multiple times will still always give the same result and there might also be other commands associated to the command name.
         end
-        grammar = json([command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], noises(modelname_default())..., UNKNOWN_TOKEN])
+        # grammar = json([command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], noises(modelname_default())..., UNKNOWN_TOKEN])
         if haskey(_recognizers, COMMAND_RECOGNIZER_ID) _recognizers[COMMAND_RECOGNIZER_ID].is_persistent = false end # Mark recognizer as temporary to avoid that it will be reset for no benefit.
-        _recognizers[COMMAND_RECOGNIZER_ID] = Recognizer(Vosk.KaldiRecognizer(model(), SAMPLERATE, grammar), true)
+        # _recognizers[COMMAND_RECOGNIZER_ID] = Recognizer(Vosk.KaldiRecognizer(model(), SAMPLERATE, grammar), true)
+        valid_input = [command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()]]
+        _recognizers[COMMAND_RECOGNIZER_ID] = recognizer(valid_input, noises(modelname_default()); is_persistent=true)
+        if !all_consumed() force_restart_recognition() end # If the recognizer was swapped within a word group, then force restart of recognition in order to achieve a proper transition to the recognizer.
         return
     end
 
@@ -111,7 +117,7 @@ let
                 end
             end
         end
-        _commands_global = commands
+        initialize_commands(commands)
 
         # Verify that there is an entry for the default language and selected type languages in modeldirs and noises. Set the values for the other surely required models (i.e. which are used in the Commands submodule) to the same as the default if not available.
         if haskey(modeldirs, "") @ArgumentError("an empty string is not valid as model identifier.") end
@@ -209,7 +215,7 @@ let
             _models[modelname] = Vosk.Model(modeldirs[modelname])
             _recognizers[modelname] = Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE), true)
         end
-        activate_commands()
+        update_commands()
 
         # Set up the special recognizers defined by voiceargs.
         for f_name in voicearg_f_names()
