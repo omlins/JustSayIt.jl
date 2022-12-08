@@ -208,6 +208,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                 end
             end
             try
+                if !is_active(recognizer(COMMAND_RECOGNIZER_ID)) update_commands() end
                 force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
                 use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions=true, ignore_unknown=false)
                 cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions = use_max_speed, ignore_unknown=false)
@@ -275,7 +276,7 @@ execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd ex
 
 function execute(cmd::Dict, cmd_name::String)
     @info "Activating commands: $cmd_name"
-    activate_commands(commands=cmd, cmd_name=cmd_name)
+    update_commands(commands=cmd, cmd_name=cmd_name)
     Help.help(Help.COMMANDS_KEYWORDS[default_language()])
 end
 
