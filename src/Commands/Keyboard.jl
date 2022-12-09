@@ -583,10 +583,19 @@ function type_letter()
     if (token != UNKNOWN_TOKEN) type_string(token) end
 end
 
-"Type letters (abort on unknown)."
-type_letters() = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language())
+"Type one majuscule letter."
+function type_majuscule()
+    token = next_letter(default_language())
+    if (token != UNKNOWN_TOKEN) type_string(uppercase(token)) end
+end
 
-"Type digits (abort on unknown)."
+"Type letters (exit on unknown)."
+type_letters(; do_keystrokes=true) = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language(), do_keystrokes=do_keystrokes)
+
+"Type capitals (exit on unknown)."
+type_capitals() = type_string(join(uppercase.(split(type_letters(; do_keystrokes=false))), " "))
+
+"Type digits (exit on unknown)."
 type_digits() = type(digits; exit_on_unknown=true, max_word_groups=1, active_lang=default_language())
 
 "Type words in lowercase (separated with space)."
