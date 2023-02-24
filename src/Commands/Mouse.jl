@@ -61,4 +61,37 @@ click_double() = click_left(;count=2)
 "Trippleclick left mouse button."
 click_triple() = click_left(;count=3)
 
+####################################################################
+#TEMP
+
+"Move to center."
+move_to_center() = controller("mouse").position = (1920÷2, 1080÷2)
+
+"Move to north."
+move_to_north() = controller("mouse").position = (1920÷2, 1080÷6*1)
+
+"Move to south."
+move_to_south() = controller("mouse").position = (1920÷2, 1080÷6*5)
+
+"Move to east."
+move_to_east() = controller("mouse").position = (1920÷6*5, 1080÷2)
+
+"Move to west."
+move_to_west() = controller("mouse").position = (1920÷6*1, 1080÷2)
+
+"Move to north-east."
+move_to_northeast() = controller("mouse").position = (1920÷6*5, 1080÷6*1)
+
+"Move to north-west."
+move_to_northwest() = controller("mouse").position = (1920÷6*1, 1080÷6*1)
+
+"Move to south-east."
+move_to_southeast() = controller("mouse").position = (1920÷6*5, 1080÷6*5)
+
+"Move to south-west."
+move_to_southwest() = controller("mouse").position = (1920÷6*1, 1080÷6*5)
+
+####################################################################
+#TEMP
+
 end # module Mouse
