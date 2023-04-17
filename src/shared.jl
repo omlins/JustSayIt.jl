@@ -165,13 +165,14 @@ function force_miniforge()
     ENV["CONDA_JL_USE_MINIFORGE"] = "1"                             # Force usage of miniforge
     if !Conda.USE_MINIFORGE
         @info "Rebuilding Conda.jl for using Miniforge..."
-        run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("Conda")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("Conda")
+        Pkg.build("Conda") # NOTE: the following would lead to permission errors: run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("Conda")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",)))
         do_restart = true
+        run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'using JustSayIt'`)) # Force immediate field of PyCall below, avoiding the user to restart twice.
     end
     ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
     if !any(startswith.(PyCall.python, DEPOT_PATH))                 # Rebuild of PyCall if it has not been built with Conda.jl (alternative check could be !PyCall.conda, however this would set the version compatibility to when it was introduced)
         @info "Rebuilding PyCall for using Julia Conda.jl..."
-        run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("PyCall")
+        Pkg.build("PyCall") # NOTE: the following would lead to permission errors: run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",)))
         do_restart = true
     end
     if do_restart
