@@ -15,23 +15,6 @@ const Key         = PyNULL()
 function __init__()
     if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
     if ENV["JSI_USE_PYTHON"] == "1"                                     # ENV["JSI_USE_PYTHON"] = "0" enables to deactivate the setup of Python related things at module load time, e.g. for the docs build.
-        do_restart = false
-        ENV["CONDA_JL_USE_MINIFORGE"] = "1"                             # Force usage of miniforge
-        if !Conda.USE_MINIFORGE
-            @info "Rebuilding Conda.jl for using Miniforge..."
-            run(Cmd(`$(Base.julia_cmd()) -e 'import Pkg; Pkg.build("Conda")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("Conda")
-            do_restart = true
-        end
-        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-        if !any(startswith.(PyCall.python, DEPOT_PATH))                 # Rebuild of PyCall if it has not been built with Conda.jl (alternative check could be !PyCall.conda, however this would set the version compatibility to when it was introduced)
-            @info "Rebuilding PyCall for using Julia Conda.jl..."
-            run(Cmd(`$(Base.julia_cmd()) -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("PyCall")
-            do_restart = true
-        end
-        if do_restart
-            @info "...rebuild completed. Restart Julia and JustSayIt."
-            exit()
-        end
         copy!(Vosk,        pyimport_pip("vosk"))
         copy!(Sounddevice, pyimport_pip("sounddevice"; dependency="portaudio"))
         copy!(Wave,        pyimport("wave"))
@@ -177,7 +160,28 @@ const DIGITS = Dict(
 
 ## FUNCTIONS
 
+function force_miniforge()
+    do_restart = false
+    ENV["CONDA_JL_USE_MINIFORGE"] = "1"                             # Force usage of miniforge
+    if !Conda.USE_MINIFORGE
+        @info "Rebuilding Conda.jl for using Miniforge..."
+        run(Cmd(`$(Base.julia_cmd()) -e 'import Pkg; Pkg.build("Conda")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("Conda")
+        do_restart = true
+    end
+    ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
+    if !any(startswith.(PyCall.python, DEPOT_PATH))                 # Rebuild of PyCall if it has not been built with Conda.jl (alternative check could be !PyCall.conda, however this would set the version compatibility to when it was introduced)
+        @info "Rebuilding PyCall for using Julia Conda.jl..."
+        run(Cmd(`$(Base.julia_cmd()) -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",))) #Pkg.build("PyCall")
+        do_restart = true
+    end
+    if do_restart
+        @info "...rebuild completed. Restart Julia and JustSayIt."
+        exit()
+    end
+end
+
 function pyimport_pip(modulename::AbstractString; dependency::AbstractString="", channel::AbstractString="conda-forge")
+    force_miniforge()
     try
         pyimport(modulename)
     catch e
