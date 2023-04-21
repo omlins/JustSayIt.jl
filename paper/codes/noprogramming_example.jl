@@ -23,5 +23,4 @@ commands = Dict(
 start(commands=commands, 
       type_languages=["en-us", "fr"], 
       max_speed_subset=["ma", "middle", "right", 
-      "hold", "release", "page up", "page down", 
-      "take"])
+      "hold", "release", "take"])
