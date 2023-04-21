@@ -169,7 +169,7 @@ function force_miniforge()
         do_restart = true
     end
     ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-    if !do_restart && !any(startswith.(PyCall.python, DEPOT_PATH))  # Rebuild of PyCall if it has not been built with Conda.jl (alternative check could be !PyCall.conda, however this would set the version compatibility to when it was introduced)
+    if !do_restart && !PyCall.conda                                 # Rebuild of PyCall if it has not been built with Conda.jl
         @info "Rebuilding PyCall for using Julia Conda.jl..."
         Pkg.build("PyCall")                                         # NOTE: the following might lead to permission errors: run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",)))
         do_restart = true
