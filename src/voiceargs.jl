@@ -194,7 +194,9 @@ generate_valid_input(type)               = @ArgumentError("type $(esc(type)) is 
 # Construct the wrapper based on the definition of the original function, as it will only differ in the arguments and body.
 function wrap_f(f_name, f_args, f_expr, voiceargs)
     use_dynamic_recognizers = true
+    use_static_recognizers  = true
     if haskey(ENV, "JSI_USE_DYNAMIC_RECOGNIZERS") use_dynamic_recognizers = (parse(Int64, ENV["JSI_USE_DYNAMIC_RECOGNIZERS"]) > 0); end
+    if haskey(ENV, "JSI_USE_STATIC_RECOGNIZERS") use_static_recognizers = (parse(Int64, ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
 
     # Generate the code for the recognition of the voiceargs.
     recognitions = fill(:(begin end), length(voiceargs))
@@ -216,7 +218,9 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
             else                         recognizer_or_info = :(recognizer($f_name_sym, $voicearg_sym))
             end
         else
-            recognizer_or_info = :(recognizer($modelname))
+            if (use_static_recognizers) recognizer_or_info = :(recognizer($modelname))
+            else                        recognizer_or_info = :(Recognizer(Vosk.KaldiRecognizer(model($modelname), SAMPLERATE), false))
+            end
         end
         if is_vararg
             tic_call   = :(begin end)
