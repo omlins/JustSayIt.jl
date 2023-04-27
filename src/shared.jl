@@ -243,4 +243,16 @@ end
 mutable struct Recognizer
     pyobject::PyObject
     is_persistent::Bool
+    valid_input::AbstractArray{String}
+    valid_tokens::AbstractArray{String}
+
+    function Recognizer(pyobject::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
+        valid_tokens = isempty(valid_input) ? String[] : [token for input in split.(valid_input) for token in input] |> unique |> collect
+        new(pyobject, is_persistent, valid_input, valid_tokens)
+    end
+
+    function Recognizer(pyobject::PyObject, is_persistent::Bool)
+        valid_input = String[]
+        Recognizer(pyobject, is_persistent, valid_input)
+    end
 end
