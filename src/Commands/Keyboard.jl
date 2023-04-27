@@ -530,7 +530,7 @@ function _get_language(new_lang::String, lang::String)
     codes       = [keys(LANG_STR)...]
     codes_short = getindex.(split.(codes,"-"), 1)
     code        = codes[findall(codes_short.== LANG_CODES_SHORT[lang][new_lang])]
-    if (length(code) > 1) @APIUsageError("swithing language is impossible as ambigous: `type_languages` must not contain multiple region instances of the same language.") end
+    if (length(code) > 1) @APIUsageError("switching language is impossible as ambigous: `type_languages` must not contain multiple region instances of the same language.") end
     return code[1]
 end
 
@@ -590,7 +590,7 @@ function type_majuscule()
 end
 
 "Type letters (exit on unknown)."
-type_letters(; do_keystrokes=true) = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language(), do_keystrokes=do_keystrokes)
+type_letters(; do_keystrokes=true) = (text = type(letters; exit_on_unknown=true, max_word_groups=1, active_lang=default_language(), do_keystrokes=do_keystrokes); reset_all(); return text) # NOTE: reset_all() is necessary to avoid that badly recognized letters are interpreted as commands; instead, the remainder of the word group is ignored after an unknown token.
 
 "Type capitals (exit on unknown)."
 type_capitals() = type_string(join(uppercase.(split(type_letters(; do_keystrokes=false))), " "))
