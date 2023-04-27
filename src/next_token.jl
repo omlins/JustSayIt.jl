@@ -48,13 +48,15 @@ let
     i = 0
 	all_consumed()::Bool            = (i >= length(token_buffer))
 	was_partial_recognition()::Bool = was_partial_result
-	force_restart_recognition()		= (_force_restart_recognition = true)
+	force_restart_recognition()		= (@debug "Forcing restart of recognition."; _force_restart_recognition = true)
 	is_active(r::Recognizer) 		= (r == active_recognizer)
 
 
     function _next_token(recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true)
+		@debug "next_token: active_recognizer=$active_recognizer, was_partial_result=$was_partial_result, token_buffer=$token_buffer, i=$i, recognizer=$recognizer, noise_tokens=$noise_tokens, consume=$consume, timeout=$timeout, use_partial_recognitions=$use_partial_recognitions, restart_recognition=$restart_recognition, ignore_unknown=$ignore_unknown"
 		ignore_tokens = ignore_unknown ? [noise_tokens..., UNKNOWN_TOKEN] : noise_tokens
-		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
+		if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && !all_consumed()) # If the recognizer was changed despite that tokens were recognized, but not all were consumed, then we will always want to restart recognition.  # NOTE: alternative that requires more forceage: # if (recognizer != active_recognizer && !isnothing(active_recognizer) && !isempty(token_buffer) && i==0) # If the recognizer was changed despite that tokens were recognized, but none was consumed, then we will always want to restart recognition.
+			@debug "Forcing restart of recognition because recognizer was changed despite that tokens were recognized, but not all were consumed."
 			restart_recognition = true
 		end
 		if (_force_restart_recognition) restart_recognition = true; _force_restart_recognition = false end
@@ -91,19 +93,24 @@ let
 						was_partial_result = false
 						@InsecureRecognitionException(msg)
 					end
-					token_buffer = tokens
 				else
-		            token_buffer = filter(x -> x ∉ ignore_tokens, split(text))
 		            i = 0
 				end
+				token_buffer = filter(x -> x ∉ noise_tokens, split(text))
 				was_partial_result = is_partial_result
 				active_recognizer  = recognizer
 	        end
 	        if i < length(token_buffer)
-				i += 1
-				@debug "" token_buffer token=token_buffer[i]
-				token = token_buffer[i]
-				if (!consume) i-=1 end
+				token = token_buffer[i+1]
+				@debug "" token_buffer recognizer.valid_input token
+				if (!isempty(recognizer.valid_tokens) && (token ∉ recognizer.valid_tokens) && (token != "")) token_buffer[i+1] = token = UNKNOWN_TOKEN end
+				if ignore_unknown && (token == UNKNOWN_TOKEN)
+					token_buffer = [token_buffer[1:i]..., token_buffer[i+2:end]...]
+				else
+					@debug "" token
+					i += 1
+					if (!consume) i-=1 end
+				end
 			end
 			restart_recognition = false  # A restart needs to happen in the first iteration if set, then not anymore.
 			t = toc(t0)
@@ -198,10 +205,11 @@ let
 		end
 		@debug "Dynamic recognizer created for the following grammar: $valid_strings"
 		grammar = json(valid_strings)
-		return Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), is_persistent)
+		return Recognizer(Vosk.KaldiRecognizer(model(modelname), SAMPLERATE, grammar), is_persistent, valid_input)
 	end
 
     function reset_token_buffer()
+		@debug "Resetting token buffer."
         token_buffer = Vector{String}()
         i = 0
     end
@@ -223,13 +231,10 @@ let
 	end
 
 	function force_reset_previous(recognizer::Union{Recognizer, Nothing}; timeout::Float64=60.0, hard::Bool=false)
+		@debug "Forcing reset of previous recognizer ($(hard ? "hard" : "soft") reset)."
 		if (recognizer != active_recognizer && was_partial_result && !isnothing(active_recognizer)) # Reset the active recognizer if a new recognizer will become active.
 			if (active_recognizer.is_persistent) reset(active_recognizer; timeout=timeout, hard=hard) end
 			do_delayed_resets(;timeout=timeout, hard=hard)
-			reset_token_buffer()
-			reset_audio()
-			active_recognizer = nothing
-			was_partial_result = false
 		end
 	end
 
@@ -238,6 +243,7 @@ let
 		do_delayed_resets(;timeout=timeout, hard=hard)
 		reset_token_buffer()
 		reset_audio()
+		@debug "Setting `active_recognizer=nothing` and `was_partial_result=false`."
 		active_recognizer = nothing
 		was_partial_result = false
 	end
@@ -262,7 +268,7 @@ let
     it_result             = 0 # iteration (while not converged to result)
     _t0_latency::Float64  = 0.0
     t0_latency()::Float64 = _t0_latency
-	reset_audio()         = (i = 0; return)
+	reset_audio()         = (@debug "Resetting audio buffer"; i = 0; return)
 
     function next_partial_recognition(recognizer::Recognizer; timeout::Float64=60.0, restart::Bool=false, reset_audio_buffer::Bool=false, streamer = default_streamer())
     	is_partial_result = true
