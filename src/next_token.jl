@@ -83,7 +83,7 @@ let
 	            end
 				if restart_recognition  || ((recognizer == active_recognizer) && was_partial_result)
 					tokens = filter(x -> x ∉ ignore_tokens, split(text))
-					if !startswith(join(tokens, " "), join(token_buffer[1:i], " "))  # NOTE: a maybe cheaper, but less safe alternative would probably be `!issubset(token_buffer[1:i], tokens)`. It is less safe as issubset will not guarantee the order (for the same reason, it might be more expensive in the end: more cases to test...).
+					if !startswith(join(tokens, ""), join(token_buffer[1:i], ""))  # NOTE: we join the tokens without space in order not to distinguish between "lowercase" and "lower case" # NOTE: a maybe cheaper, but less safe alternative would probably be `!issubset(token_buffer[1:i], tokens)`. It is less safe as issubset will not guarantee the order (for the same reason, it might be more expensive in the end: more cases to test...).
 						@debug "Insecurity - after restart?:" restart=restart_recognition
 						msg = "Insecurity in recognition: the tokens recognised in the previous (partial) recognition that have been consumed are not a subset of the tokens now recognised (token_buffer: $(token_buffer[1:i]); tokens: $tokens)"
 						if (is_partial_result && recognizer.is_persistent) reset(recognizer; hard=true) end                #NOTE: Reset after a result is not needed and leads to the following Vosk error: ASSERTION_FAILED (VoskAPI:ComputeFinalCosts():lattice-faster-decoder.cc:540) Assertion failed: (!decoding_finalized_)
@@ -96,7 +96,20 @@ let
 				else
 		            i = 0
 				end
-				token_buffer = filter(x -> x ∉ noise_tokens, split(text))
+				tokens = filter(x -> x ∉ noise_tokens, split(text))
+				denoised_text = join(tokens, " ")
+				consumed_text = join(token_buffer[1:i], " ")
+				consumed_end  = 0
+				id = 1
+				for ic in 1:length(consumed_text)
+					if (consumed_text[ic] == " ") continue end	  # Do not consider spaces in the consumed text.
+					while denoised_text[id] != consumed_text[ic]  # Do not consider anything that is not also in the consumed text (e.g. UNKNOWN_TOKEN).
+						id += 1
+					end
+					if (denoised_text[id] == consumed_text[ic]) id += 1 else @InsecureRecognitionException("module internal error.") end
+					consumed_end = id
+				end
+				token_buffer = [token_buffer[1:i]..., split(denoised_text[consumed_end+1:end])...] # NOTE: the spaces in the consumed text must not be modified; else additional tokens could wrongly appear as an consumed (e.g. "lowercase" could be recognized as "lower case" and then "case" would wrongly appear as an unconsumed token).
 				was_partial_result = is_partial_result
 				active_recognizer  = recognizer
 	        end
