@@ -175,6 +175,249 @@ const DIGITS = Dict(
     LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "coma"=>",",    "espacio"=>" "),
     LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "virgule"=>",", "espace"=>" "),
 )
+const DIRECTIONS = Dict(
+    LANG.DE    => Dict("rechts"=>"right", "links"=>"left", "oben"=>"up", "unten"=>"down", "vorwärts"=>"forward", "rückwärts"=>"backward", "aufwärts"=>"upward", "abwärts"=>"downward"),
+    LANG.EN_US => Dict("right"=>"right", "left"=>"left", "up"=>"up",   "down"=>"down", "forward"=>"forward", "backward"=>"backward", "upward"=>"upward", "downward"=>"downward"),
+    LANG.ES    => Dict("derecha"=>"right", "izquierda"=>"left", "arriba"=>"up", "abajo"=>"down", "adelante"=>"forward", "atrás"=>"backward", "subiendo"=>"upward", "bajando"=>"downward"),
+    LANG.FR    => Dict("droite"=>"right", "gauche"=>"left", "haut"=>"up", "bas"=>"down", "avant"=>"forward", "arrière"=>"backward", "montant"=>"upward", "descendant"=>"downward"),
+)
+const SIDES = Dict(
+    LANG.DE    => Dict("vor"=>"before", "nach"=>"after"),
+    LANG.EN_US => Dict("before"=>"before", "after"=>"after"),
+    LANG.ES    => Dict("antes"=>"before", "después"=>"after"),
+    LANG.FR    => Dict("avant"=>"before", "après"=>"after"),
+)
+const COUNTS = Dict(
+    LANG.DE    => Dict("eins"=>"1", "zwei"=>"2", "drei"=>"3", "vier"=>"4", "fünf"=>"5", "sechs"=>"6", "sieben"=>"7", "acht"=>"8", "neun"=>"9", "zehn"=>"10", "fünfzig"=>"50", "hundert"=>"100", "tausend"=>"1000"),
+    LANG.EN_US => Dict("one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "ten"=>"10", "fifty"=>"50", "hundred"=>"100", "thousand"=>"1000"),
+    LANG.ES    => Dict("uno"=>"1", "dos"=>"2", "tres"=>"3", "cuatro"=>"4", "cinco"=>"5", "seis"=>"6", "siete"=>"7", "ocho"=>"8", "nueve"=>"9", "diez"=>"10", "cincuenta"=>"50", "cien"=>"100", "mil"=>"1000"),
+    LANG.FR    => Dict("un"=>"1", "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinq"=>"5", "six"=>"6", "sept"=>"7", "huit"=>"8", "neuf"=>"9", "dix"=>"10", "cinquante"=>"50", "cent"=>"100", "mille"=>"1000"),
+)
+
+
+# Sign commands.
+
+PUNCTUATION_SYMBOLS = Dict(
+    LANG.DE    => Dict("punkt"                       => ".",
+                       "komma"                       => ",",
+                       "doppelpunkt"                 => ":",
+                       "semikolon"                   => ";",
+                       "ausrufezeichen"              => "!",
+                       "fragezeichen"                => "?",
+                       "anführungszeichen"           => "\"",
+                       "einfaches anführungszeichen" => "'",
+                      ),
+    LANG.EN_US => Dict("point"         => ".",
+                       "comma"         => ",",
+                       "colon"         => ":",
+                       "semicolon"     => ";",
+                       "exclamation"   => "!",
+                       "interrogation" => "?",
+                       "quote"         => "\"",
+                       "single quote"  => "'",
+                      ),
+    LANG.ES    => Dict("punto"            => ".",
+                       "coma"             => ",",
+                       "dos puntos"       => ":",
+                       "punto y coma"     => ";",
+                       "exclamación"      => "!",
+                       "interrogación"    => "?",
+                       "comillas"         => "\"",
+                       "comillas simples" => "'",
+                      ),
+    LANG.FR    => Dict("point"              => ".",
+                       "virgule"            => ",",
+                       "deux points"        => ":",
+                       "point virgule"      => ";",
+                       "exclamation"        => "!",
+                       "interrogation"      => "?",
+                       "guillemets"         => "\"",
+                       "guillemets simples" => "'",
+                      ),
+);
+
+MATH_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "gleich"  => "=",
+        "plus"    => "+",
+        "minus"   => "-",
+        "mal"     => "*",
+        "geteilt" => "/",
+        "hoch"    => "^",
+        "modulo"  => "%",
+    ),
+    LANG.EN_US => Dict(
+        "equal"    => "=",
+        "plus"     => "+",
+        "minus"    => "-",
+        "multiply" => "*",
+        "divide"   => "/",
+        "power"    => "^",
+        "modulo"   => "%",
+    ),
+    LANG.ES    => Dict(
+        "igual"    => "=",
+        "más"      => "+",
+        "menos"    => "-",
+        "por"      => "*",
+        "dividido" => "/",
+        "potencia" => "^",
+        "módulo"   => "%",
+    ),
+    LANG.FR    => Dict(
+        "égal"          => "=",
+        "plus"          => "+",
+        "moins"         => "-",
+        "multiplié par" => "*",
+        "divisé par"    => "/",
+        "puissance"     => "^",
+        "modulo"        => "%",
+    ),
+);
+
+LOGICAL_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "ampersand"       => "&",
+        "vertikal strich" => "|",
+        "kleiner"         => "<",
+        "größer"          => ">",
+        "ungefähr"        => "~",
+    ),
+    LANG.EN_US => Dict(
+        "ampersand"       => "&",
+        "vertical bar"    => "|",
+        "less than"       => "<",
+        "greater than"    => ">",
+        "approximately"   => "~",
+    ),
+    LANG.ES    => Dict(
+        "ampersand"       => "&",
+        "barra vertical"  => "|",
+        "menor que"       => "<",
+        "mayor que"       => ">",
+        "aproximadamente" => "~",
+    ),
+    LANG.FR    => Dict(
+        "esperluette"     => "&",
+        "barre verticale" => "|",
+        "inférieur à"     => "<",
+        "supérieur à"     => ">",
+        "environ"         => "~",
+    ),
+);
+
+PARENTHESES_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "klammer"                         => "(",
+        "schließende klammer"             => ")",
+        "eckige klammer"                  => "[",
+        "schließende eckige klammer"      => "]",
+        "geschweifte klammer"             => "{",
+        "schließende geschweifte klammer" => "}",
+    ),
+    LANG.EN_US => Dict(
+        "parentheses"         => "(",
+        "closing parentheses" => ")",
+        "bracket"             => "[",
+        "closing bracket"     => "]",
+        "curly"               => "{",
+        "closing curly"       => "}",
+    ),
+    LANG.ES    => Dict(
+        "paréntesis"            => "(",
+        "paréntesis que cierra" => ")",
+        "corchete"              => "[",
+        "corchete que cierra"   => "]",
+        "llave"                 => "{",
+        "llave que cierra"      => "}",
+    ),
+    LANG.FR    => Dict(
+        "parenthèse"          => "(",
+        "parenthèse fermante" => ")",
+        "crochet"             => "[",
+        "crochet fermant"     => "]",
+        "accolade"            => "{",
+        "accolade fermante"   => "}",
+    ),
+);
+
+SPECIAL_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "at"         => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+    LANG.EN_US => Dict(
+        "at"         => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+    LANG.ES    => Dict(
+        "arroba"          => "@",
+        "almohadilla"     => "#",
+        "dólar"           => "\$",
+        "barra"           => "/",
+        "guión bajo"      => "_",
+        "acento grave"    => "`",
+        "barra invertida" => "\\",
+    ),
+    LANG.FR    => Dict(
+        "arobase"    => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+);
+
+ALTERNATIVE_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "punkt"   => ".",
+        "strich"  => "-",
+        "stern"   => "*",
+        "prozent" => "%",
+    ),
+    LANG.EN_US => Dict(
+        "dot"     => ".",
+        "dash"    => "-",
+        "star"    => "*",
+        "percent" => "%",
+    ),
+    LANG.ES    => Dict(
+        "punto"      => ".",
+        "guion"      => "-",
+        "asterisco"  => "*",
+        "por ciento" => "%",
+    ),
+    LANG.FR    => Dict(
+        "point"      => ".",
+        "tiret"      => "-",
+        "astérisque" => "*",
+        "pour cent"  => "%",
+    ),
+);
+
+merge_recursively(x::AbstractDict...) = merge(merge_recursively, x...) # NOTE: this function needs to be defined before it's usage below.
+merge_recursively(x...) = x[end]
+
+SYMBOLS = merge_recursively(
+    PUNCTUATION_SYMBOLS,
+    MATH_SYMBOLS,
+    LOGICAL_SYMBOLS,
+    PARENTHESES_SYMBOLS,
+    SPECIAL_SYMBOLS,
+    ALTERNATIVE_SYMBOLS
+)
 
 
 ## FUNCTIONS
