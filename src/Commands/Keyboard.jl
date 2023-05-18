@@ -16,18 +16,22 @@ module Keyboard
 
 using PyCall
 using ..Exceptions
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum, UNKNOWN_TOKEN
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, DIRECTIONS, SIDES, COUNTS, SYMBOLS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, next_token, next_tokengroup, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum, UNKNOWN_TOKEN
 
 
 ## PYTHON MODULES
 
-const Pynput = PyNULL()
+const Pynput    = PyNULL()
+const Tkinter   = PyNULL()
+# const Pyperclip = PyNULL()
 
 function __init__()
     if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
     if ENV["JSI_USE_PYTHON"] == "1"
         ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-        copy!(Pynput, pyimport_pip("pynput"))
+        copy!(Pynput,    pyimport_pip("pynput"))
+        copy!(Tkinter,   pyimport_pip("tkinter"))
+        # copy!(Pyperclip, pyimport_pip("pyperclip"))
         set_controller("keyboard", Pynput.keyboard.Controller())
     end
 end
@@ -131,6 +135,13 @@ const TYPE_KEYWORDS = Dict(
                        "exclamation"   => "exclamation",
                        "interrogation" => "interrogation",
                        "paragraph"     => "paragraphe"),
+)
+
+const WHITESPACE_PATTERN = Dict(
+    LANG.DE    => Dict("leer"    => r"\s+"),
+    LANG.EN_US => Dict("space"   => r"\s+"),
+    LANG.ES    => Dict("espacio" => r"\s+"),
+    LANG.FR    => Dict("espace"  => r"\s+"),
 )
 
 
@@ -469,14 +480,14 @@ end
 
 
 "Get next letter from speech."
-function next_letter(lang::String; ignore_unknown=false)
-    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(ALPHABET[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+function next_letter(lang::String; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(ALPHABET[lang])...]; use_max_speed=use_max_speed, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
         return UNKNOWN_TOKEN
     else
-        if     (lang == LANG.DE   ) next_letter_DE()
-        elseif (lang == LANG.EN_US) next_letter_EN_US()
-        elseif (lang == LANG.ES   ) next_letter_ES()
-        elseif (lang == LANG.FR   ) next_letter_FR()
+        if     (lang == LANG.DE   ) next_letter_DE(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.EN_US) next_letter_EN_US(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.ES   ) next_letter_ES(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.FR   ) next_letter_FR(; use_max_speed=use_max_speed)
         end
     end
 end
@@ -492,16 +503,15 @@ interpret_letters_FR(input::AbstractString)    = (return ALPHABET[LANG.FR   ][in
 @voiceargs letter=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(ALPHABET[LANG.FR   ])...], interpret_function=interpret_letters_FR,    ignore_unknown=true) next_letter_FR(letter::String)    = (return letter)
 
 
-
 "Get next digit from speech."
-function next_digit(lang::String; ignore_unknown=false)
-    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIGITS[lang])...]; use_max_speed=false, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+function next_digit(lang::String; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIGITS[lang])...]; use_max_speed=use_max_speed, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
         return UNKNOWN_TOKEN
     else
-        if     (lang == LANG.DE   ) next_digit_DE()
-        elseif (lang == LANG.EN_US) next_digit_EN_US()
-        elseif (lang == LANG.ES   ) next_digit_ES()
-        elseif (lang == LANG.FR   ) next_digit_FR()
+        if     (lang == LANG.DE   ) next_digit_DE(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.EN_US) next_digit_EN_US(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.ES   ) next_digit_ES(; use_max_speed=use_max_speed)
+        elseif (lang == LANG.FR   ) next_digit_FR(; use_max_speed=use_max_speed)
         end
     end
 end
@@ -564,12 +574,14 @@ let
     set_prefix(keys::PyKey...) = (_prefix = keys)
     reset_prefix()             = (_prefix = [])
 
-    function press_keys(keys::PyKey...)
-        keyboard  = controller("keyboard")
-        keys      = map(convert_key, [prefix()..., keys...])
-        @pywith keyboard.pressed(keys[1:end-1]...) begin
-            keyboard.press(keys[end])
-            keyboard.release(keys[end])
+    function press_keys(keys::PyKey...; count::Integer=1)
+        for i = 1:count
+            keyboard  = controller("keyboard")
+            keys      = map(convert_key, [prefix()..., keys...])
+            @pywith keyboard.pressed(keys[1:end-1]...) begin
+                keyboard.press(keys[end])
+                keyboard.release(keys[end])
+            end
         end
     end
 end
@@ -628,6 +640,311 @@ function type_fixedcase(case::Case)
     elseif (case == constant) type_string(join(uppercase.(words), "_"))
     end
 end
+
+
+function navigate(; up_lines=10, down_lines=10)
+    Key        = Pynput.keyboard.Key
+    lang       = default_language()
+    directions = [keys(DIRECTIONS[lang])...]
+    counts     = [keys(COUNTS[lang])...]
+    modes      = [directions..., counts...]
+
+    token = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false) # NOTE: the token is not consumed yet...
+
+    # Case: go <direction> <side> <text>
+    if (token in directions)
+        direction = next_direction(; use_max_speed=true) #TODO: see if forward backward upward and downward should be included here.
+        if (token != UNKNOWN_TOKEN)        
+            @info "go $direction <side> <text> ..."
+            @show context = get_context(direction, up_lines, down_lines)
+            @show valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
+            token = next_side(; use_max_speed=true)
+            if (token != UNKNOWN_TOKEN)
+                side = token
+                @info "... go $direction $side <text> ..."
+                @show text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
+                if !all(text_keys .== UNKNOWN_TOKEN)
+                    @show text_elements = replace(text_keys, SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
+                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+                    @show range = findfirst(text_pattern, context)
+                    if isnothing(range) # NOTE: letter recognition is not very secure; thus, as no match had been found, we replace letters with a pattern that matches any letter.
+                        @show text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
+                        @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+                        @show range = findfirst(text_pattern, context)
+                    end
+                    if !isnothing(range)
+                        @info "... go $direction $side $text_pattern"
+                        stop_highlighting(direction; to_origin=false)
+                        @show displacement_from_origin = move_cursor(side, direction, context, range)
+                        token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                        ranges = [range]
+                        was_forward = true
+                        while token in ["forward", "backward"]
+                            if token == "forward"  
+                                @show range = findnext(text_pattern, context, ranges[end].stop+1)
+                                if isnothing(range)
+                                    @info "... no more match found."
+                                else
+                                    @info "... forward ..."
+                                    push!(ranges, range)
+                                end
+                                was_forward = true
+                            elseif token == "backward"
+                                @show range = pop!(ranges)
+                                if was_forward && !isempty(ranges)
+                                    @show range = pop!(ranges)
+                                end
+                                if isempty(ranges) 
+                                    @info "... reached first match."
+                                    ranges = [range]
+                                else
+                                    @info "... backward ..."
+                                end
+                                was_forward = false
+                            end
+                            if !isnothing(range)
+                                @show displacement_from_origin += move_cursor(side, direction, context, range, displacement_from_origin)
+                            end
+                            token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                        end
+                    else
+                        @info "... no match found."
+                        stop_highlighting(direction)
+                        @InsecureRecognitionException("unknown text.")
+                    end
+                else
+                    @info "... no text recognized."
+                    stop_highlighting(direction)
+                    @InsecureRecognitionException("unknown text.")
+                end
+            else
+                @info "... no side recognized."
+                stop_highlighting(direction)
+                @InsecureRecognitionException("unknown side.")
+            end
+        else
+            @info "... no direction recognized."
+            @InsecureRecognitionException("unknown direction.")
+        end
+
+    # Case: go <count> <direction>
+    elseif (token in counts)
+        token = next_count(; use_max_speed=true)
+        if (token != UNKNOWN_TOKEN)
+            count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
+            @info "go $count <direction> ..."
+            token = next_direction()
+            if (token != UNKNOWN_TOKEN)
+                direction = token
+                @info "... go $count $direction."
+                if     (direction == "right")    press_keys(Key.right;           count=count)
+                elseif (direction == "left")     press_keys(Key.left;            count=count)
+                elseif (direction == "up")       press_keys(Key.up;              count=count)
+                elseif (direction == "down")     press_keys(Key.down;            count=count)
+                elseif (direction == "forward")  press_keys(Key.ctrl, Key.right; count=count)
+                elseif (direction == "backward") press_keys(Key.ctrl, Key.left;  count=count)
+                elseif (direction == "upward")   press_keys(Key.ctrl, Key.up;    count=count)
+                elseif (direction == "downward") press_keys(Key.ctrl, Key.down;  count=count)
+                end
+            else
+                @info "... no direction recognized."
+                @InsecureRecognitionException("unknown direction.")
+            end
+            return
+        else
+            @info "... no count recognized."
+            @InsecureRecognitionException("unknown count.")
+        end
+
+    else
+        @InsecureRecognitionException("unknown direction or count.") # NOTE: it could return without exception, if the command handler will just continue from there.
+    end
+end
+
+
+function regex(pattern::AbstractString, flags::String; as_string=true)
+    if as_string
+        return Regex("", flags) * pattern
+    else
+        return Regex(pattern, flags)
+    end
+end
+
+function regex(pattern::Regex, flags::String; as_string=false)
+    return pattern
+end
+
+function get_context(direction::String, up_lines::Integer, down_lines::Integer; copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
+    Key = Pynput.keyboard.Key
+    if     (direction == "right")    press_keys(Key.shift, Key.end)
+    elseif (direction == "left")     press_keys(Key.shift, Key.home)
+    elseif (direction == "up")       press_keys(Key.shift, Key.up; count=up_lines); press_keys(Key.shift, Key.home)
+    elseif (direction == "down")     press_keys(Key.shift, Key.down; count=down_lines); press_keys(Key.shift, Key.end)
+    elseif (direction == "upward")   press_keys(Key.shift, Key.page_up)
+    elseif (direction == "downward") press_keys(Key.shift, Key.page_down)
+    end
+    @show clipboard_old = get_clipboard_content()
+    press_keys(copy_shortcut...)
+    context = get_clipboard_content()
+    @show restore_clipboard_content(clipboard_old)
+    return context #TODO: handle errors!
+end
+
+function restore_clipboard_content(clipboard_old::String)
+    root = Tkinter.Tk()
+    root.withdraw()
+    root.clipboard_clear()
+    root.clipboard_append(clipboard_old)
+    # Pyperclip.copy(clipboard_old)
+    # content = Pyperclip.paste()
+    content = get_clipboard_content()
+    # root.update_idletasks()
+    root.update()
+    root.destroy()
+    return content
+end
+
+function get_clipboard_content()
+    # content = Pyperclip.paste()
+    root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
+    root.withdraw()
+    # root.update_idletasks()
+    root.update()
+    content = ""
+    try
+        content = root.clipboard_get()
+    catch e
+        if isa(e, PyCall.PyError)
+            content = ""
+        else
+            rethrow(e)
+        end
+    end
+    # root.update_idletasks()
+    root.update()
+    root.destroy()
+    return content
+end
+
+function stop_highlighting(direction::String; to_origin=true)
+    Key = Pynput.keyboard.Key
+    if to_origin
+        if     (direction == "right" || direction == "down") press_keys(Key.left)  # Stop highlighting moving the cursor back to the origin.
+        elseif (direction == "left"  || direction == "up")   press_keys(Key.right) # ...
+        end
+    else
+        press_keys(Key.esc) # Stop highlighting without moving the cursor.
+    end
+end
+
+function derive_valid_input(context::String)
+    lang = default_language()
+    @show words           = replace(context, r"[^a-zA-Z]" => " ") |> lowercase |> split
+    @show letters         = string.(replace(context, r"[^a-zA-Z]" => "") |> lowercase |> unique)
+    @show symbols         = string.(replace(context, r"[a-zA-Z]"  => "") |> unique)
+    @show symbol_keys     = [key for (key, symbol) in SYMBOLS[lang] if (symbol in symbols)]
+    @show whitespace_keys = keys(WHITESPACE_PATTERN[lang]) # NOTE: we do not distinguish between different kind of whitespaces; so we always need to include the generic.
+    @show valid_input     = String[words..., letters..., symbol_keys..., whitespace_keys...]
+    return valid_input
+end
+
+function move_cursor(side::String, direction::String, context::String, range::UnitRange, displacement_from_origin::Int=0)
+    @show length(context)
+    Key = Pynput.keyboard.Key
+    if     (side == "before") new_position = range.start - 1
+    elseif (side == "after")  new_position = range.stop
+    end
+    if     (direction == "right" || direction == "down" || direction == "downward") displacement = new_position - displacement_from_origin - length(context)
+    elseif (direction == "left"  || direction == "up"   || direction == "upward")   displacement = new_position - displacement_from_origin
+    end
+    press_keys((displacement < 0) ? Key.left : Key.right, count=abs(displacement)) # Go to the new position.
+    return displacement
+end
+
+
+"Get next direction from speech."
+function next_direction(; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIRECTIONS[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
+        return UNKNOWN_TOKEN
+    else
+        _next_direction(; use_max_speed=use_max_speed)
+    end
+end
+
+interpret_direction(input::AbstractString) = (return DIRECTIONS[default_language()][input])
+@voiceargs direction=>(valid_input=(LANG.DE=>[keys(DIRECTIONS[LANG.DE])...], LANG.EN_US=>[keys(DIRECTIONS[LANG.EN_US])...], LANG.ES=>[keys(DIRECTIONS[LANG.ES])...], LANG.FR=>[keys(DIRECTIONS[LANG.FR])...]), interpret_function=interpret_direction, ignore_unknown=true) _next_direction(direction::String) = (return direction)
+
+
+"Get next side from speech."
+function next_side(; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(SIDES[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
+        return UNKNOWN_TOKEN
+    else
+        _next_side(; use_max_speed=use_max_speed)
+    end
+end
+
+interpret_side(input::AbstractString) = (return SIDES[default_language()][input])
+@voiceargs side=>(valid_input=(LANG.DE=>[keys(SIDES[LANG.DE])...], LANG.EN_US=>[keys(SIDES[LANG.EN_US])...], LANG.ES=>[keys(SIDES[LANG.ES])...], LANG.FR=>[keys(SIDES[LANG.FR])...]), interpret_function=interpret_side, ignore_unknown=true) _next_side(side::String) = (return side)
+
+
+"Get next count from speech."
+function next_count(; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(COUNTS[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
+        return UNKNOWN_TOKEN
+    else
+        _next_count(; use_max_speed=use_max_speed)
+    end
+end
+
+interpret_count(input::AbstractString) = (return COUNTS[default_language()][input])
+@voiceargs count=>(valid_input=(LANG.DE=>[keys(COUNTS[LANG.DE])...], LANG.EN_US=>[keys(COUNTS[LANG.EN_US])...], LANG.ES=>[keys(COUNTS[LANG.ES])...], LANG.FR=>[keys(COUNTS[LANG.FR])...]), interpret_function=interpret_count, ignore_unknown=true) _next_count(count::String) = (return count)
+
+# function next_direction(lang::String; ignore_unknown=false, use_max_speed=false)
+#     if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIRECTIONS[lang])...]; use_max_speed=use_max_speed, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+#         return UNKNOWN_TOKEN
+#     else
+#         if     (lang == LANG.DE   ) next_direction_DE(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.EN_US) next_direction_EN_US(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.ES   ) next_direction_ES(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.FR   ) next_direction_FR(; use_max_speed=use_max_speed)
+#         end
+#     end
+# end
+
+# interpret_direction_DE(input::AbstractString)    = (return DIRECTIONS[LANG.DE   ][input])
+# interpret_direction_EN_US(input::AbstractString) = (return DIRECTIONS[LANG.EN_US][input])
+# interpret_direction_ES(input::AbstractString)    = (return DIRECTIONS[LANG.ES   ][input])
+# interpret_direction_FR(input::AbstractString)    = (return DIRECTIONS[LANG.FR   ][input])
+
+# @voiceargs direction=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(DIRECTIONS[LANG.DE   ])...], interpret_function=interpret_direction_DE,    ignore_unknown=true) next_direction_DE(direction::String)    = (return direction)
+# @voiceargs direction=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(DIRECTIONS[LANG.EN_US])...], interpret_function=interpret_direction_EN_US, ignore_unknown=true) next_direction_EN_US(direction::String) = (return direction)
+# @voiceargs direction=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(DIRECTIONS[LANG.ES   ])...], interpret_function=interpret_direction_ES,    ignore_unknown=true) next_direction_ES(direction::String)    = (return direction)
+# @voiceargs direction=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(DIRECTIONS[LANG.FR   ])...], interpret_function=interpret_direction_FR,    ignore_unknown=true) next_direction_FR(direction::String)    = (return direction)
+
+
+# "Get next side from speech"
+# function next_side(lang::String; ignore_unknown=false, use_max_speed=false)
+#     if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(SIDES[lang])...]; use_max_speed=use_max_speed, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
+#         return UNKNOWN_TOKEN
+#     else
+#         if     (lang == LANG.DE   ) next_side_DE(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.EN_US) next_side_EN_US(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.ES   ) next_side_ES(; use_max_speed=use_max_speed)
+#         elseif (lang == LANG.FR   ) next_side_FR(; use_max_speed=use_max_speed)
+#         end
+#     end
+# end
+
+# interpret_side_DE(input::AbstractString)    = (return SIDES[LANG.DE   ][input])
+# interpret_side_EN_US(input::AbstractString) = (return SIDES[LANG.EN_US][input])
+# interpret_side_ES(input::AbstractString)    = (return SIDES[LANG.ES   ][input])
+# interpret_side_FR(input::AbstractString)    = (return SIDES[LANG.FR   ][input])
+
+# @voiceargs side=>(model=MODELNAME.DEFAULT.DE,    valid_input=[keys(SIDES[LANG.DE   ])...], interpret_function=interpret_side_DE,    ignore_unknown=true) next_side_DE(side::String)    = (return side)
+# @voiceargs side=>(model=MODELNAME.DEFAULT.EN_US, valid_input=[keys(SIDES[LANG.EN_US])...], interpret_function=interpret_side_EN_US, ignore_unknown=true) next_side_EN_US(side::String) = (return side)
+# @voiceargs side=>(model=MODELNAME.DEFAULT.ES,    valid_input=[keys(SIDES[LANG.ES   ])...], interpret_function=interpret_side_ES,    ignore_unknown=true) next_side_ES(side::String)    = (return side)
+# @voiceargs side=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(SIDES[LANG.FR   ])...], interpret_function=interpret_side_FR,    ignore_unknown=true) next_side_FR(side::String)    = (return side)
 
 
 end # module Keyboard
