@@ -642,124 +642,141 @@ function type_fixedcase(case::Case)
 end
 
 
-function navigate(; up_lines=10, down_lines=10)
-    Key        = Pynput.keyboard.Key
+function navigate(; up_lines=10, down_lines=10, action="go")
     lang       = default_language()
     directions = [keys(DIRECTIONS[lang])...]
     counts     = [keys(COUNTS[lang])...]
     modes      = [directions..., counts...]
+    token      = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false)        # NOTE: the token is not consumed yet...
+    if     (token in counts)     move_cursor_simple(; action=action)                                          # Case: go <count> <direction>
+    elseif (token in directions) move_cursor_smart(; up_lines=up_lines, down_lines=down_lines, action=action) # Case: go <direction> <side> <text>
+    else                         @InsecureRecognitionException("unknown direction or count.")                 # NOTE: it could return without exception, if the command handler will just continue from there.
+    end
+end
 
-    token = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false) # NOTE: the token is not consumed yet...
 
-    # Case: go <direction> <side> <text>
-    if (token in directions)
-        direction = next_direction(; use_max_speed=true) #TODO: see if forward backward upward and downward should be included here.
-        if (token != UNKNOWN_TOKEN)        
-            @info "go $direction <side> <text> ..."
-            @show context = get_context(direction, up_lines, down_lines)
-            @show valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
-            token = next_side(; use_max_speed=true)
-            if (token != UNKNOWN_TOKEN)
-                side = token
-                @info "... go $direction $side <text> ..."
-                @show text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
-                if !all(text_keys .== UNKNOWN_TOKEN)
-                    @show text_elements = replace(text_keys, SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
-                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                    @show range = findfirst(text_pattern, context)
-                    if isnothing(range) # NOTE: letter recognition is not very secure; thus, as no match had been found, we replace letters with a pattern that matches any letter.
-                        @show text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
-                        @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                        @show range = findfirst(text_pattern, context)
-                    end
-                    if !isnothing(range)
-                        @info "... go $direction $side $text_pattern"
-                        stop_highlighting(direction; to_origin=false)
-                        @show displacement_from_origin = move_cursor(side, direction, context, range)
-                        token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
-                        ranges = [range]
-                        was_forward = true
-                        while token in ["forward", "backward"]
-                            if token == "forward"  
-                                @show range = findnext(text_pattern, context, ranges[end].stop+1)
-                                if isnothing(range)
-                                    @info "... no more match found."
-                                else
-                                    @info "... forward ..."
-                                    push!(ranges, range)
-                                end
-                                was_forward = true
-                            elseif token == "backward"
-                                @show range = pop!(ranges)
-                                if was_forward && !isempty(ranges)
-                                    @show range = pop!(ranges)
-                                end
-                                if isempty(ranges) 
-                                    @info "... reached first match."
-                                    ranges = [range]
-                                else
-                                    @info "... backward ..."
-                                end
-                                was_forward = false
-                            end
-                            if !isnothing(range)
-                                @show displacement_from_origin += move_cursor(side, direction, context, range, displacement_from_origin)
-                            end
-                            token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
-                        end
-                    else
-                        @info "... no match found."
-                        stop_highlighting(direction)
-                        @InsecureRecognitionException("unknown text.")
-                    end
-                else
-                    @info "... no text recognized."
-                    stop_highlighting(direction)
-                    @InsecureRecognitionException("unknown text.")
-                end
-            else
-                @info "... no side recognized."
-                stop_highlighting(direction)
-                @InsecureRecognitionException("unknown side.")
+function move_cursor_simple(; action="go")
+    Key = Pynput.keyboard.Key
+    token = next_count(; use_max_speed=true)
+    if (token != UNKNOWN_TOKEN)
+        count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
+        @info "$action $count <direction> ..."
+        token = next_direction()
+        if (token != UNKNOWN_TOKEN)
+            direction = token
+            @info "... $action $count $direction."
+            if     (direction == "right")    press_keys(Key.right;           count=count)
+            elseif (direction == "left")     press_keys(Key.left;            count=count)
+            elseif (direction == "up")       press_keys(Key.up;              count=count)
+            elseif (direction == "down")     press_keys(Key.down;            count=count)
+            elseif (direction == "forward")  press_keys(Key.ctrl, Key.right; count=count)
+            elseif (direction == "backward") press_keys(Key.ctrl, Key.left;  count=count)
+            elseif (direction == "upward")   press_keys(Key.ctrl, Key.up;    count=count)
+            elseif (direction == "downward") press_keys(Key.ctrl, Key.down;  count=count)
             end
         else
             @info "... no direction recognized."
             @InsecureRecognitionException("unknown direction.")
         end
-
-    # Case: go <count> <direction>
-    elseif (token in counts)
-        token = next_count(; use_max_speed=true)
-        if (token != UNKNOWN_TOKEN)
-            count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
-            @info "go $count <direction> ..."
-            token = next_direction()
-            if (token != UNKNOWN_TOKEN)
-                direction = token
-                @info "... go $count $direction."
-                if     (direction == "right")    press_keys(Key.right;           count=count)
-                elseif (direction == "left")     press_keys(Key.left;            count=count)
-                elseif (direction == "up")       press_keys(Key.up;              count=count)
-                elseif (direction == "down")     press_keys(Key.down;            count=count)
-                elseif (direction == "forward")  press_keys(Key.ctrl, Key.right; count=count)
-                elseif (direction == "backward") press_keys(Key.ctrl, Key.left;  count=count)
-                elseif (direction == "upward")   press_keys(Key.ctrl, Key.up;    count=count)
-                elseif (direction == "downward") press_keys(Key.ctrl, Key.down;  count=count)
-                end
-            else
-                @info "... no direction recognized."
-                @InsecureRecognitionException("unknown direction.")
-            end
-            return
-        else
-            @info "... no count recognized."
-            @InsecureRecognitionException("unknown count.")
-        end
-
+        return
     else
-        @InsecureRecognitionException("unknown direction or count.") # NOTE: it could return without exception, if the command handler will just continue from there.
+        @info "... no count recognized."
+        @InsecureRecognitionException("unknown count.")
     end
 end
+
+
+function move_cursor_smart(; up_lines=10, down_lines=10, action="go")
+    lang = default_language()
+    direction = next_direction(; use_max_speed=true) #TODO: see if forward backward upward and downward should be included here.
+    if (token != UNKNOWN_TOKEN)
+        @info "$action $direction <side> <text> ..."
+        @show context = get_context(direction, up_lines, down_lines)
+        @show valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
+        token = next_side(; use_max_speed=true)
+        if (token != UNKNOWN_TOKEN)
+            side = token
+            @info "... $action $direction $side <text> ..."
+            @show text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
+            if !all(text_keys .== UNKNOWN_TOKEN)
+                @show text_elements = replace(text_keys, SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
+                @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+                @show range = findfirst(text_pattern, context)
+                if isnothing(range) # NOTE: letter recognition is not very secure; thus, as no match had been found, we replace letters with a pattern that matches any letter.
+                    @show text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
+                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+                    @show range = findfirst(text_pattern, context)
+                end
+                if !isnothing(range)
+                    @info "... $action $direction $side $text_pattern"
+                    stop_highlighting(direction; to_origin=false)
+                    @show displacement_from_origin = place_cursor(side, direction, context, range)
+                    token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                    ranges = [range]
+                    was_forward = true
+                    while token in ["forward", "backward"]
+                        if token == "forward"
+                            @show range = findnext(text_pattern, context, ranges[end].stop+1)
+                            if isnothing(range)
+                                @info "... no more match found."
+                            else
+                                @info "... forward ..."
+                                push!(ranges, range)
+                            end
+                            was_forward = true
+                        elseif token == "backward"
+                            @show range = pop!(ranges)
+                            if was_forward && !isempty(ranges)
+                                @show range = pop!(ranges)
+                            end
+                            if isempty(ranges)
+                                @info "... reached first match."
+                                ranges = [range]
+                            else
+                                @info "... backward ..."
+                            end
+                            was_forward = false
+                        end
+                        if !isnothing(range)
+                            @show displacement_from_origin += place_cursor(side, direction, context, range, displacement_from_origin)
+                        end
+                        token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                    end
+                else
+                    @info "... no match found."
+                    stop_highlighting(direction)
+                    @InsecureRecognitionException("unknown text.")
+                end
+            else
+                @info "... no text recognized."
+                stop_highlighting(direction)
+                @InsecureRecognitionException("unknown text.")
+            end
+        else
+            @info "... no side recognized."
+            stop_highlighting(direction)
+            @InsecureRecognitionException("unknown side.")
+        end
+    else
+        @info "... no direction recognized."
+        @InsecureRecognitionException("unknown direction.")
+    end
+end
+
+# function select(; up_lines=10, down_lines=10)
+#     Key        = Pynput.keyboard.Key
+#     lang       = default_language()
+#     directions = [keys(DIRECTIONS[lang])...]
+#     counts     = [keys(COUNTS[lang])...]
+#     modes      = [directions..., counts...]
+
+#     token = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false) # NOTE: the token is not consumed yet...
+
+#     # Case: light <count> <direction>
+#     if (token in counts)
+
+
+# end
 
 
 function regex(pattern::AbstractString, flags::String; as_string=true)
@@ -848,7 +865,7 @@ function derive_valid_input(context::String)
     return valid_input
 end
 
-function move_cursor(side::String, direction::String, context::String, range::UnitRange, displacement_from_origin::Int=0)
+function place_cursor(side::String, direction::String, context::String, range::UnitRange, displacement_from_origin::Int=0)
     @show length(context)
     Key = Pynput.keyboard.Key
     if     (side == "before") new_position = range.start - 1
