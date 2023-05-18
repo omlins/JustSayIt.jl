@@ -205,8 +205,8 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
         modelname                = haskey(kwargs,:model) ? kwargs[:model] : :(modelname_default())
-        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
-        ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : USE_IGNORE_UNKNOWN_DEFAULT
+        ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : esc(:ignore_unknown) # ...
+        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : esc(:use_max_speed)    # NOTE: the run time keyword argument sets the default; voice argument keywords override it.
         f_arg                    = f_args[voicearg]
         f_name_sym               = :(Symbol($(string(f_name))))
         voicearg_sym             = :(Symbol($(string(voicearg))))
@@ -272,7 +272,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
 
     # Assign new arguments and body, and escape the other parts of the function definition.
     f_def[:name]        = esc(f_def[:name])
-    f_def[:kwargs]      = esc.(f_def[:kwargs])
+    @show f_def[:kwargs]      = esc.((f_def[:kwargs]..., Expr(:kw, :(use_max_speed::Bool), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :(ignore_unknown::Bool), USE_IGNORE_UNKNOWN_DEFAULT))) #TODO: give an error if these keyword arguments are set by the user.
     f_def[:whereparams] = esc.(f_def[:whereparams])
     f_def[:args]        = [esc(x) for x in f_def[:args] if !haskey(voiceargs, splitarg(x)[1])] # The voiceargs will not be part of the wrapper function signature.
     f_def[:body]        = quote
