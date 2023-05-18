@@ -39,7 +39,7 @@ See also: [`is_next`](@ref)
 are_next
 
 let
-    global next_token, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, force_restart_recognition, is_active, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
+    global next_token, next_tokengroup, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, force_restart_recognition, is_active, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
     _force_restart_recognition = false
 	recognizers_to_reset = Vector{Recognizer}() 		      # NOTE: only persistent recognizer will need to be reset; temporary recognizers will automatically be removed by the python garbage collector (see __del__ in Vosk source).
     active_recognizer::Union{Nothing, Recognizer} = nothing
@@ -150,6 +150,16 @@ let
 	function next_token(valid_input::AbstractArray{String}; modelname::String=modelname_default(), noise_tokens::AbstractArray{String}=noises(modelname), consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, ignore_unknown::Bool=true)
 		recognizer_info = (Symbol(), Symbol(), valid_input, modelname)
 		next_token(recognizer_info, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, force_dynamic_recognizer=true, ignore_unknown=ignore_unknown)
+	end
+
+	function next_tokengroup(valid_input::AbstractArray{String}; modelname::String=modelname_default(), noise_tokens::AbstractArray{String}=noises(modelname), consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, ignore_unknown::Bool=true)
+		group_recognizer = recognizer(valid_input, noise_tokens; modelname=modelname)
+		tokengroup = [next_token(group_recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=true, ignore_unknown=ignore_unknown)] # NOTE: make sure that after a full recognition told a new token group is started.
+		while was_partial_result || !all_consumed()
+			token = next_token(group_recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=true, ignore_unknown=ignore_unknown)
+			push!(tokengroup, token)
+		end
+		return tokengroup
 	end
 
 	#NOTE: this function will only consume the next token if `consume_if_match` is set true and the token matches.
