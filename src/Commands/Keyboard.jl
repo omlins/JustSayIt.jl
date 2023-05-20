@@ -144,6 +144,13 @@ const WHITESPACE_PATTERN = Dict(
     LANG.FR    => Dict("espace"  => r"\s+"),
 )
 
+const TEXTRANGE_PATTERN = Dict(
+    LANG.DE    => Dict("bis"     => r".+"is),
+    LANG.EN_US => Dict("till"    => r".+"is),
+    LANG.ES    => Dict("hasta"   => r".+"is),
+    LANG.FR    => Dict("jusqu'à" => r".+"is),
+)
+
 
 ## FUNCTIONS
 
@@ -642,21 +649,53 @@ function type_fixedcase(case::Case)
 end
 
 
-function navigate(; up_lines=10, down_lines=10, action="go")
+function navigate_smart(; up_lines=10, down_lines=10, action="go", select=false, copy=false, select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
+    if (copy) select = true end
     lang       = default_language()
     directions = [keys(DIRECTIONS[lang])...]
     counts     = [keys(COUNTS[lang])...]
     modes      = [directions..., counts...]
     token      = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false)        # NOTE: the token is not consumed yet...
-    if     (token in counts)     move_cursor_simple(; action=action)                                          # Case: go <count> <direction>
-    elseif (token in directions) move_cursor_smart(; up_lines=up_lines, down_lines=down_lines, action=action) # Case: go <direction> <side> <text>
-    else                         @InsecureRecognitionException("unknown direction or count.")                 # NOTE: it could return without exception, if the command handler will just continue from there.
+    if token in counts               # Case: <action> <count> <direction>
+        prefix = select ? select_prefix : ()
+        move_cursor(; prefix=prefix, action=action)
+        if (copy) press_keys(copy_shortcut...) end
+    elseif token in directions       # Case: <action> <direction> <text localization>
+        move_cursor_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=select, copy=copy, select_prefix=select_prefix, copy_shortcut=copy_shortcut)
+    else
+        @InsecureRecognitionException("unknown direction or count.") # NOTE: it could return without exception, if the command handler will just continue from there.
+    end
+end
+
+function select_smart(; up_lines=10, down_lines=10, action="light", select_prefix=(Pynput.keyboard.Key.shift,))
+    navigate_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=true, select_prefix=select_prefix)
+end
+
+function copy_smart(; up_lines=10, down_lines=10, action="take", select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
+    navigate_smart(; up_lines=up_lines, down_lines=down_lines, action=action, copy=true, select_prefix=select_prefix, copy_shortcut=copy_shortcut)
+end
+
+
+function move_cursor(count::Integer, direction::String; prefix=())
+    Key = Pynput.keyboard.Key
+    if     (direction == "right")    press_keys(prefix..., Key.right;           count=count)
+    elseif (direction == "left")     press_keys(prefix..., Key.left;            count=count)
+    elseif (direction == "up")       press_keys(prefix..., Key.up;              count=count)
+    elseif (direction == "down")     press_keys(prefix..., Key.down;            count=count)
+    elseif (direction == "forward")  press_keys(prefix..., Key.ctrl, Key.right; count=count)
+    elseif (direction == "backward") press_keys(prefix..., Key.ctrl, Key.left;  count=count)
+    elseif (direction == "upward")   press_keys(prefix..., Key.ctrl, Key.up;    count=count)
+    elseif (direction == "downward") press_keys(prefix..., Key.ctrl, Key.down;  count=count)
     end
 end
 
 
-function move_cursor_simple(; action="go")
-    Key = Pynput.keyboard.Key
+function select_text(count, direction; prefix=Key.shift)
+    move_cursor(count, direction; prefix=prefix)
+end
+
+
+function move_cursor(; prefix=(), action="go")
     token = next_count(; use_max_speed=true)
     if (token != UNKNOWN_TOKEN)
         count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
@@ -665,15 +704,7 @@ function move_cursor_simple(; action="go")
         if (token != UNKNOWN_TOKEN)
             direction = token
             @info "... $action $count $direction."
-            if     (direction == "right")    press_keys(Key.right;           count=count)
-            elseif (direction == "left")     press_keys(Key.left;            count=count)
-            elseif (direction == "up")       press_keys(Key.up;              count=count)
-            elseif (direction == "down")     press_keys(Key.down;            count=count)
-            elseif (direction == "forward")  press_keys(Key.ctrl, Key.right; count=count)
-            elseif (direction == "backward") press_keys(Key.ctrl, Key.left;  count=count)
-            elseif (direction == "upward")   press_keys(Key.ctrl, Key.up;    count=count)
-            elseif (direction == "downward") press_keys(Key.ctrl, Key.down;  count=count)
-            end
+            move_cursor(count, direction; prefix=prefix)
         else
             @info "... no direction recognized."
             @InsecureRecognitionException("unknown direction.")
@@ -686,35 +717,52 @@ function move_cursor_simple(; action="go")
 end
 
 
-function move_cursor_smart(; up_lines=10, down_lines=10, action="go")
-    lang = default_language()
-    direction = next_direction(; use_max_speed=true) #TODO: see if forward backward upward and downward should be included here.
+function move_cursor_smart(; up_lines=10, down_lines=10, action="go", select=false, copy=false, select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
+    if (copy) select = true end
+    lang              = default_language()
+    text_localization = select ? "<text> [$(TEXTRANGE_PATTERN[lang]) <text>]" : "<side> <text>"
+    select_direction  = "right"
+    select_side       = "before"
+    token = next_direction(; use_max_speed=true) #TODO: see if forward backward upward and downward should be included here.
     if (token != UNKNOWN_TOKEN)
-        @info "$action $direction <side> <text> ..."
+        direction = token
+        @info "$action $direction $text_localization ..."
         @show context = get_context(direction, up_lines, down_lines)
         @show valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
-        token = next_side(; use_max_speed=true)
+        token = select ? select_side : next_side(; use_max_speed=true)
         if (token != UNKNOWN_TOKEN)
             side = token
-            @info "... $action $direction $side <text> ..."
+            @info "... $action $direction $text_localization ..."
+            valid_input = select ? [valid_input..., keys(TEXTRANGE_PATTERN[lang])...] : valid_input
             @show text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
             if !all(text_keys .== UNKNOWN_TOKEN)
                 @show text_elements = replace(text_keys, SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
                 @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
                 @show range = findfirst(text_pattern, context)
+                if isnothing(range) && select && length(text_elements) > 2 # NOTE: the text range key word can never appear at the beginning or the end.
+                    @show text_elements = [text_elements[1], replace(text_elements[2:end-1], TEXTRANGE_PATTERN[lang]...)..., text_elements[end]]
+                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+                    @show range = findfirst(text_pattern, context)
+                end
                 if isnothing(range) # NOTE: letter recognition is not very secure; thus, as no match had been found, we replace letters with a pattern that matches any letter.
                     @show text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
                     @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
                     @show range = findfirst(text_pattern, context)
                 end
                 if !isnothing(range)
-                    @info "... $action $direction $side $text_pattern"
+                    text_localization = select ? text_pattern : "$side $text_pattern"
+                    @info "... $action $direction $text_localization"
                     stop_highlighting(direction; to_origin=false)
                     @show displacement_from_origin = place_cursor(side, direction, context, range)
+                    if select
+                        @show select_text(length(range), select_direction; prefix=select_prefix)
+                        if (copy) press_keys(copy_shortcut...) end
+                    end
                     token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
                     ranges = [range]
                     was_forward = true
                     while token in ["forward", "backward"]
+                        if (select) stop_highlighting(select_direction) end
                         if token == "forward"
                             @show range = findnext(text_pattern, context, ranges[end].stop+1)
                             if isnothing(range)
@@ -739,6 +787,10 @@ function move_cursor_smart(; up_lines=10, down_lines=10, action="go")
                         end
                         if !isnothing(range)
                             @show displacement_from_origin += place_cursor(side, direction, context, range, displacement_from_origin)
+                            if select
+                                @show select_text(length(range), select_direction; prefix=select_prefix)
+                                if (copy) press_keys(copy_shortcut...) end
+                            end
                         end
                         token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
                     end
@@ -762,21 +814,6 @@ function move_cursor_smart(; up_lines=10, down_lines=10, action="go")
         @InsecureRecognitionException("unknown direction.")
     end
 end
-
-# function select(; up_lines=10, down_lines=10)
-#     Key        = Pynput.keyboard.Key
-#     lang       = default_language()
-#     directions = [keys(DIRECTIONS[lang])...]
-#     counts     = [keys(COUNTS[lang])...]
-#     modes      = [directions..., counts...]
-
-#     token = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false) # NOTE: the token is not consumed yet...
-
-#     # Case: light <count> <direction>
-#     if (token in counts)
-
-
-# end
 
 
 function regex(pattern::AbstractString, flags::String; as_string=true)
@@ -808,16 +845,28 @@ function get_context(direction::String, up_lines::Integer, down_lines::Integer; 
 end
 
 function restore_clipboard_content(clipboard_old::String)
-    root = Tkinter.Tk()
-    root.withdraw()
+    # root = Tkinter.Tk()
+    root = controller("Tk")
+    # root.withdraw()
     root.clipboard_clear()
     root.clipboard_append(clipboard_old)
     # Pyperclip.copy(clipboard_old)
     # content = Pyperclip.paste()
-    content = get_clipboard_content()
     # root.update_idletasks()
+    content = get_clipboard_content()
+    # root.update()
+    # content = ""
+    # try
+    #     content = root.clipboard_get()
+    # catch e
+    #     if isa(e, PyCall.PyError)
+    #         content = ""
+    #     else
+    #         rethrow(e)
+    #     end
+    # end
     root.update()
-    root.destroy()
+    # root.destroy()
     return content
 end
 
@@ -825,6 +874,8 @@ function get_clipboard_content()
     # content = Pyperclip.paste()
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
     root.withdraw()
+    # controller("Tk").destroy(); set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw() # NOTE: it seems to be necessary that the root object is (re-)created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
+    # root = controller("Tk")
     # root.update_idletasks()
     root.update()
     content = ""
