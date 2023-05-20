@@ -234,7 +234,7 @@ let
             end
             @debug "Voiceargs of function `$f_name`:" voiceargs(f_name)
         end
-    
+
         # Call the garbage collector to avoid having it running right after starting to use JustSayIt.
         GC.gc()
     end
