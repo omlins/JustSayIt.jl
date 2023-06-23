@@ -23,7 +23,6 @@ import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey,
 
 const Pynput    = PyNULL()
 const Tkinter   = PyNULL()
-# const Pyperclip = PyNULL()
 
 function __init__()
     if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
@@ -31,7 +30,6 @@ function __init__()
         ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
         copy!(Pynput,    pyimport_pip("pynput"))
         copy!(Tkinter,   pyimport_pip("tkinter"))
-        # copy!(Pyperclip, pyimport_pip("pyperclip"))
         set_controller("keyboard", Pynput.keyboard.Controller())
     end
 end
@@ -981,52 +979,19 @@ function get_context(region::String, up_lines::Integer, down_lines::Integer; cop
     elseif (region == "higher")   press_keys(Key.shift, Key.page_up)
     elseif (region == "lower")    press_keys(Key.shift, Key.page_down)
     end
-    # clipboard_old = get_clipboard_content()
-    # press_keys(copy_shortcut...) #TODO: they moved to try with selection_get
     context = get_selection_content()
     context = replace(context, "\r\n" => "\n") # NOTE: the windows end of line sequence is coded as two characters; converting it to one is crucial in order to obtain correct cursor displacement in the following.
-    # restore_clipboard_content(clipboard_old)
     return context #TODO: handle errors!
 end
 
-function restore_clipboard_content(clipboard_old::String)
-    # root = Tkinter.Tk()
-    root = controller("Tk")
-    # root.withdraw()
-    root.clipboard_clear()
-    root.clipboard_append(clipboard_old)
-    # Pyperclip.copy(clipboard_old)
-    # content = Pyperclip.paste()
-    # root.update_idletasks()
-    content = get_clipboard_content()
-    # root.update()
-    # content = ""
-    # try
-    #     content = root.clipboard_get()
-    # catch e
-    #     if isa(e, PyCall.PyError)
-    #         content = ""
-    #     else
-    #         rethrow(e)
-    #     end
-    # end
-    root.update()
-    # root.destroy()
-    return content
-end
 
 function get_selection_content()
-    # content = Pyperclip.paste()
     sleep(0.1)
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
     root.withdraw()
-    # controller("Tk").destroy(); set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw() # NOTE: it seems to be necessary that the root object is (re-)created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
-    # root = controller("Tk")
-    # root.update_idletasks()
     root.update()
     content = ""
     try
-        # content = root.clipboard_get()
         content = root.selection_get(selection="PRIMARY")
     catch e
         if isa(e, PyCall.PyError)
@@ -1035,7 +1000,6 @@ function get_selection_content()
             rethrow(e)
         end
     end
-    # root.update_idletasks()
     root.update()
     root.destroy()
     return content
@@ -1043,12 +1007,8 @@ end
 
 
 function get_clipboard_content()
-    # content = Pyperclip.paste()
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
     root.withdraw()
-    # controller("Tk").destroy(); set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw() # NOTE: it seems to be necessary that the root object is (re-)created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
-    # root = controller("Tk")
-    # root.update_idletasks()
     root.update()
     content = ""
     try
@@ -1060,7 +1020,6 @@ function get_clipboard_content()
             rethrow(e)
         end
     end
-    # root.update_idletasks()
     root.update()
     root.destroy()
     return content

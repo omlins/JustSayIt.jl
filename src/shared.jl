@@ -11,7 +11,6 @@ const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
 const Pywinctl    = PyNULL()
-const Tkinter     = PyNULL()
 
 
 function __init__()
@@ -41,7 +40,6 @@ function __init__()
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
         copy!(Pywinctl,    pyimport_pip("pywinctl"))
-        copy!(Tkinter,     pyimport_pip("tkinter")) # NOTE: a persistent controller could be created as follows: set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw()
     end
 end
 
