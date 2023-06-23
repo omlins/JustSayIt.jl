@@ -27,7 +27,6 @@ const Tkinter   = PyNULL()
 function __init__()
     if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
     if ENV["JSI_USE_PYTHON"] == "1"
-        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
         copy!(Pynput,    pyimport_pip("pynput"))
         copy!(Tkinter,   pyimport_pip("tkinter"))
         set_controller("keyboard", Pynput.keyboard.Controller())
