@@ -129,7 +129,7 @@ $(pretty_dict_string(DEFAULT_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing)
     if (default_language in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
@@ -139,7 +139,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
-    if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
+    #TODO: temporarily deactivated: if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
     if isnothing(max_speed_subset) max_speed_subset = String[] end
     max_speed_token_subset = map(max_speed_subset) do cmd_name # Only the first tokens are used to decide if max speed is used.
@@ -147,7 +147,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
-    if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
+    #TODO: temporarily deactivated: if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
     if isnothing(modeldirs)
         modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages); modelname.(MODELTYPE_DEFAULT, type_languages)]  #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
         modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
@@ -264,30 +264,4 @@ const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.
 
 @voiceargs words=>(valid_input=Tuple(CONFIRMATION), vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
     return ([join(words, " ")] == CONFIRMATION[default_language()])
-end
-
-execute(cmd::Function, cmd_name::String)                  = cmd()
-execute(cmd::PyKey, cmd_name::String)                     = Keyboard.press_keys(cmd)
-execute(cmd::NTuple{N,PyKey} where {N}, cmd_name::String) = Keyboard.press_keys(cmd...)
-execute(cmd::String, cmd_name::String)                    = Keyboard.type_string(cmd)
-execute(cmd::Cmd, cmd_name::String)                       = if !activate(cmd) run(cmd; wait=false) end
-execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd execute(subcmd, cmd_name) end
-
-function execute(cmd::Dict, cmd_name::String)
-    @info "Activating commands: $cmd_name"
-    update_commands(commands=cmd, cmd_name=cmd_name)
-    Help.help(Help.COMMANDS_KEYWORDS[default_language()])
-end
-
-function activate(cmd::Cmd)
-    app = cmd.exec[1]
-    open_apps = Pywinctl.getAppsWithName(app, condition=Pywinctl.Re.STARTSWITH) # Todo: instead a regular expression should be passed. It should check that there is no character before it and no character class after it.
-    is_open = length(open_apps) > 0
-    if is_open
-        open_app = open_apps[1]
-        windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # If there are multiple open windows for the given application take the first window.
-        window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
-        window.activate()
-    end
-    return is_open
 end
