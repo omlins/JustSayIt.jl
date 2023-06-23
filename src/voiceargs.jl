@@ -272,7 +272,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
 
     # Assign new arguments and body, and escape the other parts of the function definition.
     f_def[:name]        = esc(f_def[:name])
-    @show f_def[:kwargs]      = esc.((f_def[:kwargs]..., Expr(:kw, :(use_max_speed::Bool), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :(ignore_unknown::Bool), USE_IGNORE_UNKNOWN_DEFAULT))) #TODO: give an error if these keyword arguments are set by the user.
+    f_def[:kwargs]      = esc.((f_def[:kwargs]..., Expr(:kw, :(use_max_speed::Bool), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :(ignore_unknown::Bool), USE_IGNORE_UNKNOWN_DEFAULT))) #TODO: give an error if these keyword arguments are set by the user.
     f_def[:whereparams] = esc.(f_def[:whereparams])
     f_def[:args]        = [esc(x) for x in f_def[:args] if !haskey(voiceargs, splitarg(x)[1])] # The voiceargs will not be part of the wrapper function signature.
     f_def[:body]        = quote
