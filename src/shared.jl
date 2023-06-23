@@ -11,6 +11,7 @@ const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
 const Pywinctl    = PyNULL()
+const Tkinter     = PyNULL()
 
 
 function __init__()
@@ -40,6 +41,7 @@ function __init__()
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
         copy!(Pywinctl,    pyimport_pip("pywinctl"))
+        copy!(Tkinter,     pyimport_pip("tkinter")) # NOTE: a persistent controller could be created as follows: set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw()
     end
 end
 
@@ -180,6 +182,18 @@ const DIRECTIONS = Dict(
     LANG.EN_US => Dict("right"=>"right", "left"=>"left", "up"=>"up",   "down"=>"down", "forward"=>"forward", "backward"=>"backward", "upward"=>"upward", "downward"=>"downward"),
     LANG.ES    => Dict("derecha"=>"right", "izquierda"=>"left", "arriba"=>"up", "abajo"=>"down", "adelante"=>"forward", "atrás"=>"backward", "subiendo"=>"upward", "bajando"=>"downward"),
     LANG.FR    => Dict("droite"=>"right", "gauche"=>"left", "haut"=>"up", "bas"=>"down", "avant"=>"forward", "arrière"=>"backward", "montant"=>"upward", "descendant"=>"downward"),
+)
+const REGIONS = Dict(
+    LANG.DE    => Dict("hier"=>"here", "rechts"=>"right", "links"=>"left", "oben"=>"above", "unten"=>"below", "höher"=>"higher", "tiefer"=>"lower"),
+    LANG.EN_US => Dict("here"=>"here", "right"=>"right", "left"=>"left", "above"=>"above", "below"=>"below", "higher"=>"higher", "lower"=>"lower"),
+    LANG.ES    => Dict("aquí"=>"here", "derecha"=>"right", "izquierda"=>"left", "arriba"=>"above", "abajo"=>"below", "arribissima"=>"higher", "abajissima"=>"lower"),
+    LANG.FR    => Dict("ici"=>"here", "droite"=>"right", "gauche"=>"left", "dessus"=>"above", "dessous"=>"below", "haut"=>"higher", "bas"=>"lower"),
+)
+const FRAGMENTS = Dict(
+    LANG.DE    => Dict("wort"=>"word", "zeile" => "line", "bis ende"=>"remainder", "bis anfang"=>"preceding", "alles"=>"all"),
+    LANG.EN_US => Dict("word"=>"word", "line" => "line", "remainder"=>"remainder", "preceding"=>"preceding", "all"=>"all"),
+    LANG.ES    => Dict("palabra"=>"word", "línea" => "line", "hasta fin"=>"remainder", "hasta inicio"=>"preceding", "todo"=>"all"),
+    LANG.FR    => Dict("mot"=>"word", "ligne" => "line", "jusqu'à la fin"=>"remainder", "jusqu'au début"=>"preceding", "tout"=>"all"),
 )
 const SIDES = Dict(
     LANG.DE    => Dict("vor"=>"before", "nach"=>"after"),
@@ -478,6 +492,42 @@ function interpret_enum(input::AbstractString, valid_input::Dict{String, <:Abstr
     index = findfirst(x -> x==input, valid_input[default_language()])
     if isnothing(index) @APIUsageError("interpretation not possible: the string $input is not present in the obtained valid_input dictionary ($valid_input).") end
     return valid_input[LANG.EN_US][index]
+end
+
+
+execute(cmd::Function, cmd_name::String)                  = cmd()
+execute(cmd::PyKey, cmd_name::String)                     = Keyboard.press_keys(cmd)
+execute(cmd::NTuple{N,PyKey} where {N}, cmd_name::String) = Keyboard.press_keys(cmd...)
+execute(cmd::String, cmd_name::String)                    = Keyboard.type_string(cmd)
+execute(cmd::Cmd, cmd_name::String)                       = if !activate(cmd) run(cmd; wait=false) end
+execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd execute(subcmd, cmd_name) end
+
+function execute(cmd::Dict, cmd_name::String)
+    @info "Activating commands: $cmd_name"
+    update_commands(commands=cmd, cmd_name=cmd_name)
+    Help.help(Help.COMMANDS_KEYWORDS[default_language()])
+end
+
+function activate(cmd::Cmd)
+    app = cmd.exec[1]    
+    open_apps = Pywinctl.getAllAppsNames()
+    open_app = (app in open_apps) ? app : ""
+    if open_app == ""
+        for a in open_apps
+            if     occursin(Regex("^" * app * "[^a-zA-Z]" ), a  ) open_app = a; break
+            elseif occursin(Regex("^" * a   * "[^a-zA-Z]" ), app) open_app = a; break # E.g. app=google-chrome; a=chrome
+            elseif occursin(Regex("[^a-zA-Z]" * app * "\$"), a  ) open_app = a; break
+            elseif occursin(Regex("[^a-zA-Z]" * a   * "\$"), app) open_app = a; break
+            end
+        end
+    end
+    is_open = (open_app != "")
+    if is_open
+        windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # If there are multiple open windows for the given application take the first window.
+        window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
+        window.activate()
+    end
+    return is_open
 end
 
 
