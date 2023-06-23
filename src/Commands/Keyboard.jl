@@ -16,7 +16,7 @@ module Keyboard
 
 using PyCall
 using ..Exceptions
-import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, DIRECTIONS, REGIONS, SIDES, COUNTS, SYMBOLS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, next_token, next_tokengroup, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum, UNKNOWN_TOKEN
+import ..JustSayIt: @voiceargs, pyimport_pip, controller, set_controller, PyKey, default_language, type_languages, lang_str, LANG, LANG_CODES_SHORT, LANG_STR, ALPHABET, DIGITS, DIRECTIONS, REGIONS, FRAGMENTS, SIDES, COUNTS, SYMBOLS, MODELTYPE_DEFAULT, MODELNAME, modelname, tic, toc, is_next, are_next, next_token, next_tokengroup, all_consumed, was_partial_recognition, InsecureRecognitionException, reset_all, do_delayed_resets, interpret_enum, UNKNOWN_TOKEN
 
 
 ## PYTHON MODULES
@@ -149,6 +149,13 @@ const TEXTRANGE_PATTERN = Dict(
     LANG.EN_US => Dict("till"    => r".+?"is),
     LANG.ES    => Dict("hasta"   => r".+?"is),
     LANG.FR    => Dict("jusqu'à" => r".+?"is),
+)
+
+const NAVIGATION_ACTIONS = Dict(
+    LANG.DE    => Dict("vorwärts" => "forward", "rückwärts" => "backward", "einfügen" => "paste", "löschen"   => "delete", "bis"     => "till", "beenden" => "exit"),
+    LANG.EN_US => Dict("forward"  => "forward", "backward"  => "backward", "paste"    => "paste", "delete"    => "delete", "till"    => "till", "exit"    => "exit"),
+    LANG.ES    => Dict("adelante" => "forward", "atrás"     => "backward", "pegar"    => "paste", "borrar"    => "delete", "hasta"   => "till", "salir"   => "exit"),
+    LANG.FR    => Dict("avancer"  => "forward", "reculer"   => "backward", "coller"   => "paste", "supprimer" => "delete", "jusqu'à" => "till", "sortir"  => "exit"),
 )
 
 
@@ -561,6 +568,13 @@ function type_string(str::String; do_keystrokes::Bool=true)
     if do_keystrokes
         keyboard = controller("keyboard")
         keyboard.type(str)
+        # NOTE: the following is an alternative for typing strings, which could be either more or less robust on certain systems:
+        # keys = map(convert_key, [str...])
+        # for key in keys
+        #     keyboard.press(key)
+        #     keyboard.release(key)
+        # end
+
     end
 end
 
@@ -635,6 +649,19 @@ type_camelcase() = type_fixedcase(camel)
 "Type words in constantcase (uppercase, separated with underscore)."
 type_constantcase() = type_fixedcase(constant)
 
+"Type digit string (exit on unknown)."
+function type_digit_string()
+    token = next_digit(default_language()) # NOTE: one token has to be queried in any case to be sure that we are inside a word group.
+    if (token != UNKNOWN_TOKEN)
+        digit_string = token
+        while (token != UNKNOWN_TOKEN && !all_consumed()) # NOTE: we exit on unknown or at the end of the word group.
+            token = next_digit(default_language())
+            if (token != UNKNOWN_TOKEN) digit_string *= token end
+        end
+        type_string(digit_string)
+    end
+end
+
 @enum Case lower upper flat snake camel constant
 function type_fixedcase(case::Case)
     words_str = Keyboard.type(Keyboard.words; max_word_groups=1, active_lang=default_language(), do_keystrokes=false)
@@ -649,33 +676,47 @@ function type_fixedcase(case::Case)
 end
 
 
-function navigate_smart(; up_lines=10, down_lines=10, action="go", select=false, copy=false, select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
-    if (copy) select = true end
+function navigate_smart(; up_lines=10, down_lines=10, action="move", select=false, copy=false, paste=false, select_prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a') , copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'), paste_shortcut=(Pynput.keyboard.Key.ctrl, 'v'))
+    if     (copy && paste) @APIUsageError("navigate_smart: cannot copy and paste at the same time.")
+    elseif (copy)          select = true
+    end
     lang       = default_language()
     directions = [keys(DIRECTIONS[lang])...]
     counts     = [keys(COUNTS[lang])...]
+    fragments  = [keys(FRAGMENTS[lang])...]
     regions    = [keys(REGIONS[lang])...]
     modes      = [directions..., counts..., regions...]
+    modes      = select ? [modes..., fragments...] : modes
     token      = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false)        # NOTE: the token is not consumed yet...
     if token in counts                              # Case: <action> <count> <direction>
         prefix = select ? select_prefix : ()
-        move_cursor(; prefix=prefix, action=action)
-        if (copy) press_keys(copy_shortcut...) end
+        move_cursor_explicit(; prefix=prefix, action=action)
+        if     (copy)  press_keys(copy_shortcut...)
+        elseif (paste) press_keys(paste_shortcut...)
+        end
     elseif token in regions                         # Case: <action> <region> <text range>
-        move_cursor_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=select, copy=copy, select_prefix=select_prefix, copy_shortcut=copy_shortcut)
+        move_cursor_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=select, copy=copy, paste=paste, select_prefix=select_prefix, copy_shortcut=copy_shortcut, paste_shortcut=paste_shortcut)
+    elseif token in fragments                       # Case: <action> <fragment>
+        select_fragment_explicit(; action=action, prefix=select_prefix, select_all_shortcut=select_all_shortcut)
+        if     (copy)  press_keys(copy_shortcut...)
+        elseif (paste) press_keys(paste_shortcut...)
+        end
     else
-        @InsecureRecognitionException("unknown direction or count.") # NOTE: it could return without exception, if the command handler will just continue from there.
+        @InsecureRecognitionException("unknown mode keyword(s).") # NOTE: it could return without exception, if the command handler will just continue from there.
     end
 end
 
-function select_smart(; up_lines=10, down_lines=10, action="light", select_prefix=(Pynput.keyboard.Key.shift,))
+function select_smart(; up_lines=10, down_lines=10, action="light", select_prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a'))
     navigate_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=true, select_prefix=select_prefix)
 end
 
-function copy_smart(; up_lines=10, down_lines=10, action="take", select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
+function copy_smart(; up_lines=10, down_lines=10, action="take", select_prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a'), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
     navigate_smart(; up_lines=up_lines, down_lines=down_lines, action=action, copy=true, select_prefix=select_prefix, copy_shortcut=copy_shortcut)
 end
 
+function replace_smart(; up_lines=10, down_lines=10, action="replace", select_prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a'))
+    navigate_smart(; up_lines=up_lines, down_lines=down_lines, action=action, select=true, paste=true, select_prefix=select_prefix)
+end
 
 function move_cursor(count::Integer, direction::String; prefix=())
     Key = Pynput.keyboard.Key
@@ -691,12 +732,44 @@ function move_cursor(count::Integer, direction::String; prefix=())
 end
 
 
-function select_text(count, direction; prefix=Key.shift)
+function select_text(count, direction; prefix=(Pynput.keyboard.Key.shift,))
     move_cursor(count, direction; prefix=prefix)
 end
 
 
-function move_cursor(; prefix=(), action="go")
+function select_fragment(fragment; prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a'))
+    Key = Pynput.keyboard.Key
+    if fragment == "word"
+        move_cursor(1, "backward")
+        select_text(1, "forward"; prefix=prefix)
+    elseif fragment == "line"
+        press_keys(Key.end)
+        press_keys(prefix..., Key.home)
+    elseif fragment == "remainder"
+        press_keys(prefix..., Key.end)
+    elseif fragment == "preceding"
+        press_keys(prefix..., Key.home)
+    elseif fragment == "all"
+        press_keys(select_all_shortcut...)
+    end
+end
+
+
+function select_fragment_explicit(; action="light", prefix=(Pynput.keyboard.Key.shift,), select_all_shortcut=(Pynput.keyboard.Key.ctrl, 'a'))
+    token = next_fragment()
+    if (token != UNKNOWN_TOKEN)
+        fragment = token
+        @info "... $action $fragment."
+        select_fragment(fragment; prefix=prefix, select_all_shortcut=select_all_shortcut)
+    else
+        @info "... no fragment recognized."
+        @InsecureRecognitionException("unknown fragment.")
+    end
+    return
+end
+
+
+function move_cursor_explicit(; prefix=(), action="move")
     token = next_count(; use_max_speed=true)
     if (token != UNKNOWN_TOKEN)
         count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
@@ -718,108 +791,158 @@ function move_cursor(; prefix=(), action="go")
 end
 
 
-function move_cursor_smart(; up_lines=10, down_lines=10, action="go", select=false, copy=false, select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
-    if (copy) select = true end
-    lang              = default_language()
-    text_range        = select ? "<text> [till <text>]" : "<side> <text>"
-    select_direction  = "right"
-    select_side       = "before"
+function move_cursor_smart(; up_lines=10, down_lines=10, action="move", select=false, copy=false, paste=false, select_prefix=(Pynput.keyboard.Key.shift,), copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'), paste_shortcut=(Pynput.keyboard.Key.ctrl, 'v'))
+    if     (copy && paste) @APIUsageError("navigate_smart: cannot copy and paste at the same time.")
+    elseif (copy)          select = true
+    end
+    Key                = Pynput.keyboard.Key
+    lang               = default_language()
+    text_range         = select ? "<text> [till <text>]" : "<side> <text>"
+    select_direction   = "right"
+    reselect_direction = "left"
+    select_side        = "before"
+    navigation_actions = values(NAVIGATION_ACTIONS[lang])
     token = next_region(; use_max_speed=true)
     if (token != UNKNOWN_TOKEN)
         region = token
         @info "$action $region $text_range ..."
-        @show context = get_context(region, up_lines, down_lines)
-        @show valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
+        move_to_origen(region, up_lines)
+        context = get_context(region, up_lines, down_lines)
+        valid_input = derive_valid_input(context) # NOTE: pre compute the valid input while the side key word is being spoken.
         token = select ? select_side : next_side(; use_max_speed=true)
         if (token != UNKNOWN_TOKEN)
             side = token
             @info "... $action $region $text_range ..."
             valid_input = select ? [valid_input..., keys(TEXTRANGE_PATTERN[lang])...] : valid_input
-            @show text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
+            text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
             if !all(text_keys .== UNKNOWN_TOKEN)
-                @show text_elements = replace(text_keys, "parentheses" => r"[()]", "bracket" => r"[\[\]]", "curly" => r"[{}]", "quote" => r"[\"']") # Match ambiguous two-word symbols using only the principal word for each case.
-                @show text_elements = replace(text_elements, SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
-                @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                @show range = findfirst(text_pattern, context)
-                if isnothing(range) && select && length(text_elements) > 2 # NOTE: the text range key word can never appear at the end and does normally not appear at the beginning.
-                    @show text_elements = [text_elements[1], replace(text_elements[2:end-1], TEXTRANGE_PATTERN[lang]...)..., text_elements[end]]
-                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                    @show range = findfirst(text_pattern, context)
-                end
-                if isnothing(range) && select && length(text_elements) > 1 # NOTE: the text range key word can never appear at the end.
-                    @show text_elements = [replace(text_elements[1:end-1], TEXTRANGE_PATTERN[lang]...)..., text_elements[end]]
-                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                    @show range = findfirst(text_pattern, context)
-                end
-                if isnothing(range) # NOTE: letter recognition is not very accurate; thus, as no match had been found, we replace letters with a pattern that matches any letter.
-                    @show text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
-                    @show text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
-                    @show range = findfirst(text_pattern, context)
-                end
+                range, text_elements, text_pattern = findfirst_relaxing(text_keys, context, select)
                 if !isnothing(range)
                     text_range = select ? text_pattern : "$side $text_pattern"
                     @info "... $action $region $text_range"
                     stop_highlighting(region; to_origin=false)
-                    @show displacement_from_origin = place_cursor(side, region, context, range)
+                    displacement_from_origin = place_cursor(side, region, context, range)
                     if select
-                        @show select_text(length(range), select_direction; prefix=select_prefix)
+                        select_text(length(range), select_direction; prefix=select_prefix)
                         if (copy) press_keys(copy_shortcut...) end
                     end
-                    token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                    token = next_action(; use_max_speed=true)
+                    if (paste && token ∉ navigation_actions) press_keys(paste_shortcut...) end # NOTE: in mode paste, we paste before exiting the function if no result browsing is initiated.
                     ranges = [range]
                     was_forward = true
-                    while token in ["forward", "backward"]
-                        if (select) stop_highlighting(select_direction) end
-                        if token == "forward"
-                            @show range = findnext(text_pattern, context, ranges[end].stop+1)
-                            if isnothing(range)
-                                @info "... no more match found."
-                            else
-                                @info "... forward ..."
-                                push!(ranges, range)
+                    while token in navigation_actions
+                        if token == "paste"
+                            @info "... paste ..."
+                            range = ranges[end]
+                            content = get_clipboard_content()
+                            displacement_from_origin += length(range) - length(content)
+                            context = join([context[1:range.start-1], content, context[range.stop+1:end]])
+                            range = ranges[end].start : (ranges[end].start + length(content) - 1)
+                            ranges[end] = range
+                            press_keys(paste_shortcut...)
+                            select_text(length(content), reselect_direction; prefix=select_prefix)
+                        elseif token == "delete"
+                            @info "... delete ..."
+                            range = ranges[end]
+                            displacement_from_origin += length(range) - 1
+                            context = join([context[1:range.start-1], context[range.stop+1:end]])
+                            range = (ranges[end].start - 1) : (ranges[end].start - 1)
+                            ranges[end] = range
+                            press_keys(Key.delete)
+                        elseif token == "exit"
+                            @info "... exit ..."
+                            break
+                        else
+                            if token == "till"
+                                @info "... till <text> ..."
+                                text_keys = next_tokengroup(valid_input; use_partial_recognitions=false, ignore_unknown=false)
+                                range, text_elements_new, text_pattern_new = findfirst_relaxing([text_elements..., "till", text_keys...], context, select)
+                                if isnothing(range)
+                                    @info "... no match found ..."
+                                else
+                                    @info "... till ..."
+                                    text_elements, text_pattern = text_elements_new, text_pattern_new # NOTE: we keep the new text elements only when a match was found.
+                                    ranges = [range]                                                  # NOTE: we reset the ranges as we are starting a new search.
+                                end
+                            elseif token == "forward"
+                                range = findnext(text_pattern, context, ranges[end].start+1)
+                                if isnothing(range)
+                                    @info "... no more match found."
+                                else
+                                    @info "... forward ..."
+                                    push!(ranges, range)
+                                end
+                                was_forward = true
+                            elseif token == "backward"
+                                range = pop!(ranges)
+                                if was_forward && !isempty(ranges)
+                                    range = pop!(ranges)
+                                end
+                                if isempty(ranges)
+                                    @info "... reached first match."
+                                    ranges = [range]
+                                else
+                                    @info "... backward ..."
+                                end
+                                was_forward = false
                             end
-                            was_forward = true
-                        elseif token == "backward"
-                            @show range = pop!(ranges)
-                            if was_forward && !isempty(ranges)
-                                @show range = pop!(ranges)
+                            if !isnothing(range)
+                                if (select && token != "delete") stop_highlighting(select_direction) end
+                                displacement_from_origin += place_cursor(side, region, context, range, displacement_from_origin)
+                                if select
+                                    select_text(length(range), select_direction; prefix=select_prefix)
+                                    if (copy) press_keys(copy_shortcut...) end
+                                end
                             end
-                            if isempty(ranges)
-                                @info "... reached first match."
-                                ranges = [range]
-                            else
-                                @info "... backward ..."
-                            end
-                            was_forward = false
                         end
-                        if !isnothing(range)
-                            @show displacement_from_origin += place_cursor(side, region, context, range, displacement_from_origin)
-                            if select
-                                @show select_text(length(range), select_direction; prefix=select_prefix)
-                                if (copy) press_keys(copy_shortcut...) end
-                            end
-                        end
-                        token = next_direction(; use_max_speed=true) #TODO: see if other then forward backward should be included here.
+                        token = next_action(; use_max_speed=true)
                     end
                 else
                     @info "... no match found."
                     stop_highlighting(region)
+                    move_to_initial(region, up_lines)
                     @InsecureRecognitionException("unknown text.")
                 end
             else
                 @info "... no text recognized."
                 stop_highlighting(region)
+                move_to_initial(region, up_lines)
                 @InsecureRecognitionException("unknown text.")
             end
         else
             @info "... no side recognized."
             stop_highlighting(region)
+            move_to_initial(region, up_lines)
             @InsecureRecognitionException("unknown side.")
         end
     else
         @info "... no region recognized."
         @InsecureRecognitionException("unknown region.")
     end
+end
+
+function findfirst_relaxing(text_elements, context, use_textrange)
+    lang = default_language()
+    text_elements = replace(text_elements, "parentheses" => r"[()]", "bracket" => r"[\[\]]", "curly" => r"[{}]", "quote" => r"[\"']") # Match ambiguous two-word symbols using only the principal word for each case.
+    text_elements = replace(text_elements, DIGITS[lang]..., SYMBOLS[lang]..., WHITESPACE_PATTERN[lang]..., UNKNOWN_TOKEN => r"[\\p{L}\\p{S}]") # NOTE: \p{L} = letters, \p{N} = numbers, \p{P} = punctuation, \p{S} = symbols, \p{Z} = whitespace, \p{M} = marks, \p{C} = other characters
+    text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+    range = findfirst(text_pattern, context)
+    if isnothing(range) && use_textrange && length(text_elements) > 2 # NOTE: the text range key word can never appear at the end and does normally not appear at the beginning.
+        text_elements = [text_elements[1], replace(text_elements[2:end-1], TEXTRANGE_PATTERN[lang]...)..., text_elements[end]]
+        text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+        range = findfirst(text_pattern, context)
+    end
+    if isnothing(range) && use_textrange && length(text_elements) > 1 # NOTE: the text range key word can never appear at the end.
+        text_elements = [replace(text_elements[1:end-1], TEXTRANGE_PATTERN[lang]...)..., text_elements[end]]
+        text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+        range = findfirst(text_pattern, context)
+    end
+    if isnothing(range) # NOTE: letter recognition is not very accurate; thus, as no match had been found, we replace letters with a pattern that matches any letter.
+        text_elements = replace(text_elements, r"[a-z]"  => r"[a-z]")
+        text_pattern = prod(regex.(text_elements, "is")) # NOTE: the text elements also include spaces, so we need to join without spaces.
+        range = findfirst(text_pattern, context)
+    end
+    return range, text_elements, text_pattern
 end
 
 
@@ -835,19 +958,34 @@ function regex(pattern::Regex, flags::String; as_string=false)
     return pattern
 end
 
+function move_to_origen(region::String, up_lines::Integer)
+    Key = Pynput.keyboard.Key
+    if region == "here"
+        move_cursor(up_lines, "up"); press_keys(Key.home)
+    end
+end
+
+function move_to_initial(region::String, up_lines::Integer)
+    if region == "here"
+        move_cursor(up_lines, "down")
+    end
+end
+
 function get_context(region::String, up_lines::Integer, down_lines::Integer; copy_shortcut=(Pynput.keyboard.Key.ctrl, 'c'))
     Key = Pynput.keyboard.Key
-    if     (region == "right")    press_keys(Key.shift, Key.end)
+    if     (region == "here")     press_keys(Key.shift, Key.down; count=up_lines+down_lines); press_keys(Key.shift, Key.end)
+    elseif (region == "right")    press_keys(Key.shift, Key.end)
     elseif (region == "left")     press_keys(Key.shift, Key.home)
-    elseif (region == "above")    press_keys(Key.shift, Key.up; count=up_lines); press_keys(Key.shift, Key.home)
-    elseif (region == "below")    press_keys(Key.shift, Key.down; count=down_lines); press_keys(Key.shift, Key.end)
+    elseif (region == "above")    press_keys(Key.shift, Key.up;   count=2*up_lines);   press_keys(Key.shift, Key.home)
+    elseif (region == "below")    press_keys(Key.shift, Key.down; count=2*down_lines); press_keys(Key.shift, Key.end)
     elseif (region == "higher")   press_keys(Key.shift, Key.page_up)
     elseif (region == "lower")    press_keys(Key.shift, Key.page_down)
     end
-    # @show clipboard_old = get_clipboard_content()
+    # clipboard_old = get_clipboard_content()
     # press_keys(copy_shortcut...) #TODO: they moved to try with selection_get
-    context = get_clipboard_content()
-    # @show restore_clipboard_content(clipboard_old)
+    context = get_selection_content()
+    context = replace(context, "\r\n" => "\n") # NOTE: the windows end of line sequence is coded as two characters; converting it to one is crucial in order to obtain correct cursor displacement in the following.
+    # restore_clipboard_content(clipboard_old)
     return context #TODO: handle errors!
 end
 
@@ -877,7 +1015,7 @@ function restore_clipboard_content(clipboard_old::String)
     return content
 end
 
-function get_clipboard_content()
+function get_selection_content()
     # content = Pyperclip.paste()
     sleep(0.1)
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
@@ -903,11 +1041,36 @@ function get_clipboard_content()
     return content
 end
 
+
+function get_clipboard_content()
+    # content = Pyperclip.paste()
+    root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
+    root.withdraw()
+    # controller("Tk").destroy(); set_controller("Tk", Tkinter.Tk()); controller("Tk").withdraw() # NOTE: it seems to be necessary that the root object is (re-)created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
+    # root = controller("Tk")
+    # root.update_idletasks()
+    root.update()
+    content = ""
+    try
+        content = root.clipboard_get()
+    catch e
+        if isa(e, PyCall.PyError)
+            content = ""
+        else
+            rethrow(e)
+        end
+    end
+    # root.update_idletasks()
+    root.update()
+    root.destroy()
+    return content
+end
+
 function stop_highlighting(localization::String; to_origin=true)
     Key = Pynput.keyboard.Key
     if to_origin
-        if     (localization == "right" || localization == "down" || localization == "below" || localization == "lower")  press_keys(Key.left)  # Stop highlighting moving the cursor back to the origin.
-        elseif (localization == "left"  || localization == "up"   || localization == "above" || localization == "higher") press_keys(Key.right) # ...
+        if     (localization == "right" || localization == "down" || localization == "below" || localization == "lower" || localization == "here")  press_keys(Key.left)  # Stop highlighting moving the cursor back to the origin.
+        elseif (localization == "left"  || localization == "up"   || localization == "above" || localization == "higher")                           press_keys(Key.right) # ...
         end
     else
         press_keys(Key.esc) # Stop highlighting without moving the cursor.
@@ -916,25 +1079,26 @@ end
 
 function derive_valid_input(context::String)
     lang = default_language()
-    @show words           = replace(context, r"[^a-zA-Z]" => " ") |> lowercase |> split
-    @show letters         = string.(replace(context, r"[^a-zA-Z]" => "") |> lowercase |> unique)
-    @show symbols         = string.(replace(context, r"[a-zA-Z]"  => "") |> unique)
-    @show symbol_keys     = [key for (key, symbol) in SYMBOLS[lang] if (symbol in symbols)]
-    @show whitespace_keys = keys(WHITESPACE_PATTERN[lang]) # NOTE: we do not distinguish between different kind of whitespaces; so we always need to include the generic.
-    @show valid_input     = String[words..., letters..., symbol_keys..., whitespace_keys...]
+    words           = replace(context, r"[^a-zA-Z]" => " ") |> lowercase |> split
+    letters         = string.(replace(context, r"[^a-zA-Z]" => "") |> lowercase |> unique)
+    digits          = string.(replace(context, r"[^\d]" => "") |> unique)
+    digit_keys      = [key for (key, digit) in DIGITS[lang] if (digit in digits)]
+    symbols         = string.(replace(context, r"[a-zA-Z]"  => "") |> unique)
+    symbol_keys     = [key for (key, symbol) in SYMBOLS[lang] if (symbol in symbols)]
+    whitespace_keys = keys(WHITESPACE_PATTERN[lang]) # NOTE: we do not distinguish between different kind of whitespaces; so we always need to include the generic.
+    valid_input     = String[words..., letters..., digit_keys..., symbol_keys..., whitespace_keys...]
     return valid_input
 end
 
 function place_cursor(side::String, region::String, context::String, range::UnitRange, displacement_from_origin::Int=0)
-    @show length(context)
     Key = Pynput.keyboard.Key
     if     (side == "before") new_position = range.start - 1
     elseif (side == "after")  new_position = range.stop
     end
-    if     (region == "right" || region == "below" || region == "lower")  displacement = new_position - displacement_from_origin - length(context)
-    elseif (region == "left"  || region == "above" || region == "higher") displacement = new_position - displacement_from_origin
+    if     (region == "right" || region == "below" || region == "lower" || region == "here")  displacement = new_position - displacement_from_origin - length(context)
+    elseif (region == "left"  || region == "above" || region == "higher")                     displacement = new_position - displacement_from_origin
     end
-    press_keys((displacement < 0) ? Key.left : Key.right, count=abs(displacement)) # Go to the new position.
+    press_keys((displacement < 0) ? Key.left : Key.right, count=abs(displacement)) # Move to the new position.
     return displacement
 end
 
@@ -965,6 +1129,19 @@ interpret_region(input::AbstractString) = (return REGIONS[default_language()][in
 @voiceargs region=>(valid_input=(LANG.DE=>[keys(REGIONS[LANG.DE])...], LANG.EN_US=>[keys(REGIONS[LANG.EN_US])...], LANG.ES=>[keys(REGIONS[LANG.ES])...], LANG.FR=>[keys(REGIONS[LANG.FR])...]), interpret_function=interpret_region, ignore_unknown=true) _next_region(region::String) = (return region)
 
 
+"Get next fragment from speech."
+function next_fragment(; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(FRAGMENTS[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
+        return UNKNOWN_TOKEN
+    else
+        _next_fragment(; use_max_speed=use_max_speed)
+    end
+end
+
+interpret_fragment(input::AbstractString) = (return FRAGMENTS[default_language()][input])
+@voiceargs fragment=>(valid_input=(LANG.DE=>[keys(FRAGMENTS[LANG.DE])...], LANG.EN_US=>[keys(FRAGMENTS[LANG.EN_US])...], LANG.ES=>[keys(FRAGMENTS[LANG.ES])...], LANG.FR=>[keys(FRAGMENTS[LANG.FR])...]), interpret_function=interpret_fragment, ignore_unknown=true) _next_fragment(fragment::String) = (return fragment)
+
+
 "Get next side from speech."
 function next_side(; ignore_unknown=false, use_max_speed=false)
     if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(SIDES[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
@@ -989,6 +1166,20 @@ end
 
 interpret_count(input::AbstractString) = (return COUNTS[default_language()][input])
 @voiceargs count=>(valid_input=(LANG.DE=>[keys(COUNTS[LANG.DE])...], LANG.EN_US=>[keys(COUNTS[LANG.EN_US])...], LANG.ES=>[keys(COUNTS[LANG.ES])...], LANG.FR=>[keys(COUNTS[LANG.FR])...]), interpret_function=interpret_count, ignore_unknown=true) _next_count(count::String) = (return count)
+
+
+"Get next navigation action from speech."
+function next_action(; ignore_unknown=false, use_max_speed=false)
+    if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(NAVIGATION_ACTIONS[default_language()])...]; use_max_speed=use_max_speed, ignore_unknown=false)
+        return UNKNOWN_TOKEN
+    else
+        _next_action(; use_max_speed=use_max_speed)
+    end
+end
+
+interpret_action(input::AbstractString) = (return NAVIGATION_ACTIONS[default_language()][input])
+@voiceargs action=>(valid_input=(LANG.DE=>[keys(NAVIGATION_ACTIONS[LANG.DE])...], LANG.EN_US=>[keys(NAVIGATION_ACTIONS[LANG.EN_US])...], LANG.ES=>[keys(NAVIGATION_ACTIONS[LANG.ES])...], LANG.FR=>[keys(NAVIGATION_ACTIONS[LANG.FR])...]), interpret_function=interpret_action, ignore_unknown=true) _next_action(action::String) = (return action)
+
 
 # function next_direction(lang::String; ignore_unknown=false, use_max_speed=false)
 #     if !ignore_unknown && is_next(UNKNOWN_TOKEN, [keys(DIRECTIONS[lang])...]; use_max_speed=use_max_speed, ignore_unknown=false, modelname=modelname(MODELTYPE_DEFAULT, lang))
