@@ -88,7 +88,7 @@ let
         # grammar = json([command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], noises(modelname_default())..., UNKNOWN_TOKEN])
         if haskey(_recognizers, COMMAND_RECOGNIZER_ID) _recognizers[COMMAND_RECOGNIZER_ID].is_persistent = false end # Mark recognizer as temporary to avoid that it will be reset for no benefit.
         # _recognizers[COMMAND_RECOGNIZER_ID] = Recognizer(Vosk.KaldiRecognizer(model(), SAMPLERATE, grammar), true)
-        valid_input = [command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()]]
+        valid_input = [command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()], keys(DIRECTIONS[default_language()])..., keys(COUNTS[default_language()])..., keys(FRAGMENTS[default_language()])..., keys(REGIONS[default_language()])...] # TODO: this is a work around for better recognition of the highly frequent navigate commands. A proper solution should be found ways voice arguments. The original command here was: valid_input = [command_names()..., COMMAND_NAME_SLEEP[default_language()], COMMAND_NAME_AWAKE[default_language()]]
         _recognizers[COMMAND_RECOGNIZER_ID] = recognizer(valid_input, noises(modelname_default()); is_persistent=true)
         if !all_consumed() force_restart_recognition() end # If the recognizer was swapped within a word group, then force restart of recognition in order to achieve a proper transition to the recognizer.
         return
