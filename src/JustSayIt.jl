@@ -34,10 +34,11 @@ include("shared.jl")
 include("voiceargs.jl")
 
 ## Alphabetical include of files
+include("edit.jl")
 include("finalize_jsi.jl")
 include("next_token.jl")
 include("init_jsi.jl")
-include("include_config.jl")
+include("include.jl")
 include("reader.jl")
 include("recorder.jl")
 include("streamer.jl")
@@ -57,7 +58,7 @@ include("start.jl")
 include("API.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
-export start, @include_config
+export start
 export Keyboard, Mouse, Help, Email, Generic, Internet
 export Key
 
