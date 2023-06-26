@@ -149,4 +149,4 @@ Detailed information on [`@voiceargs`](@ref) is found in the [High-level API ref
 
 While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom [`@voiceargs`](@ref) functions thanks to the API of JustSayIt ([`JustSayIt.API`](@ref)). It is illustrated in [this example](@ref Quick-definition-and-usage-of-custom-function). More information on the JustSayIt API is given in the [High-level API reference](@ref).
 
-Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: [`@include_config`](@ref) permits to conveniently `include` files from this folder.
+Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: [`JustSayIt.@include`](@ref) and [`JustSayIt.@edit`](@ref) permit to conveniently `include` and `edit` files from this folder.
