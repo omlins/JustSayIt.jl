@@ -1,15 +1,15 @@
 """
-    @include_config(path::AbstractString)
+    @include(path::AbstractString)
 
 Prefix `path` with the JustSayIt application config path and then call `include(path)`. If `path` is an absolut path, then call `include` with `path` unmodified.
 
 !!! note "NOTE: JustSayIt application config"
-    The content of the JustSayIt application config folder is not evaluated within JustSayIt. The folder's single purpose is to provide an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `@include_config` permits to conveniently `include` files from this folder (for details about the Julia built-in `include` type `?include`).
+    The content of the JustSayIt application config folder is not evaluated within JustSayIt. The folder's single purpose is to provide an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: `@include` permits to conveniently `include` files from this folder (for details about the Julia built-in `include` type `?include`).
     Your JustSayIt application config path on this system is: `$CONFIG_PREFIX`
 """
-macro include_config(args...) checkargs_include(args...); include_config(__module__, args...); end
+macro include(args...) checkargs_include(args...); _include(__module__, args...); end
 
-function include_config(caller::Module, path)
+function _include(caller::Module, path)
     path = esc(path)
     return quote
         if !isabspath($path)
