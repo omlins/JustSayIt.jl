@@ -34,7 +34,7 @@ JustSayIt's primary dependencies are [vosk], [sounddevice], [pynput], [PyCall.jl
 JustSayIt is programmed in a highly portable manner relying exclusively on portable Julia and Python modules (see [Dependencies](@ref)).
 
 ## Your contributions
-This project needs your contribution! There are a lot of commands for all different kind of operations to be programmed! Note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Please open an issue to discuss the addition of new features beforehand.
+The only limit to the commands that can be programmed with JustSayIt is your imagination! Please open an issue to discuss your idea for a contribution beforehand. Furthermore, note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Moreover, pull requests should blend nicely into the existing JustSayIt project; common sense is the primary guide in this regard (community guideline documents, e.g. [ColPrac](https://github.com/SciML/ColPrac), can be consulted in addition for inspiration). We are looking forward to your contribution!
 
 ## Contributors
 The principal contributors to [JustSayIt.jl] are (ordered by the significance of the relative contributions):
