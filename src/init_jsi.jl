@@ -27,9 +27,6 @@ let
     _modelname_default::String                                                                          = ""
     _commands                                                                                           = Dict()
     _commands_global                                                                                    = Dict()
-    _activ_command_path                                                                                 = Dict{String, Any}()
-    _activ_command_leafs                                                                                = Dict{String, Any}()
-    _activ_command_dicts                                                                                = Dict{String, Any}()
     _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
     _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
     _recognizers::Dict{String, Recognizer}                                                              = Dict{String, Recognizer}()
@@ -51,6 +48,9 @@ let
     set_perf_debug()                                                                                    = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
     use_static_recognizers()::Bool                                                                      = _use_static_recognizers
     set_static_recognizers_usage()                                                                      = if haskey(ENV,"JSI_USE_STATIC_RECOGNIZERS") _use_static_recognizers = (parse(Int64,ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
+    _activ_command_path                                                                                 = Dict{String, Any}()
+    _activ_command_leafs                                                                                = Dict{String, Any}()
+    _activ_command_dicts                                                                                = Dict{String, Any}()
     
     function initialize_commands(commands)
         _activ_command_path  = Dict{String, Any}()
