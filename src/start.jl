@@ -192,7 +192,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                     catch e
                         if isa(e, InsecureRecognitionException)
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
-                        elseif isa(e, InterruptException)
+                        elseif isa(e, InterruptException) || (isa(e, PyCall.PyError) && occursin("KeyboardInterrupt", string(e.T)))
                             @info "Command `$cmd_name` aborted (with CTRL+C)."
                         else
                             rethrow(e)
@@ -234,7 +234,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
             end
         end
     catch e
-        if isa(e, InterruptException)
+        if isa(e, InterruptException) || (isa(e, PyCall.PyError) && occursin("KeyboardInterrupt", string(e.T)))
             @info "Terminating JustSayIt..."
         else
             rethrow(e)
