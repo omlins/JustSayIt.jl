@@ -20,38 +20,37 @@ Initialize the package JustSayIt.
 See also: [`finalize_jsi`](@ref)
 """
 init_jsi
-
 let
     global init_jsi, default_language, type_languages, modelname_default, command, command_names, model, noises, noises_names, recognizer, controller, set_controller, do_perf_debug, use_static_recognizers, update_commands
-    _default_language::String                                 = ""
-    _type_languages::AbstractArray{String}                    = String[]
-    _modelname_default::String                                = ""
-    _commands                                                 = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N, String, Cmd, Dict}}}() # NOTE: specifying the exact Dict type of the commands leads to a crash that appears to be due to erronous compilation.
-    _commands_global                                          = Dict{String, Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N, String, Cmd, Dict}}}() # ...
-    _activ_command_path                                       = Dict{String, Any}()
-    _activ_command_leafs                                      = Dict{String, Any}()
-    _activ_command_dicts                                      = Dict{String, Any}()
-    _models::Dict{String, PyObject}                           = Dict{String, PyObject}()
-    _noises::Dict{String, <:AbstractArray{String}}            = Dict{String, Array{String}}()
-    _recognizers::Dict{String, Recognizer}                    = Dict{String, Recognizer}()
-    _controllers::Dict{String, PyObject}                      = Dict{String, PyObject}()
-    _do_perf_debug::Bool                                      = false
-    _use_static_recognizers                                   = false
-    default_language()                                        = _default_language
-    type_languages()                                          = _type_languages
-    modelname_default()                                       = _modelname_default
-    command(name::AbstractString)                             = _commands[name]
-    command_names()                                           = keys(_commands)
-    model(name::AbstractString=modelname_default())::PyObject = _models[name]
-    noises(modelname::AbstractString)                         = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
-    noises_names()                                            = keys(_noises)
-    recognizer(id::AbstractString)::Recognizer                = _recognizers[id]
-    controller(name::AbstractString)::PyObject                = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
-    set_controller(name::AbstractString, c::PyObject)         = (_controllers[name] = c; return)
-    do_perf_debug()::Bool                                     = _do_perf_debug
-    set_perf_debug()                                          = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
-    use_static_recognizers()::Bool                            = _use_static_recognizers
-    set_static_recognizers_usage()                            = if haskey(ENV,"JSI_USE_STATIC_RECOGNIZERS") _use_static_recognizers = (parse(Int64,ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
+    _default_language::String                                                                           = ""
+    _type_languages::AbstractArray{String}                                                              = String[]
+    _modelname_default::String                                                                          = ""
+    _commands                                                                                           = Dict()
+    _commands_global                                                                                    = Dict()
+    _activ_command_path                                                                                 = Dict{String, Any}()
+    _activ_command_leafs                                                                                = Dict{String, Any}()
+    _activ_command_dicts                                                                                = Dict{String, Any}()
+    _models::Dict{String, PyObject}                                                                     = Dict{String, PyObject}()
+    _noises::Dict{String, <:AbstractArray{String}}                                                      = Dict{String, Array{String}}()
+    _recognizers::Dict{String, Recognizer}                                                              = Dict{String, Recognizer}()
+    _controllers::Dict{String, PyObject}                                                                = Dict{String, PyObject}()
+    _do_perf_debug::Bool                                                                                = false
+    _use_static_recognizers                                                                             = false
+    default_language()                                                                                  = _default_language
+    type_languages()                                                                                    = _type_languages
+    modelname_default()                                                                                 = _modelname_default
+    command(name::AbstractString)                                                                       = _commands[name]
+    command_names()                                                                                     = keys(_commands)
+    model(name::AbstractString=modelname_default())::PyObject                                           = _models[name]
+    noises(modelname::AbstractString)                                                                   = _noises[modelname]  # NOTE: no return value declaration as would be <:AbstractArray{String} which is not possible.
+    noises_names()                                                                                      = keys(_noises)
+    recognizer(id::AbstractString)::Recognizer                                                          = _recognizers[id]
+    controller(name::AbstractString)::PyObject                                                          = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
+    set_controller(name::AbstractString, c::PyObject)                                                   = (_controllers[name] = c; return)
+    do_perf_debug()::Bool                                                                               = _do_perf_debug
+    set_perf_debug()                                                                                    = if haskey(ENV,"JSI_PERF_DEBUG") _do_perf_debug = (parse(Int64,ENV["JSI_PERF_DEBUG"]) > 0); end
+    use_static_recognizers()::Bool                                                                      = _use_static_recognizers
+    set_static_recognizers_usage()                                                                      = if haskey(ENV,"JSI_USE_STATIC_RECOGNIZERS") _use_static_recognizers = (parse(Int64,ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
     
     function initialize_commands(commands)
         _activ_command_path  = Dict{String, Any}()
@@ -107,13 +106,14 @@ let
         _modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
 
         # Validate and store the commands, adding the help command to it.
+        command_type = Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N}}
         if haskey(commands, COMMAND_NAME_SLEEP[default_language]) @ArgumentError("the command name $COMMAND_NAME_SLEEP[default_language] is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_AWAKE[default_language]) @ArgumentError("the command name $COMMAND_NAME_AWAKE[default_language] is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
-            if !(typeof(commands[cmd_name]) <: eltype(values(_commands))) @ArgumentError("the command belonging to commmand name $cmd_name is of an invalid type. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ) and arrays containing any combination of the afore noted.") end
+            if !(typeof(commands[cmd_name]) <: eltype(command_type)) @ArgumentError("the command belonging to commmand name $cmd_name is of an invalid type. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ) and arrays containing any combination of the afore noted.") end
             if isa(commands[cmd_name], Array)
                 for subcmd in commands[cmd_name]
-                    if (!(typeof(subcmd) <: eltype(values(_commands))) || isa(subcmd, Array)) @ArgumentError("a sub-command ($subcmd) belonging to commmand name $cmd_name is of an invalid type ($(typeof(subcmd))). Valid sub-commands are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+                    if (!(typeof(subcmd) <: eltype(command_type)) || isa(subcmd, Array)) @ArgumentError("a sub-command ($subcmd) belonging to commmand name $cmd_name is of an invalid type ($(typeof(subcmd))). Valid sub-commands are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
                 end
             end
         end
