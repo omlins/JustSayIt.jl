@@ -39,7 +39,7 @@ See also: [`is_next`](@ref)
 are_next
 
 let
-    global next_token, next_tokengroup, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, force_restart_recognition, is_active, reset_all, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
+    global next_token, next_tokengroup, is_next, _is_next, are_next, _are_next, recognizer, force_reset_previous, all_consumed, was_partial_recognition, force_restart_recognition, is_active, reset_all, reset, do_delayed_resets # NOTE: recogniser needs to be declared global here, even if elsewhere the method created here might not be used, as else we do not have access to the other reconizer methods here.
     _force_restart_recognition = false
 	recognizers_to_reset = Vector{Recognizer}() 		      # NOTE: only persistent recognizer will need to be reset; temporary recognizers will automatically be removed by the python garbage collector (see __del__ in Vosk source).
     active_recognizer::Union{Nothing, Recognizer} = nothing
