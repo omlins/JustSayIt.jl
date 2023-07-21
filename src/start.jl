@@ -129,7 +129,7 @@ $(pretty_dict_string(DEFAULT_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing) where N
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing)
     if (default_language in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
@@ -139,7 +139,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
-    if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
+    #TODO: temporarily deactivated: if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
     if isnothing(max_speed_subset) max_speed_subset = String[] end
     max_speed_token_subset = map(max_speed_subset) do cmd_name # Only the first tokens are used to decide if max speed is used.
@@ -147,7 +147,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
-    if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
+    #TODO: temporarily deactivated: if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
     if isnothing(modeldirs)
         modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages); modelname.(MODELTYPE_DEFAULT, type_languages)]  #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
         modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
@@ -183,9 +183,12 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                     cmd = command(string(cmd_name))
                     if (t0_latency() > 0.0 && do_perf_debug()) @debug "Latency of command `$cmd_name`: $(round(toc(t0_latency()),sigdigits=2))." end
                     try
-                        latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
-                        @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
-                        execute(cmd)
+                        if !isa(cmd, Dict)
+                            latency_msg = use_max_speed ? " (latency: $(round(Int,toc(t0_latency())*1000)) ms)" : ""
+                            @info "Starting command: $(pretty_cmd_string(cmd))"*latency_msg
+                        end
+                        execute(cmd, string(cmd_name))
+                        valid_cmd_names = command_names() # This is needed as new commands have potentially been activated...
                     catch e
                         if isa(e, InsecureRecognitionException)
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
@@ -205,7 +208,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                 end
             end
             try
-                force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
+                if !is_active(recognizer(COMMAND_RECOGNIZER_ID)) update_commands() end # NOTE: a reset might be beneficial or needed at some point, as previously force_reset_previous(recognizer(COMMAND_RECOGNIZER_ID))
                 use_max_speed = _is_next(max_speed_token_subset, recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions=true, ignore_unknown=false)
                 cmd_name = next_token(recognizer(COMMAND_RECOGNIZER_ID), _noises(modelname_default); use_partial_recognitions = use_max_speed, ignore_unknown=false)
                 if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
@@ -262,8 +265,3 @@ const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.
 @voiceargs words=>(valid_input=Tuple(CONFIRMATION), vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
     return ([join(words, " ")] == CONFIRMATION[default_language()])
 end
-
-execute(cmd::Function)                  = cmd()
-execute(cmd::PyKey)                     = Keyboard.press_keys(cmd)
-execute(cmd::NTuple{N,PyKey} where {N}) = Keyboard.press_keys(cmd...)
-execute(cmd::Array)                     = for subcmd in cmd execute(subcmd) end

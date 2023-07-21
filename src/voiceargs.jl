@@ -78,9 +78,9 @@ let
     _f_voiceargs::Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}                            = Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}()
     voiceargs(f_name::Symbol)::Dict{Symbol, Dict{Symbol, Any}}                             = _f_voiceargs[f_name]
     voicearg_f_names()::Base.KeySet{Symbol, Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}} = keys(_f_voiceargs)
-    recognizer(f_name::Symbol, voicearg::Symbol)::PyObject                                 = _f_voiceargs[f_name][voicearg][:recognizer]
+    recognizer(f_name::Symbol, voicearg::Symbol)::Recognizer                               = _f_voiceargs[f_name][voicearg][:recognizer]
     set_voiceargs(f_name::Symbol, v::Dict{Symbol, Dict{Symbol, Any}})                      = (_f_voiceargs[f_name] = v; return)
-    set_recognizer(f_name::Symbol, voicearg::Symbol, r::PyObject)                          = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
+    set_recognizer(f_name::Symbol, voicearg::Symbol, r::Recognizer)                          = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
 end
 
 
@@ -194,7 +194,9 @@ generate_valid_input(type)               = @ArgumentError("type $(esc(type)) is 
 # Construct the wrapper based on the definition of the original function, as it will only differ in the arguments and body.
 function wrap_f(f_name, f_args, f_expr, voiceargs)
     use_dynamic_recognizers = true
+    use_static_recognizers  = true
     if haskey(ENV, "JSI_USE_DYNAMIC_RECOGNIZERS") use_dynamic_recognizers = (parse(Int64, ENV["JSI_USE_DYNAMIC_RECOGNIZERS"]) > 0); end
+    if haskey(ENV, "JSI_USE_STATIC_RECOGNIZERS") use_static_recognizers = (parse(Int64, ENV["JSI_USE_STATIC_RECOGNIZERS"]) > 0); end
 
     # Generate the code for the recognition of the voiceargs.
     recognitions = fill(:(begin end), length(voiceargs))
@@ -203,8 +205,8 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
         modelname                = haskey(kwargs,:model) ? kwargs[:model] : :(modelname_default())
-        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : USE_PARTIAL_RECOGNITIONS_DEFAULT
-        ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : USE_IGNORE_UNKNOWN_DEFAULT
+        ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : esc(:ignore_unknown) # ...
+        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : esc(:use_max_speed)    # NOTE: the run time keyword argument sets the default; voice argument keywords override it.
         f_arg                    = f_args[voicearg]
         f_name_sym               = :(Symbol($(string(f_name))))
         voicearg_sym             = :(Symbol($(string(voicearg))))
@@ -216,7 +218,9 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
             else                         recognizer_or_info = :(recognizer($f_name_sym, $voicearg_sym))
             end
         else
-            recognizer_or_info = :(recognizer($modelname))
+            if (use_static_recognizers) recognizer_or_info = :(recognizer($modelname))
+            else                        recognizer_or_info = :(Recognizer(Vosk.KaldiRecognizer(model($modelname), SAMPLERATE), false))
+            end
         end
         if is_vararg
             tic_call   = :(begin end)
@@ -268,7 +272,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
 
     # Assign new arguments and body, and escape the other parts of the function definition.
     f_def[:name]        = esc(f_def[:name])
-    f_def[:kwargs]      = esc.(f_def[:kwargs])
+    f_def[:kwargs]      = esc.((f_def[:kwargs]..., Expr(:kw, :(use_max_speed::Bool), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :(ignore_unknown::Bool), USE_IGNORE_UNKNOWN_DEFAULT))) #TODO: give an error if these keyword arguments are set by the user.
     f_def[:whereparams] = esc.(f_def[:whereparams])
     f_def[:args]        = [esc(x) for x in f_def[:args] if !haskey(voiceargs, splitarg(x)[1])] # The voiceargs will not be part of the wrapper function signature.
     f_def[:body]        = quote

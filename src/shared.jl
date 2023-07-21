@@ -10,6 +10,7 @@ const Wave        = PyNULL()
 const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
+const Pywinctl    = PyNULL()
 
 
 function __init__()
@@ -21,6 +22,7 @@ function __init__()
         copy!(Zipfile,     pyimport("zipfile"))
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
+        copy!(Pywinctl,    pyimport_pip("pywinctl"))
     end
 end
 
@@ -156,6 +158,261 @@ const DIGITS = Dict(
     LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "coma"=>",",    "espacio"=>" "),
     LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "virgule"=>",", "espace"=>" "),
 )
+const DIRECTIONS = Dict(
+    LANG.DE    => Dict("rechts"=>"right", "links"=>"left", "oben"=>"up", "unten"=>"down", "vorwärts"=>"forward", "rückwärts"=>"backward", "aufwärts"=>"upward", "abwärts"=>"downward"),
+    LANG.EN_US => Dict("right"=>"right", "left"=>"left", "up"=>"up",   "down"=>"down", "forward"=>"forward", "backward"=>"backward", "upward"=>"upward", "downward"=>"downward"),
+    LANG.ES    => Dict("derecha"=>"right", "izquierda"=>"left", "arriba"=>"up", "abajo"=>"down", "adelante"=>"forward", "atrás"=>"backward", "subiendo"=>"upward", "bajando"=>"downward"),
+    LANG.FR    => Dict("droite"=>"right", "gauche"=>"left", "haut"=>"up", "bas"=>"down", "avant"=>"forward", "arrière"=>"backward", "montant"=>"upward", "descendant"=>"downward"),
+)
+const REGIONS = Dict(
+    LANG.DE    => Dict("hier"=>"here", "rechts"=>"right", "links"=>"left", "oben"=>"above", "unten"=>"below", "höher"=>"higher", "tiefer"=>"lower"),
+    LANG.EN_US => Dict("here"=>"here", "right"=>"right", "left"=>"left", "above"=>"above", "below"=>"below", "higher"=>"higher", "lower"=>"lower"),
+    LANG.ES    => Dict("aquí"=>"here", "derecha"=>"right", "izquierda"=>"left", "arriba"=>"above", "abajo"=>"below", "arribissima"=>"higher", "abajissima"=>"lower"),
+    LANG.FR    => Dict("ici"=>"here", "droite"=>"right", "gauche"=>"left", "dessus"=>"above", "dessous"=>"below", "haut"=>"higher", "bas"=>"lower"),
+)
+const FRAGMENTS = Dict(
+    LANG.DE    => Dict("wort"=>"word", "zeile" => "line", "bis ende"=>"remainder", "bis anfang"=>"preceding", "alles"=>"all"),
+    LANG.EN_US => Dict("word"=>"word", "line" => "line", "remainder"=>"remainder", "preceding"=>"preceding", "all"=>"all"),
+    LANG.ES    => Dict("palabra"=>"word", "línea" => "line", "hasta fin"=>"remainder", "hasta inicio"=>"preceding", "todo"=>"all"),
+    LANG.FR    => Dict("mot"=>"word", "ligne" => "line", "jusqu'à la fin"=>"remainder", "jusqu'au début"=>"preceding", "tout"=>"all"),
+)
+const SIDES = Dict(
+    LANG.DE    => Dict("vor"=>"before", "nach"=>"after"),
+    LANG.EN_US => Dict("before"=>"before", "after"=>"after"),
+    LANG.ES    => Dict("antes"=>"before", "después"=>"after"),
+    LANG.FR    => Dict("avant"=>"before", "après"=>"after"),
+)
+const COUNTS = Dict(
+    LANG.DE    => Dict("eins"=>"1", "zwei"=>"2", "drei"=>"3", "vier"=>"4", "fünf"=>"5", "sechs"=>"6", "sieben"=>"7", "acht"=>"8", "neun"=>"9", "zehn"=>"10", "fünfzig"=>"50", "hundert"=>"100", "tausend"=>"1000"),
+    LANG.EN_US => Dict("one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "ten"=>"10", "fifty"=>"50", "hundred"=>"100", "thousand"=>"1000"),
+    LANG.ES    => Dict("uno"=>"1", "dos"=>"2", "tres"=>"3", "cuatro"=>"4", "cinco"=>"5", "seis"=>"6", "siete"=>"7", "ocho"=>"8", "nueve"=>"9", "diez"=>"10", "cincuenta"=>"50", "cien"=>"100", "mil"=>"1000"),
+    LANG.FR    => Dict("un"=>"1", "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinq"=>"5", "six"=>"6", "sept"=>"7", "huit"=>"8", "neuf"=>"9", "dix"=>"10", "cinquante"=>"50", "cent"=>"100", "mille"=>"1000"),
+)
+
+
+# Sign commands.
+
+PUNCTUATION_SYMBOLS = Dict(
+    LANG.DE    => Dict("punkt"                       => ".",
+                       "komma"                       => ",",
+                       "doppelpunkt"                 => ":",
+                       "semikolon"                   => ";",
+                       "ausrufezeichen"              => "!",
+                       "fragezeichen"                => "?",
+                       "anführungszeichen"           => "\"",
+                       "einfaches anführungszeichen" => "'",
+                      ),
+    LANG.EN_US => Dict("point"         => ".",
+                       "comma"         => ",",
+                       "colon"         => ":",
+                       "semicolon"     => ";",
+                       "exclamation"   => "!",
+                       "interrogation" => "?",
+                       "quote"         => "\"",
+                       "single quote"  => "'",
+                      ),
+    LANG.ES    => Dict("punto"            => ".",
+                       "coma"             => ",",
+                       "dos puntos"       => ":",
+                       "punto y coma"     => ";",
+                       "exclamación"      => "!",
+                       "interrogación"    => "?",
+                       "comillas"         => "\"",
+                       "comillas simples" => "'",
+                      ),
+    LANG.FR    => Dict("point"              => ".",
+                       "virgule"            => ",",
+                       "deux points"        => ":",
+                       "point virgule"      => ";",
+                       "exclamation"        => "!",
+                       "interrogation"      => "?",
+                       "guillemets"         => "\"",
+                       "guillemets simples" => "'",
+                      ),
+);
+
+MATH_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "gleich"  => "=",
+        "plus"    => "+",
+        "minus"   => "-",
+        "mal"     => "*",
+        "geteilt" => "/",
+        "hoch"    => "^",
+        "modulo"  => "%",
+    ),
+    LANG.EN_US => Dict(
+        "equal"    => "=",
+        "plus"     => "+",
+        "minus"    => "-",
+        "multiply" => "*",
+        "divide"   => "/",
+        "power"    => "^",
+        "modulo"   => "%",
+    ),
+    LANG.ES    => Dict(
+        "igual"    => "=",
+        "más"      => "+",
+        "menos"    => "-",
+        "por"      => "*",
+        "dividido" => "/",
+        "potencia" => "^",
+        "módulo"   => "%",
+    ),
+    LANG.FR    => Dict(
+        "égal"          => "=",
+        "plus"          => "+",
+        "moins"         => "-",
+        "multiplié par" => "*",
+        "divisé par"    => "/",
+        "puissance"     => "^",
+        "modulo"        => "%",
+    ),
+);
+
+LOGICAL_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "ampersand"       => "&",
+        "vertikal strich" => "|",
+        "kleiner"         => "<",
+        "größer"          => ">",
+        "ungefähr"        => "~",
+    ),
+    LANG.EN_US => Dict(
+        "ampersand"       => "&",
+        "vertical bar"    => "|",
+        "less than"       => "<",
+        "greater than"    => ">",
+        "approximately"   => "~",
+    ),
+    LANG.ES    => Dict(
+        "ampersand"       => "&",
+        "barra vertical"  => "|",
+        "menor que"       => "<",
+        "mayor que"       => ">",
+        "aproximadamente" => "~",
+    ),
+    LANG.FR    => Dict(
+        "esperluette"     => "&",
+        "barre verticale" => "|",
+        "inférieur à"     => "<",
+        "supérieur à"     => ">",
+        "environ"         => "~",
+    ),
+);
+
+PARENTHESES_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "klammer"                         => "(",
+        "schließende klammer"             => ")",
+        "eckige klammer"                  => "[",
+        "schließende eckige klammer"      => "]",
+        "geschweifte klammer"             => "{",
+        "schließende geschweifte klammer" => "}",
+    ),
+    LANG.EN_US => Dict(
+        "parentheses"         => "(",
+        "closing parentheses" => ")",
+        "bracket"             => "[",
+        "closing bracket"     => "]",
+        "curly"               => "{",
+        "closing curly"       => "}",
+    ),
+    LANG.ES    => Dict(
+        "paréntesis"            => "(",
+        "paréntesis que cierra" => ")",
+        "corchete"              => "[",
+        "corchete que cierra"   => "]",
+        "llave"                 => "{",
+        "llave que cierra"      => "}",
+    ),
+    LANG.FR    => Dict(
+        "parenthèse"          => "(",
+        "parenthèse fermante" => ")",
+        "crochet"             => "[",
+        "crochet fermant"     => "]",
+        "accolade"            => "{",
+        "accolade fermante"   => "}",
+    ),
+);
+
+SPECIAL_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "at"         => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+    LANG.EN_US => Dict(
+        "at"         => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+    LANG.ES    => Dict(
+        "arroba"          => "@",
+        "almohadilla"     => "#",
+        "dólar"           => "\$",
+        "barra"           => "/",
+        "guión bajo"      => "_",
+        "acento grave"    => "`",
+        "barra invertida" => "\\",
+    ),
+    LANG.FR    => Dict(
+        "arobase"    => "@",
+        "hashtag"    => "#",
+        "dollar"     => "\$",
+        "slash"      => "/",
+        "underscore" => "_",
+        "back tick"  => "`",
+        "backslash"  => "\\",
+    ),
+);
+
+ALTERNATIVE_SYMBOLS = Dict(
+    LANG.DE    => Dict(
+        "punkt"   => ".",
+        "strich"  => "-",
+        "stern"   => "*",
+        "prozent" => "%",
+    ),
+    LANG.EN_US => Dict(
+        "dot"     => ".",
+        "dash"    => "-",
+        "star"    => "*",
+        "percent" => "%",
+    ),
+    LANG.ES    => Dict(
+        "punto"      => ".",
+        "guion"      => "-",
+        "asterisco"  => "*",
+        "por ciento" => "%",
+    ),
+    LANG.FR    => Dict(
+        "point"      => ".",
+        "tiret"      => "-",
+        "astérisque" => "*",
+        "pour cent"  => "%",
+    ),
+);
+
+merge_recursively(x::AbstractDict...) = merge(merge_recursively, x...) # NOTE: this function needs to be defined before it's usage below.
+merge_recursively(x...) = x[end]
+
+SYMBOLS = merge_recursively(
+    PUNCTUATION_SYMBOLS,
+    MATH_SYMBOLS,
+    LOGICAL_SYMBOLS,
+    PARENTHESES_SYMBOLS,
+    SPECIAL_SYMBOLS,
+    ALTERNATIVE_SYMBOLS
+)
 
 
 ## FUNCTIONS
@@ -229,6 +486,7 @@ end
 pretty_cmd_string(cmd::Array)                 = join(map(pretty_cmd_string, cmd), "  ->  ")
 pretty_cmd_string(cmd::Union{Tuple,NTuple})   = join(map(pretty_cmd_string, cmd), " + ")
 pretty_cmd_string(cmd::PyObject)              = cmd.name
+pretty_cmd_string(cmd::Dict)                  = "... => ..."
 pretty_cmd_string(cmd)                        = string(cmd)
 
 
@@ -236,4 +494,60 @@ function interpret_enum(input::AbstractString, valid_input::Dict{String, <:Abstr
     index = findfirst(x -> x==input, valid_input[default_language()])
     if isnothing(index) @APIUsageError("interpretation not possible: the string $input is not present in the obtained valid_input dictionary ($valid_input).") end
     return valid_input[LANG.EN_US][index]
+end
+
+
+execute(cmd::Function, cmd_name::String)                  = cmd()
+execute(cmd::PyKey, cmd_name::String)                     = Keyboard.press_keys(cmd)
+execute(cmd::NTuple{N,PyKey} where {N}, cmd_name::String) = Keyboard.press_keys(cmd...)
+execute(cmd::String, cmd_name::String)                    = Keyboard.type_string(cmd)
+execute(cmd::Cmd, cmd_name::String)                       = if !activate(cmd) run(cmd; wait=false) end
+execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd execute(subcmd, cmd_name) end
+
+function execute(cmd::Dict, cmd_name::String)
+    @info "Activating commands: $cmd_name"
+    update_commands(commands=cmd, cmd_name=cmd_name)
+    Help.help(Help.COMMANDS_KEYWORDS[default_language()])
+end
+
+function activate(cmd::Cmd)
+    app = cmd.exec[1]    
+    open_apps = Pywinctl.getAllAppsNames()
+    open_app = (app in open_apps) ? app : ""
+    if open_app == ""
+        for a in open_apps
+            if     occursin(Regex("^" * app * "[^a-zA-Z]" ), a  ) open_app = a; break
+            elseif occursin(Regex("^" * a   * "[^a-zA-Z]" ), app) open_app = a; break # E.g. app=google-chrome; a=chrome
+            elseif occursin(Regex("[^a-zA-Z]" * app * "\$"), a  ) open_app = a; break
+            elseif occursin(Regex("[^a-zA-Z]" * a   * "\$"), app) open_app = a; break
+            end
+        end
+    end
+    is_open = (open_app != "")
+    if is_open
+        windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # If there are multiple open windows for the given application take the first window.
+        window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
+        window.activate()
+    end
+    return is_open
+end
+
+
+# Types
+
+mutable struct Recognizer
+    pyobject::PyObject
+    is_persistent::Bool
+    valid_input::AbstractArray{String}
+    valid_tokens::AbstractArray{String}
+
+    function Recognizer(pyobject::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
+        valid_tokens = isempty(valid_input) ? String[] : [token for input in split.(valid_input) for token in input] |> unique |> collect
+        new(pyobject, is_persistent, valid_input, valid_tokens)
+    end
+
+    function Recognizer(pyobject::PyObject, is_persistent::Bool)
+        valid_input = String[]
+        Recognizer(pyobject, is_persistent, valid_input)
+    end
 end

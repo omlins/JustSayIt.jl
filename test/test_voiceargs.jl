@@ -3,7 +3,7 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS
-import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer
+import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer, Recognizer
 
 
 # Test setup
@@ -49,11 +49,11 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
         end;
         @testset "kwarg content" begin
             @testset "recognizers" begin
-                @test isa(voiceargs(:hello)[:space][:recognizer], PyObject)
-                @test isa(voiceargs(:hi)[:n1][:recognizer], PyObject)
-                @test isa(voiceargs(:hi)[:n2][:recognizer], PyObject)
-                @test isa(voiceargs(:ask)[:nr][:recognizer], PyObject)
-                @test isa(voiceargs(:ask)[:name][:recognizer], PyObject)
+                @test isa(voiceargs(:hello)[:space][:recognizer], Recognizer)
+                @test isa(voiceargs(:hi)[:n1][:recognizer], Recognizer)
+                @test isa(voiceargs(:hi)[:n2][:recognizer], Recognizer)
+                @test isa(voiceargs(:ask)[:nr][:recognizer], Recognizer)
+                @test isa(voiceargs(:ask)[:name][:recognizer], Recognizer)
             end;
             @testset "valid_input" begin
                 @test voiceargs(:hello)[:space][:valid_input] == ["world", "universe"]
@@ -91,11 +91,11 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
         end;
     end;
     @testset "2. recognizers" begin
-        @test isa(recognizer(:hello, :space), PyObject)
-        @test isa(recognizer(:hi, :n1), PyObject)
-        @test isa(recognizer(:hi, :n2), PyObject)
-        @test isa(recognizer(:ask, :nr), PyObject)
-        @test isa(recognizer(:ask, :name), PyObject)
+        @test isa(recognizer(:hello, :space), Recognizer)
+        @test isa(recognizer(:hi, :n1), Recognizer)
+        @test isa(recognizer(:hi, :n2), Recognizer)
+        @test isa(recognizer(:ask, :nr), Recognizer)
+        @test isa(recognizer(:ask, :name), Recognizer)
     end;
     @testset "3. voicearg wrapper" begin
         @testset "defined" begin

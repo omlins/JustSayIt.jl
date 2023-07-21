@@ -3,7 +3,7 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
-import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
+import JustSayIt: init_jsi, finalize_jsi, recognizer, Recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, reset, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
 
 
 # Test setup
@@ -64,8 +64,8 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
 @testset "$(basename(@__FILE__))" begin
     @testset "1. dynamic recognizers" begin
         valid_input = ["world", "universe"]
-        @test isa(recognizer(valid_input, noises(MODELNAME.DEFAULT.EN_US)), PyObject)
-        @test isa(recognizer(valid_input, noises(MODELNAME.TYPE.EN_US); modelname=MODELNAME.TYPE.EN_US), PyObject)
+        @test isa(recognizer(valid_input, noises(MODELNAME.DEFAULT.EN_US)), Recognizer)
+        @test isa(recognizer(valid_input, noises(MODELNAME.TYPE.EN_US); modelname=MODELNAME.TYPE.EN_US), Recognizer)
     end;
     @testset "2. single-word recognitions ($cmd)" for cmd in singleword_cmds
         sample = samples[cmd]
@@ -96,7 +96,7 @@ singleword_cmds = [cmd for cmd in keys(commands) if cmd ∉ twoword_cmds]
         end;
         stop_reading(id=id)
     end;
-    recognizer(COMMAND_RECOGNIZER_ID).Reset()
+    reset(recognizer(COMMAND_RECOGNIZER_ID), hard=true)
     reset_all(hard=true)
     @testset "4. token buffering - max speed ($cmd)" for cmd in singleword_cmds
         sample = samples[cmd]
