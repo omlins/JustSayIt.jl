@@ -106,14 +106,14 @@ let
         _modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
 
         # Validate and store the commands, adding the help command to it.
-        command_type = Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N}}
+        command_type = Union{Array, Union{Function, PyKey, NTuple{N,PyKey} where N, Cmd, Dict}}
         if haskey(commands, COMMAND_NAME_SLEEP[default_language]) @ArgumentError("the command name $COMMAND_NAME_SLEEP[default_language] is reserved for putting JustSayIt to sleep. Please choose another command name for your command.") end
         if haskey(commands, COMMAND_NAME_AWAKE[default_language]) @ArgumentError("the command name $COMMAND_NAME_AWAKE[default_language] is reserved for awaking JustSayIt. Please choose another command name for your command.") end
         for cmd_name in keys(commands)
-            if !(typeof(commands[cmd_name]) <: command_type) @ArgumentError("the command belonging to commmand name $cmd_name is of an invalid type. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ) and arrays containing any combination of the afore noted.") end
+            if !(typeof(commands[cmd_name]) <: command_type) @ArgumentError("the command belonging to commmand name $cmd_name is of an invalid type. Valid are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ), commands (e.g. `firefox`), command dictionaries and arrays containing any combination of the afore noted.") end
             if isa(commands[cmd_name], Array)
                 for subcmd in commands[cmd_name]
-                    if (!(typeof(subcmd) <: command_type) || isa(subcmd, Array)) @ArgumentError("a sub-command ($subcmd) belonging to commmand name $cmd_name is of an invalid type ($(typeof(subcmd))). Valid sub-commands are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f') and tuples of keys (e.g., (Key.ctrl, 'c') )") end
+                    if (!(typeof(subcmd) <: command_type) || isa(subcmd, Array)) @ArgumentError("a sub-command ($subcmd) belonging to commmand name $cmd_name is of an invalid type ($(typeof(subcmd))). Valid sub-commands are functions (e.g., Keyboard.type), keys (e.g., Key.ctrl or 'f'), tuples of keys (e.g., (Key.ctrl, 'c') ), commands (e.g. `firefox`) and command dictionaries ") end
                 end
             end
         end
