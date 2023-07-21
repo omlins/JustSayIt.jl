@@ -14,12 +14,14 @@ help?> JustSayIt
 ## Functions to configure and start JustSayIt
 #### Index
 * [`JustSayIt.start`](@ref)
-* [`JustSayIt.@include_config`](@ref)
+* [`JustSayIt.@include`](@ref)
+* [`JustSayIt.@edit`](@ref)
 
 #### Documentation
 ```@docs
 start
-@include_config
+@include
+@edit
 ```
 
 ## Submodules for command name to function mapping
