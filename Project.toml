@@ -16,6 +16,7 @@ PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 [compat]
 Conda = "1.7"
 DefaultApplication = "1"
+Downloads = "1"
 JSON = "0.21"
 MacroTools = "0.5"
 ProgressMeter = "1.7"
