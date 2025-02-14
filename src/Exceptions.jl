@@ -1,12 +1,13 @@
 module Exceptions
 
-export @ArgumentError, @APIUsageError, @ArgumentEvaluationError, @FileError, @IncoherentArgumentError, @InsecureRecognitionException, @KeywordArgumentError
-export                  APIUsageError,  ArgumentEvaluationError,  FileError,  IncoherentArgumentError,  InsecureRecognitionException,  KeywordArgumentError
+export @ArgumentError, @APIUsageError, @ArgumentEvaluationError, @ExternalError, @FileError, @IncoherentArgumentError, @InsecureRecognitionException, @KeywordArgumentError
+export                  APIUsageError,  ArgumentEvaluationError,  ExternalError,  FileError,  IncoherentArgumentError,  InsecureRecognitionException,  KeywordArgumentError
 
 
 macro ArgumentError(msg) esc(:(throw(ArgumentError($msg)))) end
 macro APIUsageError(msg) esc(:(throw(APIUsageError($msg)))) end
 macro ArgumentEvaluationError(msg) esc(:(throw(ArgumentEvaluationError($msg)))) end
+macro ExternalError(msg) esc(:(throw(ExternalError($msg)))) end
 macro FileError(msg) esc(:(throw(APIUsageError($msg)))) end
 macro IncoherentArgumentError(msg) esc(:(throw(IncoherentArgumentError($msg)))) end
 macro InsecureRecognitionException(msg) esc(:(throw(InsecureRecognitionException($msg)))) end
@@ -22,6 +23,11 @@ struct ArgumentEvaluationError <: Exception
     msg::String
 end
 Base.showerror(io::IO, e::ArgumentEvaluationError) = print(io, "ArgumentEvaluationError: ", e.msg)
+
+struct ExternalError <: Exception
+    msg::String
+end
+Base.showerror(io::IO, e::ExternalError) = print(io, "ExternalError: ", e.msg)
 
 struct FileError <: Exception
     msg::String
