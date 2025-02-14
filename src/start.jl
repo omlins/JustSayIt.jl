@@ -33,6 +33,12 @@ Start offline, low latency, highly accurate and secure speech to command transla
 - `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
+- `use_llm::Bool=true`: whether to use a Large Language Model (LLM) for improvement of the accuracy of the speech recognition, as well as for advanced features as automatic correction, improvement or translation of recognized text (default is `true). By default a local LLM model is used, but a remote model can be used in addition or instead (see `llm_localmodel` and `llm_remotemodel`). If both a local and a remote model are set, the remote model is used for the most challenging tasks (as request rate limitations apply usually) and the local model for the rest.
+- `llm_localmodel::String="$(LLM_DEFAULT_LOCALMODEL)"`: the local LLM model to be used, in the format `"model[:tag]" (e.g., "deepseek-r1:1.5b"). Available models are found here: https://ollama.com/search . The model is downloaded at first use if not present. The application "Ollama" needs to be pre-installed: https://ollama.com/download . To use LLM functionality (use_llm=true) exclusively with a remote model, set `llm_localmodel=""`.
+- `llm_remotemodel::String=""`: the remote LLM model to be used (if any), in the format `"model[:tag]" (e.g., "deepseek-r1"). Github provides for example a remote service for the following models: https://github.com/marketplace?type=Models . An API key is required for the use of the chosen remote model and request rate limits plus potentially fees apply (see the information on the website). The generated key must be passed with the `llm_remotemodel_apikey` keyword argument.
+- `llm_remotemodel_apikey::String=""`: the API key for the remote LLM model to be used (if any).
+
+
 !!! note "Advanced"
     - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. If `modeldirs` is not set, then it is automatically defined according to the `default_language` and `type_languages` set. Models are downloadable from here: https://alphacephei.com/vosk/models
     - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
@@ -129,7 +135,7 @@ $(pretty_dict_string(DEFAULT_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing)
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing, use_llm::Bool=true, llm_localmodel::String=LLM_DEFAULT_LOCALMODEL, llm_remotemodel::String="", llm_remotemodel_apikey::String="")
     if (default_language in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
@@ -152,10 +158,13 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
         modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages); modelname.(MODELTYPE_DEFAULT, type_languages)]  #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
         modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
     end
+    if (use_llm && isempty(llm_localmodel) && isempty(llm_remotemodel)) @IncoherentArgumentError("At least one of `llm_localmodel` or `llm_remotemodel` must be set if `use_llm=true`.") end
+    if !isempty(llm_remotemodel) && isempty(llm_remotemodel_apikey) @IncoherentArgumentError("If `llm_remotemodel` is set, `llm_remotemodel_apikey` must be set as well.") end
 
     # Initializations
     @info "JustSayIt: I am initializing..."
     init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages)
+    start_llms(llm_localmodel, llm_remotemodel, llm_remotemodel_apikey)
     start_recording(; audio_input_cmd=audio_input_cmd)
 
     # Interprete commands
