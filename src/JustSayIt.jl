@@ -37,6 +37,7 @@ include("voiceargs.jl")
 include("edit.jl")
 include("finalize_jsi.jl")
 include("next_token.jl")
+include("llms.jl")
 include("init_jsi.jl")
 include("include.jl")
 include("reader.jl")
@@ -52,6 +53,7 @@ include("Commands/Help.jl")
 include("Commands/Email.jl")
 include("Commands/Generic.jl")
 include("Commands/Internet.jl")
+include("Commands/LLM.jl")
 
 ## Include of main application and API (must be at end as needs to import potentially anything available in JustSayIt, in particular the Commands submodules).
 include("start.jl")
@@ -59,7 +61,7 @@ include("API.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
 export start
-export Keyboard, Mouse, Help, Email, Generic, Internet
+export Keyboard, Mouse, Help, Email, Generic, Internet, LLM
 export Key
 
 end # module JustSayIt
