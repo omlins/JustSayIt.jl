@@ -561,7 +561,7 @@ end
 @voiceargs new_lang=>(model=MODELNAME.DEFAULT.FR,    valid_input=[keys(LANG_CODES_SHORT[LANG.FR   ])...], ignore_unknown=true) get_language_FR(new_lang::String)    = _get_language(new_lang, LANG.FR)
 
 
-function type_string(str::String; do_keystrokes::Bool=true)
+function type_string(str::AbstractString; do_keystrokes::Bool=true)
     if do_keystrokes
         keyboard = controller("keyboard")
         keyboard.type(str)
@@ -606,6 +606,9 @@ end
 
 convert_key(key::Char)     = string(key)
 convert_key(key::PyObject) = key
+
+"Type delete key."
+press_delete() = press_keys(Pynput.keyboard.Key.delete)
 
 "Type one letter."
 function type_letter()
@@ -684,7 +687,7 @@ function navigate_smart(; up_lines=10, down_lines=10, action="move", select=fals
     regions    = [keys(REGIONS[lang])...]
     modes      = [directions..., counts..., regions...]
     modes      = select ? [modes..., fragments...] : modes
-    token      = next_token(modes; consume=false, use_partial_recognitions=true, ignore_unknown=false)        # NOTE: the token is not consumed yet...
+    token      = next_token(modes; consume=false, use_partial_recognitions=false, ignore_unknown=false)        # NOTE: the token is not consumed yet...
     if token in counts                              # Case: <action> <count> <direction>
         prefix = select ? select_prefix : ()
         move_cursor_explicit(; prefix=prefix, action=action)
@@ -767,7 +770,7 @@ end
 
 
 function move_cursor_explicit(; prefix=(), action="move")
-    token = next_count(; use_max_speed=true)
+    token = next_count() #; use_max_speed=true)
     if (token != UNKNOWN_TOKEN)
         count = parse(Int, token) # NOTE: this is safe as the count is always an integer.
         @info "$action $count <direction> ..."
@@ -823,7 +826,7 @@ function move_cursor_smart(; up_lines=10, down_lines=10, action="move", select=f
                         select_text(length(range), select_direction; prefix=select_prefix)
                         if (copy) press_keys(copy_shortcut...) end
                     end
-                    token = next_action(; use_max_speed=true)
+                    token = next_action(; use_max_speed=false) # TODO: was: use_max_speed=true)
                     if (paste && token ∉ navigation_actions) press_keys(paste_shortcut...) end # NOTE: in mode paste, we paste before exiting the function if no result browsing is initiated.
                     ranges = [range]
                     was_forward = true
@@ -892,7 +895,7 @@ function move_cursor_smart(; up_lines=10, down_lines=10, action="move", select=f
                                 end
                             end
                         end
-                        token = next_action(; use_max_speed=true)
+                        token = next_action(; use_max_speed=false) # TODO: was: use_max_speed=true)
                     end
                 else
                     @info "... no match found."

@@ -37,5 +37,5 @@ JustSayIt is programmed in a highly portable manner relying exclusively on porta
 The only limit to the commands that can be programmed with JustSayIt is your imagination! Please open an issue to discuss your idea for a contribution beforehand. Furthermore, note that pull request should always address a significant issue in its completeness and new commands should be generic enough to be of interest for others. Moreover, pull requests should blend nicely into the existing JustSayIt project; common sense is the primary guide in this regard (community guideline documents, e.g. [ColPrac](https://github.com/SciML/ColPrac), can be consulted in addition for inspiration). We are looking forward to your contribution!
 
 ## Contributors
-The principal contributors to [JustSayIt.jl] are (ordered by the significance of the relative contributions):
-- Dr. Samuel Omlin ([@omlins](https://github.com/omlins)), CSCS - Swiss National Supercomputing Centre, ETH Zurich
+The principal contributors to [JustSayIt.jl] have been so far (ordered by the significance of the relative contributions):
+- Dr. Samuel Omlin ([@omlins](https://github.com/omlins)), Swiss National Supercomputing Centre (CSCS), ETH Zurich
