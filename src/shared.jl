@@ -11,6 +11,7 @@ const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
 const Pywinctl    = PyNULL()
+const Ollama      = PyNULL()
 
 
 function __init__()
@@ -25,7 +26,8 @@ function __init__()
         end
         ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
         if !any(startswith.(PyCall.python, DEPOT_PATH))                 # Rebuild of PyCall if it has not been built with Conda.jl
-            @info "Rebuilding PyCall for using Julia Conda.jl..."
+            @info "Rebuilding PyCall for using Julia Conda.jl and installing/updating Conda..."
+            Conda.update()                                             # Update Conda.jl; ensures also that miniforge gets installed before it is potentially used in a situation where it is expected to be installed (config / pip_interop...?)
             Pkg.build("PyCall")
             do_restart = true
         end
@@ -40,6 +42,7 @@ function __init__()
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
         copy!(Pywinctl,    pyimport_pip("pywinctl"))
+        copy!(Ollama,      pyimport_pip("ollama"))
     end
 end
 
@@ -64,6 +67,9 @@ const UNKNOWN_TOKEN           = "[unk]"
 const PyKey                   = Union{Char, PyObject}
 const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>Union{AbstractArray{String}, NTuple{N,Pair{String,<:AbstractArray{String}}} where {N}}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
 const LATIN_ALPHABET          = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z")
+
+const LLM_DEFAULT_LOCALMODEL  = "mistral:7b-instruct"
+
 
 @static if Sys.iswindows()
     const JSI_DATA            = joinpath(ENV["APPDATA"], "JustSayIt")
@@ -434,13 +440,15 @@ SYMBOLS = merge_recursively(
 
 ## FUNCTIONS
 
-function pyimport_pip(modulename::AbstractString; dependency::AbstractString="", channel::AbstractString="conda-forge")
+function pyimport_pip(modulename::AbstractString; dependency::AbstractString="", channel::AbstractString="conda-forge", force_dependency::Bool=false)
     try
         pyimport(modulename)
     catch e
         if isa(e, PyCall.PyError)
-            Conda.pip_interop(true)
-            Conda.pip("install", modulename)
+            if !(force_dependency && dependency != "") # If the dependency installation has to be forced, we skip trying without dependency.
+                Conda.pip_interop(true)
+                Conda.pip("install", modulename)
+            end
             try
                 pyimport(modulename)
             catch e
@@ -456,6 +464,16 @@ function pyimport_pip(modulename::AbstractString; dependency::AbstractString="",
         else
             rethrow(e)
         end
+    end
+end
+
+function pyimport_pip(symbol::Symbol, pymodule::PyObject, symbolname_pip::AbstractString)
+    try
+        getproperty(pymodule, symbol)
+    catch
+        Conda.pip_interop(true)
+        Conda.pip("install", symbolname_pip)
+        getproperty(pymodule, symbol)
     end
 end
 
@@ -493,17 +511,24 @@ function interpret_enum(input::AbstractString, valid_input::Dict{String, <:Abstr
 end
 
 
+let
+    global active_app, execute
+    _active_app::String = ""
+    active_app() = _active_app
+    execute(cmd::Cmd, cmd_name::String)                   = ( if !activate(cmd) run(cmd; wait=false) end; _active_app = cmd.exec[1] )
+end
+
 execute(cmd::Function, cmd_name::String)                  = cmd()
 execute(cmd::PyKey, cmd_name::String)                     = Keyboard.press_keys(cmd)
 execute(cmd::NTuple{N,PyKey} where {N}, cmd_name::String) = Keyboard.press_keys(cmd...)
 execute(cmd::String, cmd_name::String)                    = Keyboard.type_string(cmd)
-execute(cmd::Cmd, cmd_name::String)                       = if !activate(cmd) run(cmd; wait=false) end
 execute(cmd::Array, cmd_name::String)                     = for subcmd in cmd execute(subcmd, cmd_name) end
+
 
 function execute(cmd::Dict, cmd_name::String)
     @info "Activating commands: $cmd_name"
     update_commands(commands=cmd, cmd_name=cmd_name)
-    Help.help(Help.COMMANDS_KEYWORDS[default_language()])
+    Help.help(Help.COMMANDS_KEYWORDS[default_language()]; debugonly=true)
 end
 
 function activate(cmd::Cmd)
