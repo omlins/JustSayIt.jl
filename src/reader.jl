@@ -29,15 +29,20 @@ let
     end
 
     function check_wav(reader::PyObject)
-        if reader.getnchannels() != 1 || reader.getsampwidth() != 2 || reader.getcomptype() != "NONE" || reader.getframerate() != SAMPLERATE
-            @FileError("the audio file must be WAV format mono PCM @ $SAMPLERATE Hz.")
+        channels = reader.getnchannels()
+        sampwidth = reader.getsampwidth()
+        comptype = reader.getcomptype()
+        if channels != 1 || sampwidth != 2 || comptype != "NONE"
+            @FileError("the audio file must be WAV format mono PCM (obtained: $channels channels, $sampwidth bytes per sample, compression type: $comptype, samplerate: $samplerate Hz)")
         end
     end
 
     function read_wav(filepath::String)
         wav_reader = start_reading(filepath)
+        samplerate = wav_reader.getframerate()
         audio = zeros(UInt8, wav_reader.getnframes()*sizeof(AUDIO_ELTYPE))
         bytes_read = readbytes!(wav_reader, audio)
+        audio = resample(audio; input_samplerate=samplerate, output_samplerate=SAMPLERATE)
         close(wav_reader)
         if (bytes_read == 0) @FileError("file $filepath could not be read.") end
         return audio

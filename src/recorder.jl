@@ -136,6 +136,8 @@ let
             return PyCall.pybytes(byte_audio)
         end
     end
+
+    resample(audio::AbstractVector{UInt8}; kwargs...) = PyCall.convert(Vector{UInt8}, resample(PyCall.pybytes(audio); kwargs...))
     
     function safe_int_audio(x::AbstractVector{<:Real}; T::Type=AUDIO_ELTYPE)
         if (T === Int16) x_clipped = clamp.(x, -32768, 32767)
