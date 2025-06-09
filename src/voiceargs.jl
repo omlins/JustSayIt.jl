@@ -8,14 +8,16 @@ Declare some or all arguments of the `function` definition to be arguments that 
 - `function`: the function definition.
 !!! note "Keyword arguments definable for each voice argument in `args`"
     - `model::String=MODELNAME.DEFAULT.<default_language>`: the name of the model to be used for the function argument (the name must be one of the keys of the modeldirs dictionary passed to `init_jsi`).
-    - `valid_input::AbstractArray{String}|NTuple{N,Pair{String,<:AbstractArray{String}}}`: the valid speech input (e.g. `["up", "down"]` or `("de" => ["rauf", "runter"], "en-us" => ["up", "down"], "fr" => ["haut", "bas"], "es" => ["arriba", "abajo"])`).
+    - `modeltype::String=MODELNAME.DEFAULT`: the name of the model type to be used for the function argument (a IETF language tag, elsewhere selected, will be concatenated to the model type to form the model name; the model names constructed in this manner must be keys of the modeldirs dictionary passed to `init_jsi`).
+    - `language::String=<default_language>`: the language (IETF language tag) to be used for the function argument (the model name will be constructed by concatenating the model type and the language).
+    - `valid_input::AbstractVector{String}|NTuple{N,Pair{String,<:AbstractVector{String}}}|Dict{String,<:AbstractVector{String}`: the valid speech input (e.g. `["up", "down"]` or `("de" => ["rauf", "runter"], "en-us" => ["up", "down"], "fr" => ["haut", "bas"], "es" => ["arriba", "abajo"])`).
     - `valid_input_auto::Bool`: whether the valid speech input can automatically be derived from the type of the function argument.
-    - `interpret_function::Function`: a function to interpret the token (mapping a String to a different String).
+    - `interpreter::Function`: a function to interpret the token (mapping a String to a different String).
     - `use_max_speed::Bool=false`: whether to use maxium speed for the recognition of the next token (rather than maximum accuracy). It is generally only recommended to set `use_max_speed=true` for single word commands or very specfic use cases that require immediate minimal latency action when a command is said.
     - `ignore_unknown::Bool=false`: whether to ignore unknown tokens in the speech (and consume the next instead). It is generally not recommended to set `ignore_unkown=true` - in particular not in combination with a limited valid input - as then the function will block until it receives a token it recognizes.
+    - `timeout::AbstractFloat`: timeout (in seconds) after which to abort argument recognition.
     - `vararg_end::String`: a token to signal the end of a vararg (only valid if the function argument is a vararg).
     - `vararg_max::Integer=∞`: the maximum number of arguments the vararg can contain (only valid if the function argument is a vararg).
-    - `vararg_timeout::AbstractFloat`: timeout after which to abort waiting for a next token to be spoken (only valid if the function argument is a vararg).
 
 # Examples
 ```
@@ -30,25 +32,28 @@ end
 end
 
 @enum TypeMode words formula
-@voiceargs (mode=>(valid_input_auto=true), token=>(model=MODELNAME.TYPE.EN_US, vararg_timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
+@voiceargs (mode=>(valid_input_auto=true), token=>(model=MODELNAME.TYPE.EN_US, timeout=2.0)) function type_tokens(mode::TypeMode, tokens::String...)
     #(...)
     return
 end
 ```
+
+See also: [`@voiceconfig`](@ref)
 """
-macro voiceargs(args...) checkargs(args...); handle_voiceargs(__module__, args...); end
+macro voiceargs(args...) check_voiceargs_args(args...); handle_voiceargs(__module__, args...); end
 
 
 ## CONSTANTS
 
 const USE_PARTIAL_RECOGNITIONS_DEFAULT = false
 const USE_IGNORE_UNKNOWN_DEFAULT       = false
-const VARARG_TIMEOUT_DEFAULT           = 60.0
+const TIMEOUT_DEFAULT                  = 60.0
+const LANGUAGE_DEFAULT                 = :(default_language())
 
 
 ## ARGUMENT CHECKS
 
-function checkargs(args...)
+function check_voiceargs_args(args...)
     if (length(args) != 2) @ArgumentError("wrong number of arguments.") end
     if !(is_symbol(args[1]) || is_pair(args[1]) || is_tuple(args[1])) @ArgumentError("the first argument must be a voicearg, a pair `voicearg=>kwargs` or a tuple with multiple voiceargs, which can each have kwargs or not (obtained: $(args[1])).") end
     if !is_function(args[end]) @ArgumentError("the last argument must be a function definition (obtained: $(args[end])).") end
@@ -56,6 +61,7 @@ end
 
 
 ## VOICEARGS FUNCTIONS
+
 function handle_voiceargs(caller::Module, voiceargs_arg::Union{Symbol,Expr}, f_expr::Expr)
     voiceargs_vect = extract_voiceargs(voiceargs_arg)
     simpleargs, complexargs_expr = split_args(voiceargs_vect)
@@ -80,18 +86,12 @@ let
     voicearg_f_names()::Base.KeySet{Symbol, Dict{Symbol, Dict{Symbol, Dict{Symbol, Any}}}} = keys(_f_voiceargs)
     recognizer(f_name::Symbol, voicearg::Symbol)::Recognizer                               = _f_voiceargs[f_name][voicearg][:recognizer]
     set_voiceargs(f_name::Symbol, v::Dict{Symbol, Dict{Symbol, Any}})                      = (_f_voiceargs[f_name] = v; return)
-    set_recognizer(f_name::Symbol, voicearg::Symbol, r::Recognizer)                          = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
+    set_recognizer(f_name::Symbol, voicearg::Symbol, r::Recognizer)                        = (_f_voiceargs[f_name][voicearg][:recognizer] = r; return)
 end
 
 
 ## FUNCTIONS TO DEAL WITH VOICEARGS PARSING
 
-is_function(arg)                 = isdef(arg)
-is_symbol(arg)                   = isa(arg, Symbol)
-is_pair(arg)                     = isa(arg, Expr) && (arg.head==:call) && (arg.args[1]==:(=>))
-is_kwarg(arg)                    = isa(arg, Expr) && (arg.head==:(=))
-is_tuple(arg)                    = isa(arg, Expr) && (arg.head==:tuple)
-is_kwargexpr(arg)                = is_kwarg(arg) || ( (arg.head==:tuple) && all([is_kwarg(x) for x in arg.args]) )
 complexarg_key(complexarg)       = complexarg.args[2]
 complexarg_kwargexpr(complexarg) = complexarg.args[3]
 
@@ -154,14 +154,6 @@ function eval_kwargs!(caller::Module, voiceargs)
     end
 end
 
-function eval_arg(caller::Module, arg)
-    try
-        return @eval(caller, $arg)
-    catch e
-        @ArgumentEvaluationError("argument $arg could not be evaluated at parse time (in module $caller).")
-    end
-end
-
 function validate_voiceargs(voiceargs, f_args)
     for voicearg in keys(voiceargs)
         if !haskey(f_args, voicearg) @ArgumentError("voicearg $(voicearg) is not part of the (positional) function arguments (keyword arguments cannot be voiceargs).") end
@@ -170,8 +162,11 @@ function validate_voiceargs(voiceargs, f_args)
             if !isa(voiceargs[voicearg][kwarg], VALID_VOICEARGS_KWARGS[kwarg]) @KeywordArgumentError("keyword argument $(kwarg)=$(voiceargs[voicearg][kwarg]) of voicearg $(voicearg) is of the wrong type (obtained type: $(typeof(voiceargs[voicearg][kwarg])); expected type: $(VALID_VOICEARGS_KWARGS[kwarg])).") end
         end
         if haskey(voiceargs[voicearg], :valid_input) && haskey(voiceargs[voicearg], :valid_input_auto) @IncoherentArgumentError("the keywords valid_input and valid_input_auto are incompatible. Set can set only one of them, not both.") end
-        if  (haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) && !f_args[voicearg][:slurp] @KeywordArgumentError("the keywords vararg_end, vararg_max and vararg_timeout are only valid for vararg arguments (as e.g. `args...`)") end
-        if !(haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max) || haskey(voiceargs[voicearg], :vararg_timeout)) &&  f_args[voicearg][:slurp] @ArgumentError("at least one of the keywords vararg_end, vararg_max and vararg_timeout must be set for vararg arguments (as e.g. `args...`)") end
+        if (haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max)) && !f_args[voicearg][:slurp] @KeywordArgumentError("the keywords vararg_end and vararg_max are only valid for vararg arguments (as, e.g., `args...`)") end
+        if !haskey(voiceargs[voicearg], :vararg_end) && haskey(voiceargs[voicearg], :vararg_max) @IncoherentArgumentError("the keywords vararg_max is only valid in combination with vararg_end.") end
+        if haskey(voiceargs[voicearg], :model) && (haskey(voiceargs[voicearg], :modeltype) || haskey(voiceargs[voicearg], :language)) @IncoherentArgumentError("the keyword model is incompatible with the keywords modeltype and language.") end
+        # TODO: the following is to be removed
+        # if !(haskey(voiceargs[voicearg], :vararg_end) || haskey(voiceargs[voicearg], :vararg_max)) &&  f_args[voicearg][:slurp] @ArgumentError("at least one of the keywords vararg_end and vararg_max must be set for vararg arguments (as, e.g., `args...`)") end
     end
 end
 
@@ -182,7 +177,7 @@ function handle_valid_inputs!(caller::Module, voiceargs, f_args)
             type = eval_arg(caller, f_args[voicearg][:arg_type])
             voiceargs[voicearg][:valid_input] = generate_valid_input(type)
             if !isa(voiceargs[voicearg][:valid_input], VALID_VOICEARGS_KWARGS[:valid_input]) @ArgumentError("generation of valid input by type inspection failed for voicearg $voicearg (generated: $(voiceargs[voicearg][:valid_input])).") end
-        elseif haskey(voiceargs[voicearg], :valid_input) && !isa(voiceargs[voicearg][:valid_input],AbstractArray{String})
+        elseif haskey(voiceargs[voicearg], :valid_input) && isa(voiceargs[voicearg][:valid_input], NTuple{N,Pair{String,<:AbstractVector{String}}} where {N})
             voiceargs[voicearg][:valid_input] = Dict(voiceargs[voicearg][:valid_input])
         end
     end
@@ -200,37 +195,37 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
 
     # Generate the code for the recognition of the voiceargs.
     recognitions = fill(:(begin end), length(voiceargs))
-    token = gensym("token")
+    token        = gensym("token")
+    tokengroup   = gensym("tokengroup")
     i = 1
     for voicearg in keys(voiceargs)
         kwargs                   = voiceargs[voicearg]
-        modelname                = haskey(kwargs,:model) ? kwargs[:model] : :(modelname_default())
+        language                 = haskey(kwargs,:language) ? kwargs[:language] : esc(:language)                   # NOTE: the runtime keyword argument sets the default (for all voice arguments at once); voice argument keywords override it for the specific voice argument.
+        modeltype                = haskey(kwargs,:modeltype) ? kwargs[:modeltype] : esc(:modeltype)                # ...
+        modelname                = haskey(kwargs,:model) ? kwargs[:model] : :(modelname($modeltype, $language))    # ...
         ignore_unknown           = haskey(kwargs,:ignore_unknown) ? kwargs[:ignore_unknown] : esc(:ignore_unknown) # ...
-        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : esc(:use_max_speed)    # NOTE: the run time keyword argument sets the default; voice argument keywords override it.
+        use_partial_recognitions = haskey(kwargs,:use_max_speed) ? kwargs[:use_max_speed] : esc(:use_max_speed)    # ...
+        timeout                  = haskey(kwargs,:timeout) ? kwargs[:timeout] : esc(:timeout)                      # ...
         f_arg                    = f_args[voicearg]
         f_name_sym               = :(Symbol($(string(f_name))))
         voicearg_sym             = :(Symbol($(string(voicearg))))
         voicearg_esc             = esc(voicearg)
         is_vararg                = f_args[voicearg][:slurp]
         if haskey(kwargs, :valid_input)
-            valid_input = isa(kwargs[:valid_input],AbstractArray{String}) ? kwargs[:valid_input] : :($(kwargs[:valid_input])[default_language()])
+            valid_input = isa(kwargs[:valid_input],AbstractVector{String}) ? kwargs[:valid_input] : :($(kwargs[:valid_input])[$language])
+            # TODO: the static recognizer cannot support multiple languages: it currently just uses the default language, which could be fine if one would say we just give an error if the wrong language is requested. But it is only fine if this does not happen ever if there are no environment flags set.
             if (use_dynamic_recognizers) recognizer_or_info = :(($f_name_sym, $voicearg_sym, $valid_input, $modelname))
             else                         recognizer_or_info = :(recognizer($f_name_sym, $voicearg_sym))
             end
         else
             if (use_static_recognizers) recognizer_or_info = :(recognizer($modelname))
+            #TODO: this is currently hard coded to use vosk and should later be able to use both backends:
             else                        recognizer_or_info = :(Recognizer(Vosk.KaldiRecognizer(model($modelname), SAMPLERATE), false))
             end
         end
-        if is_vararg
-            tic_call   = :(begin end)
-            conditions = :()
-            vararg_timeout = VARARG_TIMEOUT_DEFAULT
-            if haskey(kwargs, :vararg_timeout) # NOTE: the timeout check shall always remain the first condition in order not to wait e.g. for an end keyword that is never coming...
-                vararg_timeout = kwargs[:vararg_timeout]
-                has_timed_out = gensym("has_timed_out")
-                conditions = :(!$has_timed_out)
-            end
+        if is_vararg && haskey(kwargs, :vararg_end)
+            has_timed_out = gensym("has_timed_out")
+            conditions = :(!$has_timed_out) # NOTE: the timeout check shall always remain the first condition in order not to wait e.g. for an end keyword that is never coming...
             if haskey(kwargs, :vararg_max)
                 vararg_max = kwargs[:vararg_max]
                 reached_max = :(length($voicearg_esc) == $vararg_max)
@@ -245,15 +240,22 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
                 $voicearg_esc = []
                 $has_timed_out = false
                 while $conditions
-                    $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, timeout=$vararg_timeout, ignore_unknown=$ignore_unknown)
+                    $token = next_token($recognizer_or_info, noises($modelname); timeout=$timeout, use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
                     if ($token == UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
                     push!($voicearg_esc, $(interpret_and_parse_calls(token, kwargs, f_arg)))
                     $has_timed_out = ($token == "")
                 end
             end
+        elseif is_vararg # default vararg behaviour
+            recognition = quote
+                $tokengroup = next_tokengroup($recognizer_or_info, noises($modelname); timeout=$timeout, use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
+                if any($tokengroup .== UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
+                if any($tokengroup .== "") @InsecureRecognitionException($("time out waiting for voice argument $voicearg in function $f_name.")) end
+                $voicearg_esc = map(x -> $(interpret_and_parse_calls(:x, kwargs, f_arg)), $tokengroup)
+            end 
         else
             recognition = quote
-                $token = next_token($recognizer_or_info, noises($modelname); use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
+                $token = next_token($recognizer_or_info, noises($modelname); timeout=$timeout, use_partial_recognitions=$use_partial_recognitions, ignore_unknown=$ignore_unknown)
                 if ($token == UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
                 if ($token == "") @InsecureRecognitionException($("time out waiting for voice argument $voicearg in function $f_name.")) end
                 $voicearg_esc = $(interpret_and_parse_calls(token, kwargs, f_arg))
@@ -272,7 +274,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
 
     # Assign new arguments and body, and escape the other parts of the function definition.
     f_def[:name]        = esc(f_def[:name])
-    f_def[:kwargs]      = esc.((f_def[:kwargs]..., Expr(:kw, :(use_max_speed::Bool), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :(ignore_unknown::Bool), USE_IGNORE_UNKNOWN_DEFAULT))) #TODO: give an error if these keyword arguments are set by the user.
+    f_def[:kwargs]      = (esc.(f_def[:kwargs])..., Expr(:kw, :($(esc(:modeltype))::$(VALID_VOICEARGS_KWARGS[:modeltype])), MODELTYPE_DEFAULT), Expr(:kw, :($(esc(:language))::$(VALID_VOICEARGS_KWARGS[:language])), LANGUAGE_DEFAULT), Expr(:kw, :($(esc(:timeout))::$(VALID_VOICEARGS_KWARGS[:timeout])), TIMEOUT_DEFAULT), Expr(:kw, :($(esc(:use_max_speed))::$(VALID_VOICEARGS_KWARGS[:use_max_speed])), USE_PARTIAL_RECOGNITIONS_DEFAULT), Expr(:kw, :($(esc(:ignore_unknown))::$(VALID_VOICEARGS_KWARGS[:ignore_unknown])), USE_IGNORE_UNKNOWN_DEFAULT)) #TODO: give an error if these keyword arguments are set by the user.
     f_def[:whereparams] = esc.(f_def[:whereparams])
     f_def[:args]        = [esc(x) for x in f_def[:args] if !haskey(voiceargs, splitarg(x)[1])] # The voiceargs will not be part of the wrapper function signature.
     f_def[:body]        = quote
@@ -284,9 +286,9 @@ end
 
 function interpret_and_parse_calls(input, kwargs, f_arg)
     type = esc(f_arg[:arg_type])
-    if haskey(kwargs, :interpret_function)
-        interpret_function = esc(kwargs[:interpret_function])
-        return :(parse($type, $interpret_function($input)))
+    if haskey(kwargs, :interpreter)
+        interpreter = esc(kwargs[:interpreter])
+        return :(parse($type, $interpreter($input)))
     else
         return :(parse($type, $input))
     end
@@ -304,10 +306,3 @@ function parse(type::Type{<:Enum}, val::AbstractString)
     end
     return parser[val]
 end
-
-
-## TEMPORARY FUNCTION DEFINITIONS TO BE MERGED IN MACROTOOLS (https://github.com/FluxML/MacroTools.jl/pull/173)
-
-isdef(ex)     = isshortdef(ex) || islongdef(ex)
-islongdef(ex) = @capture(ex, function (fcall_ | fcall_) body_ end)
-isshortdef(ex) = MacroTools.isshortdef(ex)
