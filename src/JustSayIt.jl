@@ -32,36 +32,44 @@ using .Exceptions
 ## Include of shared constant parameters, types and syntax sugar and voiceargs macro
 include("shared.jl")
 include("voiceargs.jl")
+include("voiceconfig.jl")
+include("tts.jl")
 
 ## Alphabetical include of files
 include("edit.jl")
 include("finalize_jsi.jl")
 include("next_token.jl")
-include("llms.jl")
+include("llm.jl")
 include("init_jsi.jl")
 include("include.jl")
 include("reader.jl")
 include("recorder.jl")
 include("streamer.jl")
 
-## Include of command-submodules for peripherics control and help
-include("Commands/Keyboard.jl")
-include("Commands/Mouse.jl")
+## Include of command-submodules for help
 include("Commands/Help.jl")
 
+## Include of command-submodules for STT
+include("Commands/STT.jl")
+
+## Include of command-submodules for peripherics control (must be after STT as they use STT functions)
+include("Commands/Keyboard.jl")
+include("Commands/Mouse.jl")
+
 ## Alphabetical include of command-submodules (must be at end as needs to import from JustSayIt, .e.g. next_recognition, next_partial_recognition)
-include("Commands/Email.jl")
 include("Commands/Generic.jl")
-include("Commands/Internet.jl")
 include("Commands/LLM.jl")
+include("Commands/TTS.jl")
 
 ## Include of main application and API (must be at end as needs to import potentially anything available in JustSayIt, in particular the Commands submodules).
 include("start.jl")
 include("API.jl")
+include("preferences.jl")
 
 ## Exports (need to be after include of submodules if re-exports from them)
 export start
-export Keyboard, Mouse, Help, Email, Generic, Internet, LLM
+export Keyboard, Mouse, Help, Email, Generic, Internet, LLM, TTS
 export Key
+export @voiceargs, @voiceconfig
 
 end # module JustSayIt
