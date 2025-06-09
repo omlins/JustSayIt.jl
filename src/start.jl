@@ -1,20 +1,8 @@
 const DEFAULT_COMMANDS = Dict(
-    LANG.DE    => Dict("hilfe"    => Help.help,
-                       "schreibe" => Keyboard.type,
-                       "email"    => Email.email,
-                       "internet" => Internet.internet),
-    LANG.EN_US => Dict("help"     => Help.help,
-                       "type"     => Keyboard.type,
-                       "email"    => Email.email,
-                       "internet" => Internet.internet),
-    LANG.ES    => Dict("ayuda"    => Help.help,
-                       "escribe"  => Keyboard.type,
-                       "email"    => Email.email,
-                       "internet" => Internet.internet),
-    LANG.FR    => Dict("aide"     => Help.help,
-                       "écrire"   => Keyboard.type,
-                       "email"    => Email.email,
-                       "internet" => Internet.internet),
+    LANG.DE    => Dict("hilfe"    => Help.help),
+    LANG.EN_US => Dict("help"     => Help.help),
+    LANG.ES    => Dict("ayuda"    => Help.help),
+    LANG.FR    => Dict("aide"     => Help.help),
 )
 
 
@@ -28,21 +16,25 @@ Start offline, low latency, highly accurate and secure speech to command transla
     Support for German and Spanish is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017
 
 # Keyword arguments
-- `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
-- `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF langauge tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
+- `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF language tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
+- `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF language tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 - `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those.
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
-- `use_llm::Bool=true`: whether to use a Large Language Model (LLM) for improvement of the accuracy of the speech recognition, as well as for advanced features as automatic correction, improvement or translation of recognized text (default is `true). By default a local LLM model is used, but a remote model can be used in addition or instead (see `llm_localmodel` and `llm_remotemodel`). If both a local and a remote model are set, the remote model is used for the most challenging tasks (as request rate limitations apply usually) and the local model for the rest.
-- `llm_localmodel::String="$(LLM_DEFAULT_LOCALMODEL)"`: the local LLM model to be used, in the format `"model[:tag]" (e.g., "deepseek-r1:1.5b"). Available models are found here: https://ollama.com/search . The model is downloaded at first use if not present. The application "Ollama" needs to be pre-installed: https://ollama.com/download . To use LLM functionality (use_llm=true) exclusively with a remote model, set `llm_localmodel=""`.
-- `llm_remotemodel::String=""`: the remote LLM model to be used (if any), in the format `"model[:tag]" (e.g., "deepseek-r1"). Github provides for example a remote service for the following models: https://github.com/marketplace?type=Models . An API key is required for the use of the chosen remote model and request rate limits plus potentially fees apply (see the information on the website). The generated key must be passed with the `llm_remotemodel_apikey` keyword argument.
-- `llm_remotemodel_apikey::String=""`: the API key for the remote LLM model to be used (if any).
+- `use_llm::Bool=true`: whether to use a Large Language Model (LLM) for advanced features as the summary or translation of text (default is `true).
+- `use_tts::Bool=true`: whether to use text-to-speech (TTS) functionality for voice enhancement of certain commands and for enabling the text-to-speech commands of the model TTS (default is `true`).
+- `tts_async_default::Bool=true`: whether to use asynchronous TTS by default. The default (`true`) requires using of headphones, because in asynchronous mode, the TTS voice can naturally trigger commands by accident.
+- `use_gpu::Bool=true`: whether to use GPU, enabling the use of better performing STT, TTS and LLM models (default is `true`).
+- `microphone_id::Int`: the id of the microphone to be used, instead of the default microphone. JustSayIt prints available devices and their ids at the start of the application.
+- `microphone_name::String`: the name of the microphone to be used, instead of the default microphone. JustSayIt prints available devices at the start of the application (names are sometimes better used instead of ids, because the latter can change dynamically in certain OS). The name is case-insensitive and must match the beginning of the printed device name (if there are multiple matches, the first is used).
+- `audiooutput_id::Int`: the id of the audio output device to be used, instead of the default audio output device. JustSayIt prints available devices and their ids at the start of the application.
+- `audiooutput_name::String`: the name of the audio output device to be used, instead of the default audio output device. JustSayIt prints available devices at the start of the application (names are sometimes better used instead of ids, because the latter can change dynamically in certain OS). The name is case-insensitive and must match the beginning of the printed device name (if there are multiple matches, the first is used).
 
 
 !!! note "Advanced"
     - `modeldirs::Dict{String, String}`: the directories where the unziped speech recognition models to be used are located. If `modeldirs` is not set, then it is automatically defined according to the `default_language` and `type_languages` set. Models are downloadable from here: https://alphacephei.com/vosk/models
     - `noises::Dict{String, <:AbstractArray{String}}=DEFAULT_NOISES`: for each model, an array of strings with noises (tokens that are to be ignored in the speech as, e.g., "huh").
-    - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IN_CHANNELS` and `format=Int16` (signed 16-bit integer).
+    - `audio_input_cmd::Cmd=nothing`: a command that returns an audio stream to replace the default audio recorder. The audio stream must fullfill the following properties: `samplerate=$SAMPLERATE`, `channels=$AUDIO_IO_CHANNELS` and `format=$AUDIO_ELTYPE` (signed 16-bit integer).
 
 # Submodules for command name to function mapping
 - [`Help`](@ref)
@@ -116,7 +108,7 @@ start(modeldirs=modeldirs, default_language="$(LANG.EN_US)", type_languages=["$(
 ```
 # Use a custom command to create the audio input stream - instead of the default recorder (the rate, channels and format must not be chosen different!)
 using JustSayIt
-audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IN_CHANNELS --format=S16_LE`
+audio_input_cmd = `arecord --rate=$SAMPLERATE --channels=$AUDIO_IO_CHANNELS --format=S16_LE`
 start(audio_input_cmd=audio_input_cmd)
 ```
 
@@ -125,9 +117,9 @@ start(audio_input_cmd=audio_input_cmd)
 $(pretty_dict_string(DEFAULT_COMMANDS))
 ```
 
-# Default model directories
+# Default Vosk model directories
 ```
-$(pretty_dict_string(DEFAULT_MODELDIRS))
+$(pretty_dict_string(DEFAULT_VOSK_MODELDIRS))
 ```
 
 # Default `noises`
@@ -135,7 +127,7 @@ $(pretty_dict_string(DEFAULT_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing, use_llm::Bool=true, llm_localmodel::String=LLM_DEFAULT_LOCALMODEL, llm_remotemodel::String="", llm_remotemodel_apikey::String="")
+function start(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, audio_input_cmd::Union{Cmd,Nothing}=nothing, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="")
     if (default_language in [LANG.DE, LANG.ES]) @KeywordArgumentError("Currently unsupported language: support for German (\"de\") and Spanish (\"es\") is deactivated due to an unresolved issue with the underlying Vosk Speech Recognition Toolkit: https://github.com/alphacep/vosk-api/issues/1017") end
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
@@ -145,7 +137,6 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
-    #TODO: temporarily deactivated: if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
     if !isnothing(subset) commands = filter(x -> x[1] in subset, commands) end
     if isnothing(max_speed_subset) max_speed_subset = String[] end
     max_speed_token_subset = map(max_speed_subset) do cmd_name # Only the first tokens are used to decide if max speed is used.
@@ -153,19 +144,36 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     end
     max_speed_multiword_cmds = [x for x in keys(commands) if any(startswith.(x, [x for x in max_speed_token_subset if x ∉ max_speed_subset]))]
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
-    #TODO: temporarily deactivated: if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
+    stt_freespeech_engine = use_gpu ? STT_DEFAULT_FREESPEECH_ENGINE : STT_DEFAULT_FREESPEECH_ENGINE_CPU
     if isnothing(modeldirs)
-        modelnames = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_TYPE, type_languages); modelname.(MODELTYPE_DEFAULT, type_languages)]  #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
-        modeldirs = Dict(key => DEFAULT_MODELDIRS[key] for key in keys(DEFAULT_MODELDIRS) if key in modelnames)
+        modelnames_type    = modelname.(MODELTYPE_SPEECH, type_languages)
+        modelnames_default = [modelname(MODELTYPE_DEFAULT, default_language); modelname.(MODELTYPE_DEFAULT, type_languages)] #NOTE: a small ("default") model is also required for the type languages in order to deal with keywords etc (valid input restricted...).
+        if stt_freespeech_engine=="faster-whisper"
+            modelnames_type   = vcat(modelnames_type, [modelname(MODELTYPE_SPEECH)])
+            modeldirs_type    = Dict(key => DEFAULT_WHISPER_MODELDIRS[key] for key in keys(DEFAULT_WHISPER_MODELDIRS) if key in modelnames_type)
+            modeldirs_default = Dict(key => DEFAULT_VOSK_MODELDIRS[key] for key in keys(DEFAULT_VOSK_MODELDIRS) if key in modelnames_default)
+            modeldirs = merge(modeldirs_type, modeldirs_default)
+        elseif stt_freespeech_engine=="vosk"
+            modelnames = vcat(modelnames_type, modelnames_default)
+            modeldirs  = Dict(key => DEFAULT_VOSK_MODELDIRS[key] for key in keys(DEFAULT_VOSK_MODELDIRS) if key in modelnames)
+        end
     end
-    if (use_llm && isempty(llm_localmodel) && isempty(llm_remotemodel)) @IncoherentArgumentError("At least one of `llm_localmodel` or `llm_remotemodel` must be set if `use_llm=true`.") end
-    if !isempty(llm_remotemodel) && isempty(llm_remotemodel_apikey) @IncoherentArgumentError("If `llm_remotemodel` is set, `llm_remotemodel_apikey` must be set as well.") end
-
+    
     # Initializations
-    @info "JustSayIt: I am initializing..."
-    init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages)
-    start_llms(llm_localmodel, llm_remotemodel, llm_remotemodel_apikey)
-    start_recording(; audio_input_cmd=audio_input_cmd)
+    @info "JustSayIt: I am getting ready..."
+    if (use_tts)
+        tts_engine = Preferences.@load_preference("TTS_ENGINE", use_gpu ? TTS_DEFAULT_ENGINE : TTS_DEFAULT_ENGINE_CPU)
+        start_tts(tts_engine; audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name)
+    end
+    say("Hi there! I am getting ready...")
+    if (use_llm)
+        llm_api_key = Preferences.@load_preference("OPENAI_API_KEY", "")
+        llm_model   = Preferences.@load_preference("LLM_MODEL", isempty(llm_api_key) ? LLM_DEFAULT_LOCALMODEL : LLM_DEFAULT_REMOTEMODEL)
+        start_llm(llm_model, llm_api_key)
+    end
+    init_jsi(commands, modeldirs, noises; default_language=default_language, type_languages=type_languages, stt_freespeech_engine=stt_freespeech_engine)
+    set_tts_async_default(tts_async_default) # NOTE: the TTS async default must be set before the recording is started (until this point, TTS can be asynchronous in any case without potentially triggering commands by accident)
+    start_recording(; audio_input_cmd=audio_input_cmd, microphone_id=microphone_id, microphone_name=microphone_name)
 
     # Interprete commands
     modelname_default = modelname(MODELTYPE_DEFAULT, default_language)
@@ -177,14 +185,15 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
     cmd_sleep_jsi     = (default_language == LANG.EN_US) ? "$cmd_name_sleep JustSayIt" : "$cmd_name_sleep JSI"
     is_sleeping       = false
     use_max_speed     = true
-    @info "Listening for commands in $(lang_str(default_language)) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c to terminate)..."
+    @info "I'm ready. Listening for commands in $(lang_str(default_language)) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c in the terminal to terminate)..."
+    say("...and now, whatever you need: \"just say it\"!"; async=tts_async_default)
     try
         while true
             if is_sleeping
                 if cmd_name == cmd_name_awake
                     if is_confirmed() is_sleeping = false end
-                    if (is_sleeping) @info("I think I heard \"$cmd_name_awake\". If you want to awake me, say \"$cmd_awake_jsi\".")
-                    else             @info("... awake again. Listening for commands...")
+                    if (is_sleeping) @voiceinfo("I think I heard \"$cmd_name_awake\". If you want to awake me, say \"$cmd_awake_jsi\".")
+                    else             @voiceinfo("... awake again. Listening for commands...")
                     end
                 end
             else
@@ -200,7 +209,10 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                         valid_cmd_names = command_names() # This is needed as new commands have potentially been activated...
                     catch e
                         if isa(e, InsecureRecognitionException)
+                            @debug e.msg
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
+                            say("Command `$cmd_name` aborted.")
+                            sleep(2.0) # Give the recognizer time to finalize
                         elseif isa(e, InterruptException)
                             @info "Command `$cmd_name` aborted (with CTRL+C)."
                         else
@@ -209,8 +221,8 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
                     end
                 elseif cmd_name == cmd_name_sleep
                     if is_confirmed() is_sleeping = true end
-                    if (!is_sleeping) @info("I heard \"$cmd_name_sleep\". If you want me to sleep, say \"$cmd_sleep_jsi\".")
-                    else              @info("Going to sleep... (To awake me, just say \"$cmd_awake_jsi\".)")
+                    if (!is_sleeping) @voiceinfo("I heard \"$cmd_name_sleep\". If you want me to sleep, say \"$cmd_sleep_jsi\".")
+                    else              @voiceinfo("Going to sleep... (To awake me, just say \"$cmd_awake_jsi\".)")
                     end
                 elseif cmd_name != ""
                     @debug "Invalid command: $cmd_name."
@@ -249,6 +261,7 @@ function start(; default_language::String=LANG.EN_US, type_languages::Union{Stri
             rethrow(e)
         end
     finally
+        if (use_llm) stop_llm() end
         stop_recording()
         @info "Stopped listening for commands."
     end
@@ -271,6 +284,6 @@ end
 
 const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.ES=>["j s i"], LANG.FR=>["j s i"])
 
-@voiceargs words=>(valid_input=Tuple(CONFIRMATION), vararg_timeout=2.0, vararg_max=3) function _is_confirmed(words::String...)
+@voiceargs words=>(valid_input=Tuple(CONFIRMATION), timeout=2.0) function _is_confirmed(words::String...)
     return ([join(words, " ")] == CONFIRMATION[default_language()])
 end
