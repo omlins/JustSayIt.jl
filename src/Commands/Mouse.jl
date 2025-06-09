@@ -22,6 +22,7 @@ module Mouse
 
 using PyCall
 import ..JustSayIt: pyimport_pip, controller, set_controller
+export click_left, click_middle, click_right, press_left, release_left, click_double, click_triple #TODO: export and add to doc once the implementation is generic: move_to_center, move_to_north, move_to_south, move_to_east, move_to_west, move_to_northeast, move_to_northwest, move_to_southeast, move_to_southwest
 
 
 ## PYTHON MODULES
@@ -38,7 +39,7 @@ function __init__()
 end
 
 
-## FUNCTIONS
+## API FUNCTIONS
 
 "Click left mouse button."
 click_left(;count::Integer=1) = controller("mouse").click(Pynput.mouse.Button.left, count)
@@ -62,7 +63,7 @@ click_double() = click_left(;count=2)
 click_triple() = click_left(;count=3)
 
 ####################################################################
-#TEMP
+#TEMP IMPLEMENTATION
 
 "Move to center."
 move_to_center() = controller("mouse").position = (1920÷2, 1080÷2)
