@@ -1,17 +1,24 @@
-import Pkg, Downloads, ProgressMeter
-using PyCall, Conda, JSON, MacroTools
+import Pkg, Downloads, ProgressMeter, Preferences
+using PyCall, Conda, JSON, MacroTools, PromptingTools
 import MacroTools: splitdef, combinedef
+const PT = PromptingTools
 
 
 ## PYTHON MODULES
 const Vosk        = PyNULL()
 const Sounddevice = PyNULL()
 const Wave        = PyNULL()
+const Scipy       = PyNULL()
+const Numpy       = PyNULL()
 const Zipfile     = PyNULL()
 const Pynput      = PyNULL()
 const Key         = PyNULL()
 const Pywinctl    = PyNULL()
 const Ollama      = PyNULL()
+const Torch       = PyNULL()
+const RealtimeTTS = PyNULL()
+const RealtimeSTT = PyNULL()
+const Transcriber = PyNULL()
 
 
 function __init__()
@@ -36,13 +43,46 @@ function __init__()
             exit()
         end
         copy!(Vosk,        pyimport_pip("vosk"))
-        copy!(Sounddevice, pyimport_pip("sounddevice"; dependency="portaudio"))
+        copy!(Sounddevice, pyimport_pip("sounddevice"; dependencies=["portaudio"]))
         copy!(Wave,        pyimport("wave"))
+        copy!(Scipy,       pyimport_pip("scipy"))
+        copy!(Numpy,       pyimport_pip("numpy"))
         copy!(Zipfile,     pyimport("zipfile"))
         copy!(Pynput,      pyimport_pip("pynput"))
         copy!(Key,         Pynput.keyboard.Key)
         copy!(Pywinctl,    pyimport_pip("pywinctl"))
         copy!(Ollama,      pyimport_pip("ollama"))
+        # if startswith(get_cuda_version(), "11.")
+            # Conda.pip("uninstall --yes", ["ctranslate2", "nvidia-cublas-cu12", "nvidia-cudnn-cu12", "nvidia-cublas-cu11", "nvidia-cudnn-cu11"])
+            # pyimport_pip("nvidia.cublas"; modulename_pip="nvidia-cublas-cu11")
+            # pyimport_pip("nvidia.cudnn"; modulename_pip="nvidia-cudnn-cu11==8.*")
+
+            # Conda.pip("uninstall --yes", "ctranslate2")
+            # pyimport_pip("ctranslate2"; modulename_pip="ctranslate2==3.24.0")
+        # end
+        # kokoro requires a driver update!
+        if get_cuda_version() != ""  # Install Torch with CUDA support if available (for RealtimeTTS)
+            try 
+                copy!(Torch, pyimport("torch"))
+            catch e
+            end
+            if (Torch==PyNULL()) || !(Torch.cuda.is_available())
+                Conda.pip("uninstall --yes", ["torch", "torchvision", "torchaudio"])
+            end
+            # if startswith(get_cuda_version(), "11.")
+                copy!(Torch, pyimport_pip("torch", args_pip="--index-url=https://download.pytorch.org/whl/cu118"; modulename_pip="torch==2.3.0")) #; dependencies=["pytorch-cuda=11.8"]))
+                pyimport_pip("torchvision", args_pip="--index-url=https://download.pytorch.org/whl/cu118"; modulename_pip="torchvision==0.18.0")
+                pyimport_pip("torchaudio", args_pip="--index-url=https://download.pytorch.org/whl/cu118"; modulename_pip="torchaudio==2.3.0")
+            # else
+            #    copy!(Torch, pyimport_pip("torch", args_pip="--index-url=https://download.pytorch.org/whl/$(get_torch_cuda_version())"; dependencies=["pytorch-cuda"]))
+            #    pyimport_pip("torchvision", args_pip="--index-url=https://download.pytorch.org/whl/$(get_torch_cuda_version())")
+            #    pyimport_pip("torchaudio", args_pip="--index-url=https://download.pytorch.org/whl/$(get_torch_cuda_version())")
+            # end
+        end
+        copy!(RealtimeSTT, pyimport_pip("RealtimeSTT"; dependencies=["ffmpeg"], force_dependencies=true))
+        copy!(RealtimeTTS, pyimport_pip("RealtimeTTS"; modulename_pip="realtimetts[system, kokoro]", dependencies=["pyaudio"], force_dependencies=true)) # NOTE: PyAudio fails to install with pip; so, it is installed with Conda...
+        @pyinclude(joinpath(@__DIR__, "transcriber.py"))
+        copy!(Transcriber, py"Transcriber")
     end
 end
 
@@ -50,25 +90,36 @@ end
 ## CONSTANTS
 
 const DEFAULT_MODEL_REPO      = "https://alphacephei.com/vosk/models"
-const SAMPLERATE              = 44100       #[Hz]
-const AUDIO_READ_MAX          = 512         #[bytes]
+const SAMPLERATE              = 16000 #44100 #48000 #16000       #[Hz]
+const AUDIO_IO_CHANNELS       = 1
 const AUDIO_ALLOC_GRANULARITY = 1024^2      #[bytes]
 const AUDIO_HISTORY_MIN       = 1024^2      #[bytes]
-const AUDIO_ELTYPE            = Int16
-const AUDIO_IN_CHANNELS       = 1
+const AUDIO_READ_MAX          = 512         #[bytes]
+const AUDIO_ELTYPE            = Int16       # NOTE: This must be as required by the STT models and must be the same as the chunk type used in TTS wite_to_stdout.
+const AUDIO_ELTYPE_STR        = lowercase(string(AUDIO_ELTYPE))
+const AUDIO_BLOCKSIZE         = Int(AUDIO_READ_MAX/sizeof(AUDIO_ELTYPE))
 const COMMAND_ABORT           = "abortus"
 const VARARG_END              = "terminus"
 const COMMAND_RECOGNIZER_ID   = ""          # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
-const DEFAULT_RECORDER_ID     = "default"
-const DEFAULT_READER_ID       = "default"
-const MODELTYPE_DEFAULT       = "default"
-const MODELTYPE_TYPE          = "type"
+const DEFAULT_RECORDER_ID     = "__default__"
+const DEFAULT_READER_ID       = "__default__"
+const MODELTYPE_DEFAULT       = "__default__"
+const MODELTYPE_SPEECH        = "__speech__"
 const UNKNOWN_TOKEN           = "[unk]"
 const PyKey                   = Union{Char, PyObject}
-const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :valid_input=>Union{AbstractArray{String}, NTuple{N,Pair{String,<:AbstractArray{String}}} where {N}}, :valid_input_auto=>Bool, :interpret_function=>Function, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :vararg_timeout=>AbstractFloat, :ignore_unknown=>Bool)
-const LATIN_ALPHABET          = Dict("a"=>"a", "b"=>"b", "c"=>"c", "d"=>"d", "e"=>"e", "f"=>"f", "g"=>"g", "h"=>"h", "i"=>"i", "j"=>"j", "k"=>"k", "l"=>"l", "m"=>"m", "n"=>"n", "o"=>"o", "p"=>"p", "q"=>"q", "r"=>"r", "s"=>"s", "t"=>"t", "u"=>"u", "v"=>"v", "w"=>"w", "x"=>"x", "y"=>"y", "z"=>"z")
+const VALID_VOICEARGS_KWARGS  = Dict(:model=>String, :modeltype=>String, :language=>String, :valid_input=>Union{AbstractVector{String}, NTuple{N,Pair{String,<:AbstractVector{String}}} where {N}, Dict{String,<:AbstractVector{String}}}, :valid_input_auto=>Bool, :interpreter=>Function, :timeout=>AbstractFloat, :use_max_speed=>Bool, :vararg_end=>String, :vararg_max=>Integer, :ignore_unknown=>Bool)
+const VALID_VOICECONFIG_KWARGS = Dict(:modeltype=>String, :language=>String, :timeout=>AbstractFloat, :use_max_speed=>Bool, :ignore_unknown=>Bool)
 
-const LLM_DEFAULT_LOCALMODEL  = "mistral:7b-instruct"
+const STT_DEFAULT_FREESPEECH_ENGINE = "faster-whisper"
+const STT_DEFAULT_FREESPEECH_ENGINE_CPU = "vosk"
+const LLM_DEFAULT_LOCALMODEL     = "gemma3:1b" #"phi:2.7b" #"phi4-mini:3.8b" #"mistral:7b-instruct"
+const LLM_DEFAULT_REMOTEMODEL    = "gpt-4o-mini"
+const TTS_SUPPORTED_LOCALENGINES = Dict("system" => PyNULL(), "kokoro" => PyNULL(), "orpheus" => PyNULL()) # NOTE: this can only be constructed at runtime
+const TTS_DEFAULT_ENGINE         = "kokoro"
+const TTS_DEFAULT_ENGINE_CPU     = "system"
+const TTS_DEFAULT_STREAM         = "__default__"
+const TTS_FILE_STREAM            = "__file__"
+const TTS_FILE_PLAY_STREAM       = "__file_play__"
 
 
 @static if Sys.iswindows()
@@ -83,18 +134,23 @@ else
     const MODELDIR_PREFIX     = joinpath(homedir(), ".local", "share", "JustSayIt", "models")
     const CONFIG_PREFIX       = joinpath(homedir(), ".config", "JustSayIt")
 end
+const VOSK_MODELDIR_PREFIX  = joinpath(MODELDIR_PREFIX, "vosk")
+const RSTT_MODELDIR_PREFIX = joinpath(MODELDIR_PREFIX, "realtimestt")
 
 
 # (FUNCTIONS USED IN CONSTANT DEFINITIONS)
 
-lang_str(code::String)                         = LANG_STR[code]
-modelname(modeltype::String, language::String) = modeltype * "-" * language
+lang_str(code::String)                                = LANG_STR[code]
+modelname(modeltype::String, language::String="auto") = modeltype * "-" * language
+
 function modeltype(modelname::String)
     if     startswith(modelname, MODELTYPE_DEFAULT) return MODELTYPE_DEFAULT
-    elseif startswith(modelname, MODELTYPE_TYPE)    return MODELTYPE_TYPE
+    elseif startswith(modelname, MODELTYPE_SPEECH)    return MODELTYPE_SPEECH
     else                                            @APIUsageError("invalid modelname (obtained: \"$modelname\").")
     end
 end
+
+modellang(modelname::String) = split(modelname, "-")[2]
 
 
 # (HIERARCHICAL CONSTANTS)
@@ -120,28 +176,6 @@ const LANG_STR = Dict(LANG.DE    => "German",
                       LANG.ES    => "Spanish",
                       LANG.FR    => "French",
                       )
-const LANG_CODES_SHORT = Dict(
-    LANG.DE    => Dict("deutsch"     => "de",
-                       "englisch"    => "en",
-                       "spanisch"    => "es",
-                       "französisch" => "fr",
-                      ),
-    LANG.EN_US => Dict("german"  => "de",
-                       "english" => "en",
-                       "spanish" => "es",
-                       "french"  => "fr",
-                      ),
-    LANG.ES    => Dict("alemán"  => "de",
-                       "inglés"  => "en",
-                       "español" => "es",
-                       "francés" => "fr",
-                      ),
-    LANG.FR    => Dict("allemand" => "de",
-                       "anglais"  => "en",
-                       "espagnol" => "es",
-                       "français" => "fr",
-                      ),
-)
 const NOISES = (DE    = String[],
                 EN_US = String["huh"],
                 ES    = String[],
@@ -149,17 +183,25 @@ const NOISES = (DE    = String[],
                )
 "Constant named tuple containing modelnames for available languages."
 const MODELNAME = (DEFAULT = (; zip(keys(LANG), modelname.(MODELTYPE_DEFAULT, values(LANG)))...),
-                   TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_TYPE,    values(LANG)))...),
+                   TYPE    = (; zip(keys(LANG), modelname.(MODELTYPE_SPEECH, values(LANG)))..., 
+                                AUTO = modelname(MODELTYPE_SPEECH) 
+                             ),
                   )
-const DEFAULT_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(MODELDIR_PREFIX, "vosk-model-small-de-0.15"),
-                               MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                               MODELNAME.DEFAULT.ES    => joinpath(MODELDIR_PREFIX, "vosk-model-small-es-0.22"),
-                               MODELNAME.DEFAULT.FR    => joinpath(MODELDIR_PREFIX, "vosk-model-small-fr-0.22"),
-                               MODELNAME.TYPE.DE       => joinpath(MODELDIR_PREFIX, "vosk-model-de-0.21"),
-                               MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"),
-                               MODELNAME.TYPE.ES       => "",                   # NOTE: Currently no large model for ES available.
-                               MODELNAME.TYPE.FR       => joinpath(MODELDIR_PREFIX, "vosk-model-fr-0.22"),
-                               )
+const DEFAULT_VOSK_MODELDIRS = Dict(MODELNAME.DEFAULT.DE    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-de-0.15"),
+                                    MODELNAME.DEFAULT.EN_US => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                                    MODELNAME.DEFAULT.ES    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-es-0.22"),
+                                    MODELNAME.DEFAULT.FR    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-fr-0.22"),
+                                    MODELNAME.TYPE.DE       => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-de-0.21"),
+                                    MODELNAME.TYPE.EN_US    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-en-us-daanzu-20200905"),
+                                    MODELNAME.TYPE.ES       => "",                   # NOTE: Currently no large model for ES available.
+                                    MODELNAME.TYPE.FR       => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-fr-0.22"),
+                                    )
+const DEFAULT_WHISPER_MODELDIRS = Dict(MODELNAME.TYPE.DE    => joinpath(RSTT_MODELDIR_PREFIX, "tiny"), #TODO: to be seen how to handle
+                                       MODELNAME.TYPE.EN_US => joinpath(RSTT_MODELDIR_PREFIX, "tiny"),
+                                       MODELNAME.TYPE.ES    => joinpath(RSTT_MODELDIR_PREFIX, "tiny"),
+                                       MODELNAME.TYPE.FR    => joinpath(RSTT_MODELDIR_PREFIX, "tiny"),
+                                       MODELNAME.TYPE.AUTO  => joinpath(RSTT_MODELDIR_PREFIX, "tiny"),
+                                      )
 const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
                                MODELNAME.DEFAULT.EN_US => NOISES.EN_US,
                                MODELNAME.DEFAULT.ES    => NOISES.ES,
@@ -169,293 +211,76 @@ const DEFAULT_NOISES    = Dict(MODELNAME.DEFAULT.DE    => NOISES.DE,
                                MODELNAME.TYPE.ES       => NOISES.ES,
                                MODELNAME.TYPE.FR       => NOISES.FR,
                                )
+const LATIN_ALPHABET = string.('a':'z')
+const LANG_SYMBOLS   = [values(LANG)...]
+const DIGITS_SYMBOLS = [string.('0':'9')..., ".", ",", " "]
+const COUNTS_SYMBOLS = [string.('1':'9')..., "10", "50", "100", "1000"]
+
+const LANGUAGES = Dict(
+    LANG.DE    => ["deutsch", "englisch", "spanisch", "französisch"],
+    LANG.EN_US => ["german", "english", "spanish", "french"],
+    LANG.ES    => ["alemán", "inglés", "español", "francés"],
+    LANG.FR    => ["allemand", "anglais", "espagnol", "français"],
+)
 const ALPHABET = Dict(
-    LANG.DE    => merge(LATIN_ALPHABET, Dict("leerzeichen"=>" ", "ä"=>"ä", "ö"=>"ö", "ü"=>"ü")),
-    LANG.EN_US => merge(LATIN_ALPHABET, Dict("space"=>" ")),
-    LANG.ES    => merge(LATIN_ALPHABET, Dict("espacio"=>" ", "ñ"=>"ñ")),
-    LANG.FR    => merge(LATIN_ALPHABET, Dict("espace"=>" ")),
+    LANG.DE    => LATIN_ALPHABET,
+    LANG.EN_US => LATIN_ALPHABET,
+    LANG.ES    => LATIN_ALPHABET,
+    LANG.FR    => LATIN_ALPHABET,
 )
 const DIGITS = Dict(
-    LANG.DE    => Dict("null"=>"0", "eins"=>"1", "zwei"=>"2", "drei"=>"3",  "vier"=>"4",   "fünf"=>"5",   "sechs"=>"6", "sieben"=>"7", "acht"=>"8",  "neun"=>"9",  "punkt"=>".", "komma"=>",",   "leerzeichen"=>" "),
-    LANG.EN_US => Dict("zero"=>"0", "one"=>"1",  "two"=>"2",  "three"=>"3", "four"=>"4",   "five"=>"5",   "six"=>"6",   "seven"=>"7",  "eight"=>"8", "nine"=>"9",  "dot"=>".",   "comma"=>",",   "space"=>" "),
-    LANG.ES    => Dict("cero"=>"0", "uno"=>"1",  "duo"=>"2",  "tres"=>"3",  "quatro"=>"4", "cinco"=>"5",  "seis"=>"6",  "siete"=>"7",  "ocho"=>"8",  "nueve"=>"9", "punto"=>".", "coma"=>",",    "espacio"=>" "),
-    LANG.FR    => Dict("zéro"=>"0", "un"=>"1",   "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinque"=>"5", "six"=>"6",   "sept"=>"7",   "huit"=>"8",  "neuf"=>"9",  "point"=>".", "virgule"=>",", "espace"=>" "),
-)
-const DIRECTIONS = Dict(
-    LANG.DE    => Dict("rechts"=>"right", "links"=>"left", "oben"=>"up", "unten"=>"down", "vorwärts"=>"forward", "rückwärts"=>"backward", "aufwärts"=>"upward", "abwärts"=>"downward"),
-    LANG.EN_US => Dict("right"=>"right", "left"=>"left", "up"=>"up",   "down"=>"down", "forward"=>"forward", "backward"=>"backward", "upward"=>"upward", "downward"=>"downward"),
-    LANG.ES    => Dict("derecha"=>"right", "izquierda"=>"left", "arriba"=>"up", "abajo"=>"down", "adelante"=>"forward", "atrás"=>"backward", "subiendo"=>"upward", "bajando"=>"downward"),
-    LANG.FR    => Dict("droite"=>"right", "gauche"=>"left", "haut"=>"up", "bas"=>"down", "avant"=>"forward", "arrière"=>"backward", "montant"=>"upward", "descendant"=>"downward"),
-)
-const REGIONS = Dict(
-    LANG.DE    => Dict("hier"=>"here", "rechts"=>"right", "links"=>"left", "oben"=>"above", "unten"=>"below", "höher"=>"higher", "tiefer"=>"lower"),
-    LANG.EN_US => Dict("here"=>"here", "right"=>"right", "left"=>"left", "above"=>"above", "below"=>"below", "higher"=>"higher", "lower"=>"lower"),
-    LANG.ES    => Dict("aquí"=>"here", "derecha"=>"right", "izquierda"=>"left", "arriba"=>"above", "abajo"=>"below", "arribissima"=>"higher", "abajissima"=>"lower"),
-    LANG.FR    => Dict("ici"=>"here", "droite"=>"right", "gauche"=>"left", "dessus"=>"above", "dessous"=>"below", "haut"=>"higher", "bas"=>"lower"),
-)
-const FRAGMENTS = Dict(
-    LANG.DE    => Dict("wort"=>"word", "zeile" => "line", "bis ende"=>"remainder", "bis anfang"=>"preceding", "alles"=>"all"),
-    LANG.EN_US => Dict("word"=>"word", "line" => "line", "remainder"=>"remainder", "preceding"=>"preceding", "all"=>"all"),
-    LANG.ES    => Dict("palabra"=>"word", "línea" => "line", "hasta fin"=>"remainder", "hasta inicio"=>"preceding", "todo"=>"all"),
-    LANG.FR    => Dict("mot"=>"word", "ligne" => "line", "jusqu'à la fin"=>"remainder", "jusqu'au début"=>"preceding", "tout"=>"all"),
-)
-const SIDES = Dict(
-    LANG.DE    => Dict("vor"=>"before", "nach"=>"after"),
-    LANG.EN_US => Dict("before"=>"before", "after"=>"after"),
-    LANG.ES    => Dict("antes"=>"before", "después"=>"after"),
-    LANG.FR    => Dict("avant"=>"before", "après"=>"after"),
+    LANG.DE    => ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "punkt", "komma", "leerzeichen"],
+    LANG.EN_US => ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "dot", "comma", "space"],
+    LANG.ES    => ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "punto", "coma", "espacio"],
+    LANG.FR    => ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "point", "virgule", "espace"],
 )
 const COUNTS = Dict(
-    LANG.DE    => Dict("eins"=>"1", "zwei"=>"2", "drei"=>"3", "vier"=>"4", "fünf"=>"5", "sechs"=>"6", "sieben"=>"7", "acht"=>"8", "neun"=>"9", "zehn"=>"10", "fünfzig"=>"50", "hundert"=>"100", "tausend"=>"1000"),
-    LANG.EN_US => Dict("one"=>"1", "two"=>"2", "three"=>"3", "four"=>"4", "five"=>"5", "six"=>"6", "seven"=>"7", "eight"=>"8", "nine"=>"9", "ten"=>"10", "fifty"=>"50", "hundred"=>"100", "thousand"=>"1000"),
-    LANG.ES    => Dict("uno"=>"1", "dos"=>"2", "tres"=>"3", "cuatro"=>"4", "cinco"=>"5", "seis"=>"6", "siete"=>"7", "ocho"=>"8", "nueve"=>"9", "diez"=>"10", "cincuenta"=>"50", "cien"=>"100", "mil"=>"1000"),
-    LANG.FR    => Dict("un"=>"1", "deux"=>"2", "trois"=>"3", "quatre"=>"4", "cinq"=>"5", "six"=>"6", "sept"=>"7", "huit"=>"8", "neuf"=>"9", "dix"=>"10", "cinquante"=>"50", "cent"=>"100", "mille"=>"1000"),
+    LANG.DE    => ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "fünfzig", "hundert", "tausend"],
+    LANG.EN_US => ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "fifty", "hundred", "thousand"],
+    LANG.ES    => ["uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "cincuenta", "cien", "mil"],
+    LANG.FR    => ["un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "cinquante", "cent", "mille"],
 )
 
+const DIGITS_MAPPING = Dict(
+    lang => Dict(word => DIGITS_SYMBOLS[i] for (i, word) in enumerate(words))
+    for (lang, words) in DIGITS
+)
+const COUNTS_MAPPING = Dict(
+    lang => Dict(word => COUNTS_SYMBOLS[i] for (i, word) in enumerate(words))
+    for (lang, words) in COUNTS
+)
+const LANGUAGES_MAPPING = Dict(
+    lang => Dict(word => LANG_SYMBOLS[i] for (i, word) in enumerate(words))
+    for (lang, words) in LANGUAGES
+)
 
-# Sign commands.
-
-PUNCTUATION_SYMBOLS = Dict(
-    LANG.DE    => Dict("punkt"                       => ".",
-                       "komma"                       => ",",
-                       "doppelpunkt"                 => ":",
-                       "semikolon"                   => ";",
-                       "ausrufezeichen"              => "!",
-                       "fragezeichen"                => "?",
-                       "anführungszeichen"           => "\"",
-                       "einfaches anführungszeichen" => "'",
-                      ),
-    LANG.EN_US => Dict("point"         => ".",
-                       "comma"         => ",",
-                       "colon"         => ":",
-                       "semicolon"     => ";",
-                       "exclamation"   => "!",
-                       "interrogation" => "?",
-                       "quote"         => "\"",
-                       "single quote"  => "'",
-                      ),
-    LANG.ES    => Dict("punto"            => ".",
-                       "coma"             => ",",
-                       "dos puntos"       => ":",
-                       "punto y coma"     => ";",
-                       "exclamación"      => "!",
-                       "interrogación"    => "?",
-                       "comillas"         => "\"",
-                       "comillas simples" => "'",
-                      ),
-    LANG.FR    => Dict("point"              => ".",
-                       "virgule"            => ",",
-                       "deux points"        => ":",
-                       "point virgule"      => ";",
-                       "exclamation"        => "!",
-                       "interrogation"      => "?",
-                       "guillemets"         => "\"",
-                       "guillemets simples" => "'",
-                      ),
-);
-
-MATH_SYMBOLS = Dict(
-    LANG.DE    => Dict(
-        "gleich"  => "=",
-        "plus"    => "+",
-        "minus"   => "-",
-        "mal"     => "*",
-        "geteilt" => "/",
-        "hoch"    => "^",
-        "modulo"  => "%",
-    ),
-    LANG.EN_US => Dict(
-        "equal"    => "=",
-        "plus"     => "+",
-        "minus"    => "-",
-        "multiply" => "*",
-        "divide"   => "/",
-        "power"    => "^",
-        "modulo"   => "%",
-    ),
-    LANG.ES    => Dict(
-        "igual"    => "=",
-        "más"      => "+",
-        "menos"    => "-",
-        "por"      => "*",
-        "dividido" => "/",
-        "potencia" => "^",
-        "módulo"   => "%",
-    ),
-    LANG.FR    => Dict(
-        "égal"          => "=",
-        "plus"          => "+",
-        "moins"         => "-",
-        "multiplié par" => "*",
-        "divisé par"    => "/",
-        "puissance"     => "^",
-        "modulo"        => "%",
-    ),
-);
-
-LOGICAL_SYMBOLS = Dict(
-    LANG.DE    => Dict(
-        "ampersand"       => "&",
-        "vertikal strich" => "|",
-        "kleiner"         => "<",
-        "größer"          => ">",
-        "ungefähr"        => "~",
-    ),
-    LANG.EN_US => Dict(
-        "ampersand"       => "&",
-        "vertical bar"    => "|",
-        "less than"       => "<",
-        "greater than"    => ">",
-        "approximately"   => "~",
-    ),
-    LANG.ES    => Dict(
-        "ampersand"       => "&",
-        "barra vertical"  => "|",
-        "menor que"       => "<",
-        "mayor que"       => ">",
-        "aproximadamente" => "~",
-    ),
-    LANG.FR    => Dict(
-        "esperluette"     => "&",
-        "barre verticale" => "|",
-        "inférieur à"     => "<",
-        "supérieur à"     => ">",
-        "environ"         => "~",
-    ),
-);
-
-PARENTHESES_SYMBOLS = Dict(
-    LANG.DE    => Dict(
-        "klammer"                         => "(",
-        "schließende klammer"             => ")",
-        "eckige klammer"                  => "[",
-        "schließende eckige klammer"      => "]",
-        "geschweifte klammer"             => "{",
-        "schließende geschweifte klammer" => "}",
-    ),
-    LANG.EN_US => Dict(
-        "parentheses"         => "(",
-        "closing parentheses" => ")",
-        "bracket"             => "[",
-        "closing bracket"     => "]",
-        "curly"               => "{",
-        "closing curly"       => "}",
-    ),
-    LANG.ES    => Dict(
-        "paréntesis"            => "(",
-        "paréntesis que cierra" => ")",
-        "corchete"              => "[",
-        "corchete que cierra"   => "]",
-        "llave"                 => "{",
-        "llave que cierra"      => "}",
-    ),
-    LANG.FR    => Dict(
-        "parenthèse"          => "(",
-        "parenthèse fermante" => ")",
-        "crochet"             => "[",
-        "crochet fermant"     => "]",
-        "accolade"            => "{",
-        "accolade fermante"   => "}",
-    ),
-);
-
-SPECIAL_SYMBOLS = Dict(
-    LANG.DE    => Dict(
-        "at"         => "@",
-        "hashtag"    => "#",
-        "dollar"     => "\$",
-        "slash"      => "/",
-        "underscore" => "_",
-        "back tick"  => "`",
-        "backslash"  => "\\",
-    ),
-    LANG.EN_US => Dict(
-        "at"         => "@",
-        "hashtag"    => "#",
-        "dollar"     => "\$",
-        "slash"      => "/",
-        "underscore" => "_",
-        "back tick"  => "`",
-        "backslash"  => "\\",
-    ),
-    LANG.ES    => Dict(
-        "arroba"          => "@",
-        "almohadilla"     => "#",
-        "dólar"           => "\$",
-        "barra"           => "/",
-        "guión bajo"      => "_",
-        "acento grave"    => "`",
-        "barra invertida" => "\\",
-    ),
-    LANG.FR    => Dict(
-        "arobase"    => "@",
-        "hashtag"    => "#",
-        "dollar"     => "\$",
-        "slash"      => "/",
-        "underscore" => "_",
-        "back tick"  => "`",
-        "backslash"  => "\\",
-    ),
-);
-
-ALTERNATIVE_SYMBOLS = Dict(
-    LANG.DE    => Dict(
-        "punkt"   => ".",
-        "strich"  => "-",
-        "stern"   => "*",
-        "prozent" => "%",
-    ),
-    LANG.EN_US => Dict(
-        "dot"     => ".",
-        "dash"    => "-",
-        "star"    => "*",
-        "percent" => "%",
-    ),
-    LANG.ES    => Dict(
-        "punto"      => ".",
-        "guion"      => "-",
-        "asterisco"  => "*",
-        "por ciento" => "%",
-    ),
-    LANG.FR    => Dict(
-        "point"      => ".",
-        "tiret"      => "-",
-        "astérisque" => "*",
-        "pour cent"  => "%",
-    ),
-);
 
 merge_recursively(x::AbstractDict...) = merge(merge_recursively, x...) # NOTE: this function needs to be defined before it's usage below.
 merge_recursively(x...) = x[end]
 
-SYMBOLS = merge_recursively(
-    PUNCTUATION_SYMBOLS,
-    MATH_SYMBOLS,
-    LOGICAL_SYMBOLS,
-    PARENTHESES_SYMBOLS,
-    SPECIAL_SYMBOLS,
-    ALTERNATIVE_SYMBOLS
-)
-
 
 ## FUNCTIONS
 
-function pyimport_pip(modulename::AbstractString; dependency::AbstractString="", channel::AbstractString="conda-forge", force_dependency::Bool=false)
+function pyimport_pip(modulename::AbstractString; dependencies::AbstractArray=[], channel::AbstractString="conda-forge", force_dependencies::Bool=false, modulename_pip::AbstractString="", args_pip::AbstractString="")
+    modulename_pip = isempty(modulename_pip) ? modulename : modulename_pip
+    args_pip = isempty(args_pip) ? "" : " $args_pip"
     try
         pyimport(modulename)
     catch e
         if isa(e, PyCall.PyError)
-            if !(force_dependency && dependency != "") # If the dependency installation has to be forced, we skip trying without dependency.
+            if !(force_dependencies && !isempty(dependencies)) # If the dependencies installation has to be forced, we skip trying without dependencies.
                 Conda.pip_interop(true)
-                Conda.pip("install", modulename)
+                Conda.pip("install$args_pip", modulename_pip)
             end
             try
                 pyimport(modulename)
             catch e
-                if isa(e, PyCall.PyError) && (dependency != "") # If the module import still failed after installation, try installing the dependency with Conda first.
-                    Conda.pip("uninstall --yes", modulename)
-                    Conda.add(dependency; channel=channel)
-                    Conda.pip("install", modulename)
+                if isa(e, PyCall.PyError) && (!isempty(dependencies)) # If the module import still failed after installation, try installing the dependencies with Conda first.
+                    Conda.pip("uninstall --yes", modulename_pip)
+                    for dependency in dependencies
+                        Conda.add(dependency; channel=channel)
+                    end
+                    Conda.pip("install$args_pip", modulename_pip)
                     pyimport(modulename)
                 else
                     rethrow(e)
@@ -467,12 +292,13 @@ function pyimport_pip(modulename::AbstractString; dependency::AbstractString="",
     end
 end
 
-function pyimport_pip(symbol::Symbol, pymodule::PyObject, symbolname_pip::AbstractString)
+function pyimport_pip(symbol::Symbol, pymodule::PyObject, symbolname_pip::AbstractString; args_pip::AbstractString="")
+    args_pip = isempty(args_pip) ? "" : " $args_pip"
     try
         getproperty(pymodule, symbol)
     catch
         Conda.pip_interop(true)
-        Conda.pip("install", symbolname_pip)
+        Conda.pip("install$args_pip", symbolname_pip)
         getproperty(pymodule, symbol)
     end
 end
@@ -486,6 +312,9 @@ let
     toc()::Float64            = ( time() - t0 )
     toc(t1::Float64)::Float64 = ( time() - t1 )
 end
+
+
+clean_token(s::AbstractString) = lowercase(replace(s, r"[^\w\s']" => "")) # Remove all non-word characters except whitespace and apostrophes
 
 
 function pretty_dict_string(dict::Dict{String,<:Any})
@@ -557,18 +386,179 @@ end
 # Types
 
 mutable struct Recognizer
+    backend::Symbol
     pyobject::PyObject
+    transcriber::PyObject
     is_persistent::Bool
     valid_input::AbstractArray{String}
     valid_tokens::AbstractArray{String}
 
-    function Recognizer(pyobject::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
+    function Recognizer(backend::Symbol, pyobject::PyObject, transcriber::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
         valid_tokens = isempty(valid_input) ? String[] : [token for input in split.(valid_input) for token in input] |> unique |> collect
-        new(pyobject, is_persistent, valid_input, valid_tokens)
+        new(backend, pyobject, transcriber, is_persistent, valid_input, valid_tokens)
+    end
+
+    function Recognizer(backend::Symbol, pyobject::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
+        transcriber = PyNULL()
+        Recognizer(backend, pyobject, transcriber, is_persistent, valid_input)
+    end
+
+    function Recognizer(pyobject::PyObject, is_persistent::Bool, valid_input::AbstractArray{String})
+        backend = :Vosk
+        Recognizer(backend, pyobject, is_persistent, valid_input)
     end
 
     function Recognizer(pyobject::PyObject, is_persistent::Bool)
         valid_input = String[]
         Recognizer(pyobject, is_persistent, valid_input)
     end
+
+    function Recognizer(backend::Symbol, pyobject::PyObject, transcriber::PyObject)
+        is_persistent = true
+        valid_input = String[]
+        @show transcriber
+        if transcriber !=PyNULL()
+            if !(transcriber.is_running()) transcriber.start() end
+        end
+        Recognizer(backend, pyobject, transcriber, is_persistent, valid_input)
+    end
+
+    function Recognizer(backend::Symbol, pyobject::PyObject)
+        transcriber = PyNULL()
+        Recognizer(backend, pyobject, transcriber)
+    end
 end
+
+function feed_stt(recognizer::Recognizer, audio::PyObject)
+    if recognizer.backend == :Vosk
+        exitcode = recognizer.pyobject.AcceptWaveform(audio)
+        is_partial_result = (exitcode == 0)
+        return is_partial_result
+    elseif recognizer.backend == :RealtimeSTT
+        recognizer.pyobject.feed_audio(audio)
+        return recognizer.transcriber.is_partial_result() # NOTE: This must be in agreement with Vosk's return value (true for partial result).
+    else
+        @APIUsageError("invalid backend (obtained: $recognizer.backend).")
+    end
+end
+
+function get_text(recognizer::Recognizer, is_partial_result::Bool)
+    if recognizer.backend == :Vosk
+        if is_partial_result
+            partial_result = recognizer.pyobject.PartialResult()
+            return (JSON.parse(partial_result))["partial"]
+        else
+            result = recognizer.pyobject.Result()
+            return (JSON.parse(result))["text"]
+        end
+    elseif recognizer.backend == :RealtimeSTT
+        return recognizer.transcriber.get_text()
+    else
+        @APIUsageError("invalid backend (obtained: $recognizer.backend).")
+    end
+end
+
+
+# Installation helpers
+
+function get_cuda_version()
+    # Try to get CUDA version from nvcc
+    try
+        output = read(`nvcc --version`, String)
+        for line in split(output, "\n")
+            if occursin("release", line)
+                return split(split(line, "release")[2], ",")[1] |> strip
+            end
+        end
+    catch e
+        println("nvcc not found. Trying nvidia-smi...")
+    end
+
+    # Try to get CUDA version from nvidia-smi
+    try
+        output = read(`nvidia-smi`, String)
+        for line in split(output, "\n")
+            if occursin("CUDA Version", line)
+                return split(line, "CUDA Version:")[2] |> split |> first |> strip
+            end
+        end
+    catch e
+        println("nvidia-smi not found. No CUDA detected.")
+    end
+
+    return ""  # Return empty string if no CUDA detected
+end
+
+function get_torch_cuda_version()
+    cuda_version = get_cuda_version()
+    if cuda_version != ""
+        major, minor = split(cuda_version, ".")[1:2]
+        return "cu$(major)$(minor)"  # Example: CUDA 11.8 → cu118
+    else
+        return ""
+    end
+end
+
+# function install_pytorch()
+#     cuda_version = get_cuda_version()
+
+#     if cuda_version != ""
+#         major, minor = split(cuda_version, ".")[1:2]
+#         torch_cuda_version = "cu$(major)$(minor)"  # Example: CUDA 11.8 → cu118
+#         println("Installing PyTorch with CUDA $torch_cuda_version support...")
+#         Conda.pip_interop(true)
+#         Conda.pip("install --index-url=https://download.pytorch.org/whl/$torch_cuda_version", ["torch", "torchaudio"])
+#     else
+#         println("Installing CPU-only PyTorch...")
+#         Conda.pip_interop(true)
+#         Conda.pip("install", ["torch", "torchaudio"])
+#     end
+# end
+
+# install_torch()
+
+
+## SHARED MACRO FUNCTIONS
+
+is_function(arg)           = isdef(arg)
+is_call(arg)               = @capture(arg, f_(xs__))
+is_symbol(arg)             = isa(arg, Symbol)
+is_pair(arg)               = isa(arg, Expr) && (arg.head==:call) && (arg.args[1]==:(=>))
+is_kwarg(arg)              = isa(arg, Expr) && (arg.head==:(=))
+is_tuple(arg)              = isa(arg, Expr) && (arg.head==:tuple)
+is_kwargexpr(arg)          = is_kwarg(arg) || ( (arg.head==:tuple) && all([is_kwarg(x) for x in arg.args]) )
+
+function eval_arg(caller::Module, arg)
+    try
+        return @eval(caller, $arg)
+    catch e
+        @ArgumentEvaluationError("argument $arg could not be evaluated at parse time (in module $caller).")
+    end
+end
+
+
+## TEMPORARY FUNCTION DEFINITIONS TO BE MERGED IN MACROTOOLS
+
+isdef(ex)     = isshortdef(ex) || islongdef(ex)
+islongdef(ex) = @capture(ex, function (fcall_ | fcall_) body_ end)
+isshortdef(ex) = MacroTools.isshortdef(ex)
+
+
+## FUNCTIONS FOR UNIT TESTING
+
+macro prettyexpand(expr) return QuoteNode(remove_linenumbernodes!(macroexpand(__module__, expr; recursive=true))) end
+
+function remove_linenumbernodes!(expr::Expr)
+    expr = Base.remove_linenums!(expr)
+    args = expr.args
+    for i=1:length(args)
+        if isa(args[i], LineNumberNode)
+             args[i] = nothing
+        elseif typeof(args[i]) == Expr
+            args[i] = remove_linenumbernodes!(args[i])
+        end
+    end
+    return expr
+end
+
+remove_linenumbernodes!(x::Nothing) = x
