@@ -64,13 +64,3 @@ julia> JustSayIt.has_preference("OPENAI_API_KEY")
 false
 """
 delete_preferences!(args...) = Preferences.@delete_preferences!(args...)
-
-
-
-# function set_PT_preferences()
-#     if !Preferences.has_preference("PromptingTools", "MODEL_CHAT")
-#         Preferences.set_preferences!("PromptingTools", "MODEL_CHAT"=>LLM_DEFAULT_LOCALMODEL)
-#     end
-# end
-
-# macro set_PT_preferences() set_PT_preferences() end
