@@ -1,8 +1,6 @@
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
+*.log
 /Manifest.toml
 /docs/build/
-*.log
-*" copy.jl"
-/src/dev/
