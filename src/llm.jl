@@ -1,13 +1,14 @@
 let
-    global llm, start_llm, stop_llm, switch_llm
+    global llm, init_llm, finalize_llm, switch_llm
     USE_LOCAL_LLM::Bool    = true
     _default_model::String = ""
     llm()::String          = _default_model
 
 
-    function start_llm(modelname::String, api_key::String)
-        if isempty(modelname) @APIUsageError("LLM model name is missing.") end
+    function init_llm()
+        api_key       = Preferences.@load_preference("OPENAI_API_KEY", "")
         USE_LOCAL_LLM = isempty(api_key)
+        modelname     = Preferences.@load_preference("LLM_MODEL", USE_LOCAL_LLM ? LLM_DEFAULT_LOCALMODEL : LLM_DEFAULT_REMOTEMODEL)
         if USE_LOCAL_LLM
             install_ollama()  # Install Ollama application if not already installed
             switch_local_llm(modelname)
@@ -17,7 +18,8 @@ let
         end
     end
 
-    function stop_llm()
+    function finalize_llm()
+        @info "Finalizing LLM..."
         if USE_LOCAL_LLM && !isempty(_default_model)
             unload_local_llm(_default_model)
             _default_model = ""
@@ -54,7 +56,7 @@ let
         println("LLM models loaded:")
         run(`ollama ps`)
         register_llm(modelname) # Register the model if not already registered (only after it has been verified to work!)
-        set_default_llm(modelname) 
+        set_default_llm(modelname)
     end
 
     unload_local_llm(modelname::String) = run(`ollama stop $modelname`)
@@ -111,7 +113,7 @@ function install_ollama(; force_reinstall::Bool=false)
                 @ExternalError("Installation failed. Please install Ollama manually and try again.")
             end 
         else
-            @ExternalError("Installation aborted. Ollama is required to run a LLM model locally. You can install Ollama yourself and try again or use a remote model or set `use_llm=false`.")
+            @ExternalError("Installation aborted. Ollama is required to run a LLM model locally. You can install Ollama yourself and try again or set `use_llm=false`.")
         end
     end
 end
@@ -131,7 +133,7 @@ function pull_llm(modelname::String)
             end
             if !is_llm_installed(modelname) @ExternalError("Pulling the model $modelname failed.") end
         else
-            @ExternalError("Download aborted. You can choose a smaller model or use a remote model or set `use_llm=false`.")
+            @ExternalError("Download aborted. You can choose a smaller model or set `use_llm=false`.")
         end
     end
     println("LLM model $modelname is ready to use.")
@@ -158,63 +160,4 @@ function is_llm_registered(modelname::String)
     models = PT.list_registry()
     aliases = PT.list_aliases()
     return any(m == modelname for m in models) || any(m == modelname for m in aliases)
-end
-
-
-function ask_llm(question::String; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false)
-    if (show_thinking) @info "LLM question: $question" end
-    model = llm()
-    if (delete) Keyboard.press_delete() end
-    play_delay = 30
-    nb_tokens = 0
-    if stream
-        is_thinking = false
-        for part in Ollama.generate(model, question, stream=true)
-            token = get_response(part)
-            if (token == "<think>") 
-                is_thinking = true
-                if (show_thinking) @info "LLM thinking:" end
-            end
-            if (show_thinking) print(token) end
-            if !is_thinking
-                if (type_answer) Keyboard.type_string(token) end
-                if say_answer
-                    if (nb_tokens < play_delay) feed_tts(token)
-                    else                        say(token)
-                    end
-                end
-            end
-            if (token == "</think>") 
-                is_thinking = false
-                if (show_thinking) println(); @info "LLM answer:" end
-            end
-            nb_tokens += 1
-        end
-        if (nb_tokens <= play_delay) play_tts() end
-    else
-        answer, thinking = llm_generate(model, question)
-        if (show_thinking) 
-            @info "LLM thinking: $thinking"
-            @info "LLM answer: $answer"
-        end
-        if (type_answer) Keyboard.type_string(answer) end
-        if (say_answer) say(answer) end
-    end
-end
-
-
-llm_generate(model::String, question::String) = split_response(get_response(Ollama.generate(model, question)))
-get_response(generateResponse::PyObject)      = strip(pystring(generateResponse["response"]), ['\''])  # NOTE: remove the first and last character are single quotes added by Python
-
-
-function split_response(response::AbstractString)
-    thinking_match = match(r"<think>.+</think>", response)
-    if isnothing(thinking_match) 
-        thinking = ""
-        answer   = response
-    else                         
-        thinking = thinking_match.match
-        answer   = match(r"</think>\\n?\\n?(.+)", response).captures[1] 
-    end
-    return answer, thinking
 end
