@@ -5,29 +5,26 @@ Provides functions for text-to-speech (TTS).
 
 # Functions
 
-###### Tools for reading text
+###### Text reading
 - [`TTS.read`](@ref)
 - [`TTS.pause`](@ref)
 - [`TTS.resume`](@ref)
 - [`TTS.stop`](@ref)
 - [`TTS.set_async_default`](@ref)
 
+###### String reading
+- [`TTS.say`](@ref)
+
 To see a description of a function type `?<functionname>`.
 """
 module TTS
 
-using PyCall
-import ..Keyboard: get_selection_content, get_clipboard_content
-import ..JustSayIt: @voiceargs, TTS_SUPPORTED_LOCALENGINES, switch_tts, is_playing_tts, pause_tts, resume_tts, stop_tts, set_tts_async, tts_async_default, say
-export read, pause, resume, stop, set_async_default
+using ..JustSayIt.API
+import ..JustSayIt.TTScore; _say = TTScore.say
+public read, pause, resume, stop, set_async_default, say
 
 
-## CONSTANTS
-
-# const READING_LANGUAGES = ["english", "french", "german", "spanish", "italian", "portuguese", "dutch", "russian", "chinese", "japanese", "korean", "arabic", "turkish", "hindi"]
-
-
-## API FUNCTIONS
+## COMMAND FUNCTIONS
 
 """
     read
@@ -37,8 +34,8 @@ Use TTS to read the selected text (or text from clipboard if no text is selected
 function read(; async::Bool=tts_async_default())
     text = get_selection_content()
     if isempty(text) text = get_clipboard_content() end
-    if isempty(text) say("No text is selected or in the clipboard to read."); return end
-    say(text; streamname="read", async=async)
+    if isempty(text) _say("No text is selected or in the clipboard to read."); return end
+    _say(text; async=async)
 end
 
 """
@@ -46,27 +43,21 @@ end
 
 Pause text reading.
 """
-function pause()
-    pause_tts(streamname="read")
-end
+pause() = pause_tts()
 
 """
     resume
 
 Resume text reading.
 """
-function resume()
-    resume_tts(streamname="read")
-end
+resume() = resume_tts()
 
 """
     stop
 
 Stop text reading.
 """
-function stop()
-    stop_tts(streamname="read")
-end
+stop() = stop_tts()
 
 """
     set_async_default `async`
@@ -75,9 +66,16 @@ Set the default behavior for TTS to be asynchronous or not.
 """
 set_async_default
 @voiceargs async=>(valid_input=["asynchronous", "synchronous"]) function set_async_default(async::String)
-    if (async == "asynchronous") set_tts_async(true)
-    else                         set_tts_async(false)
-    end
+    async = (async == "asynchronous")
+    set_tts_async_default(async)
+    _say("Default TTS behavior is now $(async ? "asynchronous" : "synchronous")."; async=async)
 end
+
+"""
+    say(text::AbstractString)
+
+Use TTS to say the given text.
+"""
+say(text::AbstractString) = _say(text)
 
 end # module TTS
