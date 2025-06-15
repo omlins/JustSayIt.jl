@@ -5,23 +5,21 @@ Provides generic functions for any kind of operations.
 
 # Functions
 
-###### execute n times
+###### Command execution
 - [`Generic.execute_n_times`](@ref)
 
 To see a description of a function type `?<functionname>`.
 """
 module Generic
 
-using ..Exceptions
-import ..JustSayIt: @voiceargs, default_language, next_token, execute, LANG, COUNTS, COUNTS_MAPPING, UNKNOWN_TOKEN
-export execute_n_times
-
-## HELPER FUNCTIONS
-
-interpret_count(input::AbstractString) = (return COUNTS_MAPPING[default_language()][input])
+using ..JustSayIt.API
+import ..JustSayIt: execute
+using ..Exceptions #TODO: remove this import after reimplementation
+import ..JustSayIt: next_token, UNKNOWN_TOKEN #TODO: remove this import after reimplementation
+public execute_n_times
 
 
-## API FUNCTIONS
+## COMMAND FUNCTIONS
 
 @doc """
     execute_n_times `n` `(complement of) cmd`
