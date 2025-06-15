@@ -20,41 +20,27 @@ See also: [`Keyboard`](@ref)
 """
 module Mouse
 
-using PyCall
-import ..JustSayIt: pyimport_pip, controller, set_controller
-export click_left, click_middle, click_right, press_left, release_left, click_double, click_triple #TODO: export and add to doc once the implementation is generic: move_to_center, move_to_north, move_to_south, move_to_east, move_to_west, move_to_northeast, move_to_northwest, move_to_southeast, move_to_southwest
+using ..JustSayIt.API
+import ..JustSayIt: MouseButton
+public click_left, click_middle, click_right, press_left, release_left, click_double, click_triple #TODO: public and add to doc once the implementation is generic: move_to_center, move_to_north, move_to_south, move_to_east, move_to_west, move_to_northeast, move_to_northwest, move_to_southeast, move_to_southwest
 
 
-## PYTHON MODULES
-
-const Pynput = PyNULL()
-
-function __init__()
-    if !haskey(ENV, "JSI_USE_PYTHON") ENV["JSI_USE_PYTHON"] = "1" end
-    if ENV["JSI_USE_PYTHON"] == "1"
-        ENV["PYTHON"] = ""                                              # Force PyCall to use Conda.jl
-        copy!(Pynput, pyimport_pip("pynput"))
-        set_controller("mouse", Pynput.mouse.Controller())
-    end
-end
-
-
-## API FUNCTIONS
+## COMMAND FUNCTIONS
 
 "Click left mouse button."
-click_left(;count::Integer=1) = controller("mouse").click(Pynput.mouse.Button.left, count)
+click_left(;count::Integer=1) = controller("mouse").click(MouseButton.left, count)
 
 "Click middle mouse button."
-click_middle() = controller("mouse").click(Pynput.mouse.Button.middle)
+click_middle() = controller("mouse").click(MouseButton.middle)
 
 "Click right mouse button."
-click_right() = controller("mouse").click(Pynput.mouse.Button.right)
+click_right() = controller("mouse").click(MouseButton.right)
 
 "Press and hold left mouse button."
-press_left() = controller("mouse").press(Pynput.mouse.Button.left)
+press_left() = controller("mouse").press(MouseButton.left)
 
 "Release left mouse button."
-release_left() = controller("mouse").release(Pynput.mouse.Button.left)
+release_left() = controller("mouse").release(MouseButton.left)
 
 "Doubleclick left mouse button."
 click_double() = click_left(;count=2)
