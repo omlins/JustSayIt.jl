@@ -70,9 +70,7 @@ let
 						id += 1
 						# if (id >= lastindex(denoised_text)) @InsecureRecognitionException("module internal error: (id >= lastindex(denoised_text)) (token_buffer: $(token_buffer_clean(1:i)); tokens: $(clean_token.(tokens))); denoised_text[id]=$(denoised_text[id]), consumed_text[ic]=$(consumed_text[ic]), consumed_text=$(consumed_text), denoised_text=$(denoised_text), eachindex(consumed_text)=$(eachindex(consumed_text)), i=$i, ic=$ic, id=$id, consumed_end=$consumed_end.") end
 					end
-					# consumed_end = id
-					# TODO: remove
-					id += 1 # if (lowercase(denoised_text[id]) == consumed_text[ic]) id += 1 else @InsecureRecognitionException("module internal error: denoised_text[id] != consumed_text[ic] (token_buffer: $(token_buffer_clean(1:i)); tokens: $(clean_token.(tokens))).") end
+					id += 1
 					consumed_end = id # NOTE: consumed_end will include the space (as after id increment).
 				end
 				id = consumed_end
@@ -125,7 +123,6 @@ let
 		next_token(recognizer_info, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, force_dynamic_recognizer=true, ignore_unknown=ignore_unknown, clean=clean)
 	end
 
-	# TODO: or function next_tokengroup(group_recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true, clean::Bool=false)
 	function next_tokengroup(group_recognizer::Recognizer, noise_tokens::AbstractArray{String}; consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, restart_recognition::Bool=false, ignore_unknown::Bool=true, clean::Bool=false)
 		if force_dynamic_recognizer @APIUsageError("forcing dynamic recogniser is not possible, if a recognizer is given.") end
 		tokengroup = [next_token(group_recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=restart_recognition, ignore_unknown=ignore_unknown, clean=clean)] # NOTE: make sure that after a full recognition told a new token group is started.
@@ -150,18 +147,6 @@ let
 		recognizer_info = (Symbol(), Symbol(), valid_input, modelname)
 		next_tokengroup(recognizer_info, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, ignore_unknown=ignore_unknown, clean=clean) # NOTE: make sure that after a full recognition told a new token group is started.
 	end
-
-
-    # TODO: removed old version of next_tokengroup
-	# function next_tokengroup(valid_input::AbstractArray{String}; modelname::String=modelname_default(), noise_tokens::AbstractArray{String}=noises(modelname), consume::Bool=true, timeout::Float64=Inf, use_partial_recognitions::Bool=false, ignore_unknown::Bool=true, clean::Bool=false)
-	# 	group_recognizer = recognizer(valid_input, noise_tokens; modelname=modelname)
-	# 	tokengroup = [next_token(group_recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=true, ignore_unknown=ignore_unknown, clean=clean)] # NOTE: make sure that after a full recognition told a new token group is started.
-	# 	while was_partial_result || !all_consumed()
-	# 		token = next_token(group_recognizer, noise_tokens; consume=consume, timeout=timeout, use_partial_recognitions=use_partial_recognitions, restart_recognition=true, ignore_unknown=ignore_unknown, clean=clean)
-	# 		push!(tokengroup, token)
-	# 	end
-	# 	return tokengroup
-	# end
 
 	#NOTE: this function will only consume the next token if `consume_if_match` is set true and the token matches.
 	function _is_next(token::Union{String,AbstractArray{String}}, recognizer_or_info::Union{Recognizer, Tuple{Symbol,Symbol,<:AbstractArray{String},String}}, noise_tokens::AbstractArray{String}; consume_if_match::Bool=false, timeout::Float64=Inf, use_partial_recognitions::Bool=false, force_dynamic_recognizer::Bool=false, ignore_unknown::Bool=false, clean::Bool=true)
@@ -326,18 +311,7 @@ let
 				end
 				audio = resample(audio)
 				if (reset_or_restart && (it == 1)) prepend_silence(audio) end #NOTE: prepend_silence done after downsampling
-				#TODO: remove	:
-                # tic();  exitcode = recognizer.pyobject.AcceptWaveform(audio);  t_recognize_sum+=toc(); t_recognize_max=max(t_recognize_max,toc())  #; println("t_recognize: $(toc())")
 				tic();  is_partial_result = feed_stt(recognizer, audio);  t_recognize_sum+=toc(); t_recognize_max=max(t_recognize_max,toc())  #; println("t_recognize: $(toc())")
-                # is_partial_result = (exitcode == 0)
-				#TODO: remove:
-                # if is_partial_result
-                #     partial_result = recognizer.pyobject.PartialResult()
-                #     if (partial_result != partial_result_old) text = (JSON.parse(partial_result))["partial"] end
-                # else
-                #     result = recognizer.pyobject.Result()
-                #     text = (JSON.parse(result))["text"]
-                # end
 				if is_partial_result
 					partial_result = get_text(recognizer, is_partial_result)
 					if (partial_result != partial_result_old) text = partial_result end
