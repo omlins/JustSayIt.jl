@@ -5,27 +5,29 @@ Provides functions for operations using an LLM.
 
 # Functions
 
-###### Tools for text writing
-- [`LLM.summarize`](@ref)
-- [`LLM.translate`](@ref)
-- [`LLM.ask`](@ref)
-- [`LLM.ask_with_text`](@ref)
+###### Text writing
+- [`LLM.type_summary`](@ref)
+- [`LLM.type_translation`](@ref)
+- [`LLM.type_answer`](@ref)
+- [`LLM.type_text_answer`](@ref)
 
-###### Tools for text reading
-- [`LLM.voice_summarize`](@ref)
-- [`LLM.voice_translate`](@ref)
-- [`LLM.voice_ask`](@ref)
-- [`LLM.voice_ask_with_text`](@ref)
+###### Text reading
+- [`LLM.read_summary`](@ref)
+- [`LLM.read_translation`](@ref)
+- [`LLM.read_answer`](@ref)
+- [`LLM.read_text_answer`](@ref)
+
+###### Text generation (no typing or reading)
+- [`LLM.ask`](@ref)
+- [`LLM.ask!`](@ref)
 
 To see a description of a function type `?<functionname>`.
 """
 module LLM
 
-using PyCall
-import ..Keyboard: get_selection_content, get_clipboard_content
-import ..JustSayIt: @voiceargs, @voiceconfig, MODELNAME, LANG, interpret_enum, ask_llm, active_app, @APIUsageError
-import ..JustSayIt: @ai_str
-export summarize, voice_summarize, translate, voice_translate, ask, voice_ask, ask_with_text, voice_ask_with_text
+using ..JustSayIt.API
+import ..JustSayIt.LLMcore: @ai_str
+public type_summary, read_summary, type_translation, read_translation, type_answer, read_answer, type_text_answer, read_text_answer
 
 ## CONSTANTS
 
@@ -51,22 +53,22 @@ function write_new(question::String; stream::Bool=true, show_thinking::Bool=true
 end
 
 
-## API FUNCTIONS
+## COMMAND FUNCTIONS
 
 """
-    summarize
+    type_summary
 
-Use LLM to summarize the selected text (or text from clipboard).
+Use LLM to summarize the selected text (or text from clipboard) and type it.
 """
-summarize(; stream::Bool=true, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking)
+type_summary(; stream::Bool=true, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking)
 
 
 """
-    voice_summarize
+    read_summary
 
 Use LLM to summarize the selected text (or text from clipboard) and read it out loud.
 """
-voice_summarize(; stream::Bool=false, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
+read_summary(; stream::Bool=false, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
 
 
 function _summarize(; stream::Bool=true, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
@@ -77,19 +79,19 @@ end
 
 
 """
-    translate `language`
+    type_translation `language`
 
-Use LLM to translate the selected text (or text from clipboard) to the specified language.
+Use LLM to translate the selected text (or text from clipboard) to the specified language and type it.
 """
-translate(; stream::Bool=true, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking)
+type_translation(; stream::Bool=true, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking)
 
 
 """
-    voice_translate `language`
+    read_translation `language`
 
 Use LLM to translate the selected text (or text from clipboard) to the specified language and read it out loud.
 """
-voice_translate(; stream::Bool=false, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
+read_translation(; stream::Bool=false, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
 
 
 @voiceargs language=>(valid_input=TRANSLATION_LANGUAGES) function _translate(language::String; stream::Bool=true, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
@@ -100,49 +102,64 @@ end
 
 
 """
-    ask `question/instructions`
+    type_answer `question/instructions`
 
-Use LLM to reply to the `question/instructions` (the LLM is aware of the current application used).
+Use LLM to reply to the `question/instructions` and type it.
 """
-ask(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="") = _ask(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix)
-
-
-"""
-    voice_ask `question/instructions`
-
-Use LLM to reply to the `question/instructions` (the LLM is aware of the current application used) and read it out loud.
-"""
-voice_ask(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _ask(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, type_answer=false, say_answer=true)
+type_answer(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix)
 
 
 """
-    ask_with_text `question/instructions`
+    read_answer `question/instructions`
 
-Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard).
+Use LLM to reply to the `question/instructions` and read it out loud.
 """
-ask_with_text(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="") = _ask(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true)
+read_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, type_answer=false, say_answer=true)
 
 
 """
-    voice_ask_with_text `question/instructions`
+    type_text_answer `question/instructions`
+
+Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and type it.
+"""
+type_text_answer(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true)
+
+
+"""
+    read_text_answer `question/instructions`
 
 Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and read it out loud.
 """
-voice_ask_with_text(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _ask(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true, type_answer=false, say_answer=true)
+read_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true, type_answer=false, say_answer=true)
 
 
-@voiceargs instruction_tokens=>(model=MODELNAME.TYPE.EN_US) function _ask(instruction_tokens::String...; stream::Bool=true, show_thinking::Bool=true, with_text::Bool=false, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false)
+@voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer(instruction_tokens::String...; stream::Bool=true, show_thinking::Bool=true, with_text::Bool=false, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false)
     instructions = instruction_prefix * " " * join(instruction_tokens, " ")
     delete = type_answer
     if with_text
-        question = "Please reply to the following question/instructions concerning/considering the text below. Output only the answer, without explanations, tags, quotes, or comments."
+        question = "Please reply to the following question/instructions concerning/considering the text below. Reply in the same language as the \"Question/instructions\". Output only the answer, without explanations, tags, quotes, or comments."
         question = "$question\n\nQuestion/instructions:\n$instructions"
         modify_or_write_new(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
     else
-        question = "Please reply to the following question/instructions. Output only the answer, without explanations, tags, quotes, or comments."
+        question = "Please reply to the following question/instructions. Reply in the same language as the \"Question/instructions\". Output only the answer, without explanations, tags, quotes, or comments."
         question = "$question\n\nQuestion/instructions:\n$instructions"
         write_new(question; stream=stream, show_thinking=show_thinking, type_answer=type_answer, say_answer=say_answer)
     end
 end
+
+
+"""
+    ask(question::AbstractString)
+
+Use LLM to reply to the `question`.
+"""
+ask(question::AbstractString) = ask_llm(question; stream=false, show_thinking=true, delete=false, type_answer=false, say_answer=false)
+
+
+"""
+    ask!(question::AbstractString)
+Use LLM to reply to the `question` and type the answer.
+"""
+ask!(question::AbstractString) = ask_llm!(question; show_thinking=true, delete=false, type_answer=false, say_answer=false)
 
 end # module LLM
