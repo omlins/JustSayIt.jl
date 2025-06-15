@@ -29,7 +29,6 @@ mutable struct Recognizer
     function Recognizer(backend::Symbol, pyobject::PyObject, transcriber::PyObject)
         is_persistent = true
         valid_input = String[]
-        @show transcriber
         if transcriber != PyNULL()
             if !(transcriber.is_running()) transcriber.start() end
         end
