@@ -10,7 +10,11 @@ To see a description of a function type `?<functionname>`.
 """
 module Help
 
-import ..JustSayIt: LANG, default_language, command, command_names, next_token, pretty_cmd_string, PyKey
+using ..JustSayIt.API
+import ..JustSayIt: command, command_names, pretty_cmd_string, PyKey
+using ..JustSayIt: next_token #TODO: remove this import after reimplementation
+public help
+
 
 const COMMANDS_KEYWORDS = Dict(LANG.DE    => "kommandos",
                                LANG.EN_US => "commands",
