@@ -1,8 +1,7 @@
 let
-    global tts, async, start_tts, switch_tts, create_tts_stream, feed_tts, play_tts, is_playing_tts, pause_tts, resume_tts, set_tts_async, tts_async_default, set_tts_async_default, stop_tts, say, dump, use_tts, set_use_tts
-    _engines::Dict{String, PyObject}                         = Dict("system" => PyNULL(), "kokoro" => PyNULL(), "orpheus" => PyNULL())
+    global tts, init_tts, finalize_tts, switch_tts, stream, create_tts_stream, is_tts_stream, feed_tts, play_tts, is_playing_tts, pause_tts, resume_tts, set_tts_async, tts_async_default, set_tts_async_default, stop_tts, say, dump
+    _engines::Dict{String, PyObject}                         = Dict("system" => PyNULL(), "kokoro" => PyNULL())
     _streams::Dict{String, Dict{String, PyObject}}           = Dict()
-    _use_tts::Bool                                           = false
     _async_default::Bool                                     = true
     _default_engine::String                                  = ""
     _audiooutput_id::Int64                                   = -1
@@ -11,22 +10,34 @@ let
     tts_async_default()::Bool                                = _async_default
     set_tts_async_default(async::Bool)                       = (_async_default = async)
     tts()::String                                            = _default_engine
-    use_tts()::Bool                                          = _use_tts
     audiooutput()::Int64                                     = _audiooutput_id
 
 
-    function start_tts(enginename::String; audiooutput_id::Int=-1, audiooutput_name::String="")
+    function init_tts(; audiooutput_id::Int=-1, audiooutput_name::String="")
+        enginename = Preferences.@load_preference("TTS_ENGINE", use_gpu() ? TTS_DEFAULT_ENGINE : TTS_DEFAULT_ENGINE_CPU)
         if isempty(enginename) @APIUsageError("TTS engine name cannot be empty.") end
-        _use_tts = true
         select_audiooutput_id(audiooutput_id, audiooutput_name)
         map_supported_engines() # Construct the mapping of supported engines
         switch_tts(enginename; silent=true)
     end
 
+    function finalize_tts()
+        @info "Finalizing TTS..."
+        for (enginename, engine) in _engines
+            if (engine != PyNULL())
+                for streamname in keys(_streams[enginename])
+                    if is_tts_stream(enginename, streamname)
+                        @debug "Stopping TTS stream $streamname of engine $enginename..."
+                        stop_tts(enginename=enginename, streamname=streamname)
+                    end
+                end
+            end
+        end
+    end                
+
     function select_audiooutput_id(audiooutput_id::Int, audiooutput_name::String)
         if (audiooutput_id >= 0) && !isempty(audiooutput_name) @IncoherentArgumentError("both audiooutput_id and audiooutput_name are provided.") end
         _audiooutput_id = (audiooutput_id >= 0) ? audiooutput_id : get_audiooutput_id(audiooutput_name)
-        @show _audiooutput_id
         print_audiooutput(_audiooutput_id)
     end
 
@@ -57,8 +68,6 @@ let
     function map_supported_engines()
         TTS_SUPPORTED_LOCALENGINES["system"] = RealtimeTTS.SystemEngine
         TTS_SUPPORTED_LOCALENGINES["kokoro"] = RealtimeTTS.KokoroEngine
-        TTS_SUPPORTED_LOCALENGINES["orpheus"] = RealtimeTTS.OrpheusEngine
-        @show TTS_SUPPORTED_LOCALENGINES
     end
 
     function switch_tts(enginename::String; silent::Bool=false)
@@ -85,7 +94,7 @@ let
             end
             if answer == "yes"
                 try
-                    Conda.pip("install", "RealtimeTTS[$(join([keys(_engines), enginename], ", "))]")
+                    Conda.pip("install", "RealtimeTTS[$(join([keys(_engines)..., enginename], ", "))]")
                 catch   
                     @ArgumentError("Engine $enginename could not be installed. Please check the engine name and possibly try again.")
                 end
@@ -93,7 +102,7 @@ let
                 _engines[enginename] = PyNULL()
                 map_supported_engines() # Re-map the supported engines to include the freshly installed engine
             else
-                @ExternalError("Installation aborted. You can choose a different engine or use a remote engine or set `use_tts=false`.")
+                @ExternalError("Installation aborted. You can choose a different engine or set `use_tts=false`.")
             end
         end
         println("TTS engine $enginename is ready to use.")
@@ -103,7 +112,6 @@ let
         if !is_tts_loaded(enginename)
             tic();
             if haskey(TTS_SUPPORTED_LOCALENGINES, enginename)
-                @show TTS_SUPPORTED_LOCALENGINES
                 _engines[enginename] = TTS_SUPPORTED_LOCALENGINES[enginename]()
             else
                 @ArgumentError("Engine $enginename is not supported.")
@@ -112,18 +120,13 @@ let
             println("TTS engine $enginename was loaded in $(round(t_load, digits=3)) seconds.")
         end
     end
-    
-    # unload_local_tts(enginename::String) =
 
     function create_tts_stream(enginename::String, streamname::String; muted::Bool=false)
         if !haskey(_streams, enginename) _streams[enginename] = Dict() end
         if !haskey(_streams[enginename], streamname)
-            @show audiooutput
             if (audiooutput() >= 0)
-                @show audiooutput()
                 _streams[enginename][streamname] = RealtimeTTS.TextToAudioStream(engine(enginename), output_device_index=audiooutput(), muted=muted)
             else
-                @show audiooutput()
                 _streams[enginename][streamname] = RealtimeTTS.TextToAudioStream(engine(enginename), muted=muted)
             end
         end
@@ -151,13 +154,7 @@ let
             end
         end
     end
-    
-    is_playing_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)                        = stream(enginename, streamname).is_playing()
-    pause_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)                             = stream(enginename, streamname).pause()
-    resume_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)                            = stream(enginename, streamname).resume()
-    stop_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)                              = stream(enginename, streamname).stop()
-    set_tts_async(async::Bool)                                                                               = (_async_default = async; say("Default TTS behavior is now $(async ? "asynchronous" : "synchronous")."; async=false))
-    
+
     function say(text::AbstractString; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default())
         if use_tts()
             if !is_tts_stream(enginename, streamname) create_tts_stream(enginename, streamname) end
@@ -204,11 +201,4 @@ let
         return nothing
     end
 
-end
-
-macro voiceinfo(args...) esc(voiceinfo(args...)); end
-
-function voiceinfo(args...)
-    if (length(args) != 1) @ArgumentError("The `voiceinfo` macro takes exactly one argument.") end
-    return :(@info($((args...))); say($(args...)))
 end
