@@ -1,5 +1,5 @@
 let
-    global reader, active_reader_id, start_reading, stop_reading, read_wav
+    global reader, active_reader_id, start_reading, stop_reading, read_wav, finalize_reader
     _readers::Dict{String, Union{Base.Process,PyObject,IOBuffer}}               = Dict{String, Union{Base.Process,PyObject,IOBuffer}}()
     _active_reader_id::String                                                   = ""
     reader(id::String=DEFAULT_READER_ID)::Union{Base.Process,PyObject,IOBuffer} = _readers[id]
@@ -26,6 +26,18 @@ let
 
     function stop_reading(; id::String=DEFAULT_READER_ID)
         close(_readers[id])
+    end
+
+    function finalize_reader()
+        @info "Finalizing readers..."
+        for id in keys(_readers)
+            try
+                stop_reading(id=id)
+            catch e
+                @warn "Failed to stop reader $id: $e"
+            end
+        end
+        return
     end
 
     function check_wav(reader::PyObject)
