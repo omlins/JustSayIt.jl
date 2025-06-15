@@ -1,6 +1,6 @@
 let
     global tts, init_tts, finalize_tts, switch_tts, stream, create_tts_stream, is_tts_stream, feed_tts, play_tts, is_playing_tts, pause_tts, resume_tts, set_tts_async, tts_async_default, set_tts_async_default, stop_tts, say, dump
-    _engines::Dict{String, PyObject}                         = Dict("system" => PyNULL(), "kokoro" => PyNULL())
+    _engines::Dict{String, PyObject}                         = TTS_SUPPORTED_LOCALENGINES
     _streams::Dict{String, Dict{String, PyObject}}           = Dict()
     _async_default::Bool                                     = true
     _default_engine::String                                  = ""
