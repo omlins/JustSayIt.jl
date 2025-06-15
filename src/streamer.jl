@@ -1,6 +1,6 @@
 import Base: readbytes!, close
 let
-    global default_streamer, set_default_streamer, readbytes!, close
+    global default_streamer, set_default_streamer, readbytes!, close, finalize_streamer
     _default_streamer::Tuple{Function, String}                = (recorder, DEFAULT_RECORDER_ID)
     default_streamer()::Union{Base.Process,PyObject,IOBuffer} = _default_streamer[1](_default_streamer[2])
     set_default_streamer(streamerkind::Function, id::String)  = (_default_streamer = (streamerkind, id); return)
@@ -20,4 +20,11 @@ let
     end
 
     close(stream::PyObject) = stream.close()
+
+    function finalize_streamer() 
+        @info "Finalizing streamer..."
+        close(default_streamer())
+        return
+    end
+
 end
