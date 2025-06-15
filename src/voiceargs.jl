@@ -211,6 +211,10 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
         voicearg_sym             = :(Symbol($(string(voicearg))))
         voicearg_esc             = esc(voicearg)
         is_vararg                = f_args[voicearg][:slurp]
+        if haskey(kwargs, :model)
+            language  = :(modellang($(kwargs[:model]))) # NOTE: the language is derived from the model name if the model keyword is set.
+            modeltype = :(modeltype($(kwargs[:model]))) # NOTE: the modeltype is derived from the model name if the model keyword is set.
+        end
         if haskey(kwargs, :valid_input)
             valid_input = isa(kwargs[:valid_input],AbstractVector{String}) ? kwargs[:valid_input] : :($(kwargs[:valid_input])[$language])
             # TODO: the static recognizer cannot support multiple languages: it currently just uses the default language, which could be fine if one would say we just give an error if the wrong language is requested. But it is only fine if this does not happen ever if there are no environment flags set.
@@ -252,6 +256,7 @@ function wrap_f(f_name, f_args, f_expr, voiceargs)
                 if any($tokengroup .== UNKNOWN_TOKEN) @InsecureRecognitionException("@voiceargs: argument not recognised.") end
                 if any($tokengroup .== "") @InsecureRecognitionException($("time out waiting for voice argument $voicearg in function $f_name.")) end
                 $voicearg_esc = map(x -> $(interpret_and_parse_calls(:x, kwargs, f_arg)), $tokengroup)
+                if $language != default_language() reset_all() end
             end 
         else
             recognition = quote
