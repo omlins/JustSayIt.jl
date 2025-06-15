@@ -394,3 +394,32 @@ let
     end
 
 end
+
+function feed_stt(recognizer::Recognizer, audio::PyObject)
+    if recognizer.backend == :Vosk
+        exitcode = recognizer.pyobject.AcceptWaveform(audio)
+        is_partial_result = (exitcode == 0)
+        return is_partial_result
+    elseif recognizer.backend == :RealtimeSTT
+        recognizer.pyobject.feed_audio(audio)
+        return recognizer.transcriber.is_partial_result() # NOTE: This must be in agreement with Vosk's return value (true for partial result).
+    else
+        @APIUsageError("invalid backend (obtained: $recognizer.backend).")
+    end
+end
+
+function get_text(recognizer::Recognizer, is_partial_result::Bool)
+    if recognizer.backend == :Vosk
+        if is_partial_result
+            partial_result = recognizer.pyobject.PartialResult()
+            return (JSON.parse(partial_result))["partial"]
+        else
+            result = recognizer.pyobject.Result()
+            return (JSON.parse(result))["text"]
+        end
+    elseif recognizer.backend == :RealtimeSTT
+        return recognizer.transcriber.get_text()
+    else
+        @APIUsageError("invalid backend (obtained: $recognizer.backend).")
+    end
+end
