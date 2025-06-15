@@ -53,7 +53,7 @@ See also: [`pause_recording`](@ref)
 restart_recording
 
 let
-    global recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording, resample, prepend_silence
+    global recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording, resample, prepend_silence, finalize_recorder
     _recorders::Dict{String, Union{Base.Process,PyObject}}                 = Dict{String, Union{Base.Process,PyObject}}()
     _active_recorder_id::String                                            = ""
     _active_recorder_cmd::Union{Cmd,Nothing}                               = nothing
@@ -90,6 +90,18 @@ let
 
     function stop_recording(; id::String=DEFAULT_RECORDER_ID)
         close(_recorders[id])
+    end
+
+    function finalize_recorder()
+        @info "Finalizing recorders..."
+        for id in keys(_recorders)
+            try
+                stop_recording(id=id)
+            catch e
+                @warn "Failed to stop recorder $id: $e"
+            end
+        end
+        return
     end
 
     pause_recording()   = (stop_recording(id=active_recorder_id()); return)
