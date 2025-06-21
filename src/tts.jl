@@ -59,6 +59,7 @@ let
             audiooutput_info = Sounddevice.query_devices(audiooutput_id)
             device_info_msg = "audio output device $audiooutput_id: $(audiooutput_info["name"])"
         else
+            @info "Using default audio output device (no audiooutput_name or audiooutput_id provided, or it is not valid)."
             device_info_msg = "default audio output device"
         end
         available_audiooutputs = Sounddevice.query_devices()

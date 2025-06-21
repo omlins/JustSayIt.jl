@@ -74,6 +74,7 @@ let
                 if (microphone_id >= 0)
                     _recorders[id] = Sounddevice.RawInputStream(channels=AUDIO_IO_CHANNELS, dtype=AUDIO_ELTYPE_STR, blocksize=AUDIO_BLOCKSIZE, device=microphone_id)
                 else
+                    @info "Using default microphone (no microphone_name or microphone_id provided, or it is not valid)."
                     _recorders[id] = Sounddevice.RawInputStream(channels=AUDIO_IO_CHANNELS, dtype=AUDIO_ELTYPE_STR, blocksize=AUDIO_BLOCKSIZE)
                 end
             catch e
@@ -110,8 +111,8 @@ let
     function get_microphone_id(microphone_name::String)
         microphone_id = -1
         if isempty(microphone_name) return microphone_id end
-        available_microphones = Sounddevice.query_devices()
-        for d in available_microphones
+        available_devices = Sounddevice.query_devices()
+        for d in available_devices
             if startswith(strip(lowercase(d["name"])), strip(lowercase(microphone_name)))
                 microphone_id = d["index"]
                 break
@@ -121,10 +122,10 @@ let
     end
 
     function print_microphone(recorder::PyObject)
-        microphone_id         = recorder.device[1]
-        microphone_info       = Sounddevice.query_devices(microphone_id)
-        available_microphones = Sounddevice.query_devices()
-        @info "Using microphone $microphone_id: $(microphone_info["name"])\n(available devices:\n$(join(["$(d["index"]): $(d["name"])" for d in available_microphones],"\n"))\n)"
+        microphone_id     = recorder.device[1]
+        microphone_info   = Sounddevice.query_devices(microphone_id)
+        available_devices = Sounddevice.query_devices()
+        @info "Using microphone $microphone_id: $(microphone_info["name"])\n(available devices:\n$(join(["$(d["index"]): $(d["name"])" for d in available_devices],"\n"))\n)"
     end
     
 
