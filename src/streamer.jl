@@ -6,7 +6,7 @@ let
     set_default_streamer(streamerkind::Function, id::String)  = (_default_streamer = (streamerkind, id); return)
 
     function readbytes!(stream::PyObject, b::AbstractVector{UInt8}, nb=length(b))
-        nb_frames = Int(nb/sizeof(AUDIO_ELTYPE))
+        nb_frames = nb ÷ sizeof(AUDIO_ELTYPE)
         if stream.__class__ == Wave.Wave_read
             tmp = Vector{UInt8}(stream.readframes(nb_frames))
             b[1:length(tmp)] .= tmp
