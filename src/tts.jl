@@ -1,5 +1,5 @@
 let
-    global tts, init_tts, finalize_tts, switch_tts, stream, create_tts_stream, is_tts_stream, feed_tts, play_tts, is_playing_tts, pause_tts, resume_tts, set_tts_async, tts_async_default, set_tts_async_default, stop_tts, say, dump
+    global tts, init_tts, finalize_tts, switch_tts, stream, create_tts_stream, is_tts_stream, feed_tts, play_tts, is_playing_tts, pause_tts, resume_tts, set_tts_async, tts_async_default, set_tts_async_default, stop_tts, say, dump_audio
     _engines::Dict{String, PyObject}                         = Dict("system" => PyNULL(), "kokoro" => PyNULL())
     _streams::Dict{String, Dict{String, PyObject}}           = Dict()
     _async_default::Bool                                     = true
@@ -173,7 +173,7 @@ let
         return nothing
     end
 
-    function dump(text::AbstractString; muted::Bool=true, wavfile::String="", playout_chunk_size::Int=-1, enginename::String=tts(), streamname::String=(muted ? TTS_FILE_STREAM : TTS_FILE_PLAY_STREAM), async::Bool=tts_async_default())
+    function dump_audio(text::AbstractString; muted::Bool=true, wavfile::String="", playout_chunk_size::Int=-1, enginename::String=tts(), streamname::String=(muted ? TTS_FILE_STREAM : TTS_FILE_PLAY_STREAM), async::Bool=tts_async_default())
         if use_tts()
             to_stdout = isempty(wavfile)
             if !is_tts_stream(enginename, streamname) create_tts_stream(enginename, streamname, muted=muted) end
