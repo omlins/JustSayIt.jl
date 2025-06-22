@@ -2,10 +2,12 @@ module TTScore
 
 ## Imports
 using PyCall, Preferences
+import Base.Threads
 import ..JustSayIt: tic, toc, use_gpu, use_tts
 using ..JustSayIt.Exceptions
 import ..JustSayIt: Sounddevice
 using ..JustSayIt: RealtimeTTS
+using ..JustSayIt: Time
 
 ## Include of global constants and macros
 include("tts_constants.jl")
