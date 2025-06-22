@@ -4,3 +4,4 @@ const TTS_DEFAULT_ENGINE_CPU     = "system"
 const TTS_DEFAULT_STREAM         = "__default__"
 const TTS_FILE_STREAM            = "__file__"
 const TTS_FILE_PLAY_STREAM       = "__file_play__"
+const TTS_PROGRESS_INTERVAL      = 0.001
