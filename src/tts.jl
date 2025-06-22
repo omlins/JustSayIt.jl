@@ -5,6 +5,7 @@ let
     _async_default::Bool                                     = true
     _default_engine::String                                  = ""
     _audiooutput_id::Int64                                   = -1
+    _progresser::Union{Task, Nothing}                        = nothing
     engine(enginename::String)::PyObject                     = _engines[enginename]
     stream(enginename::String, streamname::String)::PyObject = _streams[enginename][streamname]
     tts_async_default()::Bool                                = _async_default
@@ -142,7 +143,7 @@ let
         stream(enginename, streamname).feed(text)
     end
 
-    function play_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default(), wavfile::String="", on_audio_chunk::Union{Function,Nothing}=nothing, playout_chunk_size::Int=-1)
+    function play_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default(), wavfile::String="", on_audio_chunk::Union{Function,Nothing}=nothing, playout_chunk_size::Int=-1, flush::Bool=false)
         if (!isempty(wavfile) && !isnothing(on_audio_chunk)) @IncoherentArgumentError("Both `wavfile` and `on_audio_chunk` are provided, but only one can be used at a time.") end
         if !is_playing_tts(enginename=enginename, streamname=streamname)
             _stream = stream(enginename, streamname)
@@ -153,15 +154,22 @@ let
             else
                 async ? _stream.play_async() : _stream.play()
             end
+            if flush
+                if (async) @APIUsageError("Flushing is not supported for asynchronous playback.")
+                else       _stream.stop(); # NOTE: this flush implementation could be improved, but flushing should normally not be necessary.
+                end
+            end
+            start_progresser(async; enginename=enginename, streamname=streamname)
         end
     end
 
-    function say(text::AbstractString; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default())
+    function say(text::AbstractString; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default(), flush::Bool=false)
         if use_tts()
             if !is_tts_stream(enginename, streamname) create_tts_stream(enginename, streamname) end
             feed_tts(text; enginename=enginename, streamname=streamname)
-            play_tts(enginename=enginename, streamname=streamname, async=async)
+            play_tts(; enginename=enginename, streamname=streamname, async=async, flush=flush)
         end
+        return nothing
     end
 
     function dump(text::AbstractString; muted::Bool=true, wavfile::String="", playout_chunk_size::Int=-1, enginename::String=tts(), streamname::String=(muted ? TTS_FILE_STREAM : TTS_FILE_PLAY_STREAM), async::Bool=tts_async_default())
@@ -175,6 +183,7 @@ let
                 play_tts(enginename=enginename, streamname=streamname, async=async, wavfile=wavfile)
             end
         end
+        return nothing
     end
     
     function write_to_stdout(audiochunk::PyObject) # RealtimeTTS automatically converts audiochunk to Int16; to match the requirements of `audio_input_cmd`, which is AUDIO_ELTYPE, it must be ensured that these are the same. Furthermore, in RealtimeTTS, the chunks passed to the on_audio_chunk callback are byte buffers representing interleaved audio. This is evident from the _on_audio_chunk method.
@@ -202,4 +211,30 @@ let
         return nothing
     end
 
+    function progress_tts_stream(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+        while is_playing_tts(enginename=enginename, streamname=streamname)
+            Time.sleep(0.001)
+            yield()
+        end
+    end
+
+    function start_progresser(async::Bool; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+        if async
+            if isnothing(_progresser) || !istaskstarted(_progresser) || istaskdone(_progresser)
+                _progresser = Threads.@spawn progress_tts_stream(enginename=enginename, streamname=streamname) #NOTE: currently only a single progresser is required.
+                @debug "Progresser started for TTS engine $enginename and stream $streamname: $(_progresser)."
+            end
+        else
+            progress_tts_stream(enginename=enginename, streamname=streamname)
+        end
+    end
+
+    function stop_progresser(enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+        if !isnothing(_progresser) && istaskstarted(_progresser) && !istaskdone(_progresser)
+            schedule(_progresser, InterruptException())
+            @debug "Stopping progresser for TTS engine $enginename and stream $streamname: $(_progresser)."
+            wait(_progresser)
+        end
+        _progresser = nothing
+    end
 end
