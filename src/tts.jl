@@ -6,6 +6,7 @@ let
     _default_engine::String                                  = ""
     _audiooutput_id::Int64                                   = -1
     _progresser::Union{Task, Nothing}                        = nothing
+    _stop_progresser::Bool                                   = false
     engine(enginename::String)::PyObject                     = _engines[enginename]
     stream(enginename::String, streamname::String)::PyObject = _streams[enginename][streamname]
     tts_async_default()::Bool                                = _async_default
@@ -159,8 +160,8 @@ let
                 else       _stream.stop(); # NOTE: this flush implementation could be improved, but flushing should normally not be necessary.
                 end
             end
-            start_progresser(async; enginename=enginename, streamname=streamname)
         end
+        start_progresser(async; enginename=enginename, streamname=streamname) # NOTE: this must be called even if it is already playing in order to match the desired (a)synchronous behavior (play is kept as is)
     end
 
     function say(text::AbstractString; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default(), flush::Bool=false)
@@ -211,30 +212,34 @@ let
         return nothing
     end
 
-    function progress_tts_stream(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
-        while is_playing_tts(enginename=enginename, streamname=streamname)
-            Time.sleep(0.001)
-            yield()
+    function progress_tts_stream(async::Bool; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+        while !_stop_progresser && is_playing_tts(enginename=enginename, streamname=streamname)
+            Time.sleep(TTS_PROGRESS_INTERVAL)
+            if async yield() end
         end
     end
 
     function start_progresser(async::Bool; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
         if async
             if isnothing(_progresser) || !istaskstarted(_progresser) || istaskdone(_progresser)
-                _progresser = Threads.@spawn progress_tts_stream(enginename=enginename, streamname=streamname) #NOTE: currently only a single progresser is required.
+                _progresser = Threads.@spawn progress_tts_stream(async; enginename=enginename, streamname=streamname) #NOTE: currently only a single progresser is required.
                 @debug "Progresser started for TTS engine $enginename and stream $streamname: $(_progresser)."
             end
         else
-            progress_tts_stream(enginename=enginename, streamname=streamname)
+            stop_progresser(enginename=enginename, streamname=streamname) # Stop potentially running async progresser (for safety we don't do that in opposite case)
+            progress_tts_stream(async; enginename=enginename, streamname=streamname)
         end
     end
 
-    function stop_progresser(enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+    function stop_progresser(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)
+        @debug "Stopping progresser for TTS engine $enginename and stream $streamname: $(_progresser)."
+        _stop_progresser = true
         if !isnothing(_progresser) && istaskstarted(_progresser) && !istaskdone(_progresser)
-            schedule(_progresser, InterruptException())
-            @debug "Stopping progresser for TTS engine $enginename and stream $streamname: $(_progresser)."
             wait(_progresser)
+        else
+            sleep(2*TTS_PROGRESS_INTERVAL)
         end
+        _stop_progresser = false
         _progresser = nothing
     end
 end
