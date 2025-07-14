@@ -26,7 +26,7 @@ To see a description of a function type `?<functionname>`.
 module LLM
 
 using ..JustSayIt.API
-import ..JustSayIt.LLMcore: @ai_str
+import ..JustSayIt: say, remove_end_punctuation
 public type_summary, read_summary, type_translation, read_translation, type_answer, read_answer, type_text_answer, read_text_answer
 
 ## CONSTANTS
@@ -37,7 +37,7 @@ const TRANSLATION_LANGUAGES = ["english", "french", "german", "spanish", "italia
 ## HELPER FUNCTIONS
 
 # Use LLM to modify the selected text according to the `question`, or, if no text is selected, write a new text based on the text in the clipboard.
-function modify_or_write_new(question::String; stream::Bool=true, show_thinking::Bool=true, delete::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
+function modify_or_write_new(question::String; stream::Bool=false, show_thinking::Bool=true, delete::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
     selection = get_selection_content()
     do_modify = !isempty(selection)
     text      = do_modify ? selection : get_clipboard_content()
@@ -48,8 +48,10 @@ end
 
 
 # Use LLM to write a new text based on the `question` (the LLM is aware of the current application used).
-function write_new(question::String; stream::Bool=true, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
-    ask_llm(question; stream=stream, show_thinking=show_thinking, delete=false, type_answer=type_answer, say_answer=say_answer)
+function write_new(question::String; stream::Bool=false, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false, follow_up::Bool=false)
+    if (follow_up) ask_llm!(question; stream=stream, show_thinking=show_thinking, delete=false, type_answer=type_answer, say_answer=say_answer)
+    else           ask_llm(question; stream=stream, show_thinking=show_thinking, delete=false, type_answer=type_answer, say_answer=say_answer)
+    end
 end
 
 
@@ -60,7 +62,7 @@ end
 
 Use LLM to summarize the selected text (or text from clipboard) and type it.
 """
-type_summary(; stream::Bool=true, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking)
+type_summary(; stream::Bool=false, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking)
 
 
 """
@@ -71,7 +73,7 @@ Use LLM to summarize the selected text (or text from clipboard) and read it out 
 read_summary(; stream::Bool=false, show_thinking::Bool=true) = _summarize(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
 
 
-function _summarize(; stream::Bool=true, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
+function _summarize(; stream::Bool=false, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
     delete = type_answer
     question = "Please summarize the text below. Output only the summary, without explanations, tags, quotes, or comments."
     modify_or_write_new(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
@@ -83,7 +85,7 @@ end
 
 Use LLM to translate the selected text (or text from clipboard) to the specified language and type it.
 """
-type_translation(; stream::Bool=true, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking)
+type_translation(; stream::Bool=false, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking)
 
 
 """
@@ -94,7 +96,7 @@ Use LLM to translate the selected text (or text from clipboard) to the specified
 read_translation(; stream::Bool=false, show_thinking::Bool=true) = _translate(; stream=stream, show_thinking=show_thinking, type_answer=false, say_answer=true)
 
 
-@voiceargs language=>(valid_input=TRANSLATION_LANGUAGES) function _translate(language::String; stream::Bool=true, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
+@voiceargs language=>(valid_input=TRANSLATION_LANGUAGES) function _translate(language::String; stream::Bool=false, show_thinking::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
     delete = type_answer
     question = "Please translate the text below to $language. Output only the translated text, without explanations, tags, quotes, or comments."
     modify_or_write_new(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
@@ -106,7 +108,7 @@ end
 
 Use LLM to reply to the `question/instructions` and type it.
 """
-type_answer(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix)
+type_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix)
 
 
 """
@@ -122,7 +124,7 @@ read_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::
 
 Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and type it.
 """
-type_text_answer(; stream::Bool=true, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true)
+type_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true)
 
 
 """
@@ -133,7 +135,7 @@ Use LLM to reply to the `question/instructions` considering the selected text (o
 read_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true, type_answer=false, say_answer=true)
 
 
-@voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer(instruction_tokens::String...; stream::Bool=true, show_thinking::Bool=true, with_text::Bool=false, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false)
+@voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer(instruction_tokens::String...; stream::Bool=false, show_thinking::Bool=true, with_text::Bool=false, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false)
     instructions = instruction_prefix * " " * join(instruction_tokens, " ")
     delete = type_answer
     if with_text
@@ -145,6 +147,52 @@ read_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_pre
         question = "$question\n\nQuestion/instructions:\n$instructions"
         write_new(question; stream=stream, show_thinking=show_thinking, type_answer=type_answer, say_answer=say_answer)
     end
+end
+
+
+"""
+    type_followup `question/instructions`
+
+Use LLM to reply to the follow up `question/instructions` and type it.
+"""
+type_followup(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="", lang::String=default_language()) = @voiceconfig language=lang _answer!(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix)
+
+
+"""
+    read_followup `question/instructions`
+
+Use LLM to reply to the follow up `question/instructions` and read it out loud.
+"""
+read_followup(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer!(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, type_answer=false, say_answer=true)
+
+
+"""
+    chat `question/instructions`...
+
+Use LLM to follow up on the last question and start a chat; say "bye" to exit.
+"""
+chat_followup(; show_thinking::Bool=true) = _chat_followup(; show_thinking=show_thinking)
+
+
+function _chat_followup(; show_thinking::Bool=true)
+    say("Listening...")
+    has_answered = true
+    while has_answered
+        has_answered = _answer!(; stream=false, show_thinking=show_thinking, type_answer=false, say_answer=true)
+    end
+end
+
+
+#TODO: the following implementation is for English only so far - the TTS does not support other languages.
+@voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer!(instruction_tokens::String...; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false, exit_cmd="bye")
+    if remove_end_punctuation(join(lowercase.(instruction_tokens), " "), default_language()) == exit_cmd # TODO: use lang
+        @info "Exiting chat."
+        say("Bye!")
+        return false
+    end
+    question = instruction_prefix * " " * join(instruction_tokens, " ")
+    write_new(question; stream=stream, show_thinking=show_thinking, type_answer=type_answer, say_answer=say_answer, follow_up=true)
+    return true
 end
 
 
