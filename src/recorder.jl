@@ -53,14 +53,14 @@ See also: [`pause_recording`](@ref)
 restart_recording
 
 let
-    global recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording, resample, prepend_silence, finalize_recorder
+    global recorder, active_recorder_id, active_recorder_samplerate, start_recording, stop_recording, pause_recording, restart_recording, finalize_recorder
     _recorders::Dict{String, Union{Base.Process,PyObject}}                 = Dict{String, Union{Base.Process,PyObject}}()
     _active_recorder_id::String                                            = ""
     _active_recorder_cmd::Union{Cmd,Nothing}                               = nothing
     _active_recorder_samplerate::Int                                       = -1
     recorder(id::String=DEFAULT_RECORDER_ID)::Union{Base.Process,PyObject} = _recorders[id]
     active_recorder_id()::String                                           = (if (_active_recorder_id=="") @APIUsageError("no recorder is active.") end; return _active_recorder_id)
-    active_recorder_samplerate()::Int                                     = (if (_active_recorder_samplerate==-1) @APIUsageError("no recorder is active.") end; return _active_recorder_samplerate)
+    active_recorder_samplerate()::Int                                      = (if (_active_recorder_samplerate==-1) @APIUsageError("no recorder is active.") end; return _active_recorder_samplerate)
 
     function start_recording(; id::String=DEFAULT_RECORDER_ID, audio_input_cmd::Union{Cmd,Nothing}=nothing, microphone_id::Int=-1, microphone_name::String="") # NOTE: here could be started multiple recorders.
         if !isnothing(audio_input_cmd)
@@ -128,41 +128,4 @@ let
         @info "Using microphone $microphone_id: $(microphone_info["name"])\n(available devices:\n$(join(["$(d["index"]): $(d["name"])" for d in available_devices],"\n"))\n)"
     end
     
-
-    function prepend_silence(audio::PyObject; duration::Float64=30.0, samplerate::Int=SAMPLERATE)
-        num_samples = round(Int, duration * samplerate)
-        silence = Numpy.zeros(num_samples, dtype=AUDIO_ELTYPE_NUMPY())
-        audio_data = Numpy.frombuffer(audio, dtype=AUDIO_ELTYPE_NUMPY())
-        padded_audio = Numpy.concatenate([silence, audio_data])  # Prepend silence
-        byte_audio = reinterpret(UInt8, padded_audio) |> collect
-        return PyCall.pybytes(byte_audio)
-    end
-    
-    function resample(audio::PyObject; input_samplerate::Int=active_recorder_samplerate(), output_samplerate::Int=SAMPLERATE)
-        if input_samplerate == output_samplerate
-            return audio
-        else
-            np_audio = Numpy.frombuffer(audio, dtype=AUDIO_ELTYPE_NUMPY())
-            resampled_audio = Scipy.signal.resample_poly(np_audio, output_samplerate, input_samplerate)
-            int_audio = safe_int_audio(resampled_audio)
-            byte_audio = reinterpret(UInt8, int_audio) |> collect
-            return PyCall.pybytes(byte_audio)
-        end
-    end
-
-    resample(audio::AbstractVector{UInt8}; kwargs...) = PyCall.convert(Vector{UInt8}, resample(PyCall.pybytes(audio); kwargs...))
-    
-    function safe_int_audio(x::AbstractVector{<:Real}; T::Type=AUDIO_ELTYPE)
-        if (T === Int16) x_clipped = clamp.(x, -32768, 32767)
-        else             @APIUsageError("Unsupported type T: $T")
-        end
-        return round.(T, x_clipped)
-    end
-    
-    function AUDIO_ELTYPE_NUMPY()
-        if   (AUDIO_ELTYPE === Int16) return Numpy.int16
-        else                          @APIUsageError("Unsupported AUDIO_ELTYPE: $AUDIO_ELTYPE")
-        end
-    end
-
 end
