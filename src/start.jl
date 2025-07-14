@@ -99,6 +99,10 @@ $(pretty_dict_string(DEFAULT_COMMANDS))
 
 """
 function start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing)
+    _start(; commands=commands, subset=subset, max_speed_subset=max_speed_subset, default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
+end
+
+function _start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, nbcommands::Int=-1)
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     #TODO: temporarily deactivated: if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
@@ -111,13 +115,21 @@ function start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::
     incoherent_subset = [x for x in max_speed_multiword_cmds if x ∉ max_speed_subset]
     #TODO: temporarily deactivated: if !isempty(incoherent_subset) @IncoherentArgumentError("'max_speed_subset' incoherent: the following commands are not part of 'max_speed_subset', but start with the same word as a command that is part of it: \"$(join(incoherent_subset,"\", \"", " and "))\". Adjust the 'max_speed_subset' to prevent this.") end
 
-    init_jsi(; default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
+    finalize = !is_initialized() # Do not finalize if it is already initialized: then this must be taken care of outside.
+    if is_initialized()
+        if (nbcommands == -1) @warn "JustSayIt is already initialized; ignoring new initialization parameters." end
+    else
+        init_jsi(; default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
+    end
     init_commands(commands)
-    interpret(max_speed_token_subset)
+    interpret(max_speed_token_subset; nbcommands=nbcommands, finalize=finalize)
+    return
 end
 
     
-function interpret(max_speed_token_subset::AbstractArray{String})
+function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::Int=-1, finalize::Bool=true)
+    do_infinite_loop  = (nbcommands == -1)
+    nbcommands_processed = 0
     cmd_recognizer()  = recognizer(COMMAND_RECOGNIZER_ID)
     valid_cmd_names   = command_names()
     cmd_name          = ""
@@ -127,10 +139,37 @@ function interpret(max_speed_token_subset::AbstractArray{String})
     cmd_sleep_jsi     = (default_language() == LANG.EN_US) ? "$cmd_name_sleep JustSayIt" : "$cmd_name_sleep JSI"
     is_sleeping       = false
     use_max_speed     = true
-    @info "I'm ready. Listening for commands in $(lang_str(default_language())) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c in the terminal to terminate)..."
-    say("...and now, whatever you need: \"just say it\"!")
+    if do_infinite_loop
+        @info "I'm ready. Listening for commands in $(lang_str(default_language())) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c in the terminal to terminate)..."
+        say("...and now, whatever you need: \"just say it\"!")
+    end
     try
         while true
+            try
+                if !is_active(cmd_recognizer()) update_commands() end # NOTE: a reset might be beneficial or needed at some point, as previously force_reset_previous(cmd_recognizer())
+                use_max_speed = _is_next(max_speed_token_subset, cmd_recognizer(), noises(); use_partial_recognitions=true, ignore_unknown=false)
+                cmd_name = next_token(cmd_recognizer(), noises(); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
+                    reset_all()
+                    cmd_name = ""
+                end
+                while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
+                    token = next_token(cmd_recognizer(), noises(); use_partial_recognitions = use_max_speed, ignore_unknown=false)
+                    if token == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
+                        reset_all()
+                        cmd_name = ""
+                    else
+                        cmd_name = cmd_name * " " * token
+                    end
+                end
+            catch e
+                if isa(e, InsecureRecognitionException)
+                    if !is_sleeping @debug(e.msg) end
+                    cmd_name = ""
+                else
+                    rethrow(e)
+                end
+            end
             if is_sleeping
                 if cmd_name == cmd_name_awake
                     if is_confirmed() is_sleeping = false end
@@ -170,43 +209,17 @@ function interpret(max_speed_token_subset::AbstractArray{String})
                     @debug "Invalid command: $cmd_name."
                 end
             end
-            try
-                if !is_active(cmd_recognizer()) update_commands() end # NOTE: a reset might be beneficial or needed at some point, as previously force_reset_previous(cmd_recognizer())
-                use_max_speed = _is_next(max_speed_token_subset, cmd_recognizer(), noises(); use_partial_recognitions=true, ignore_unknown=false)
-                cmd_name = next_token(cmd_recognizer(), noises(); use_partial_recognitions = use_max_speed, ignore_unknown=false)
-                if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
-                    reset_all()
-                    cmd_name = ""
-                end
-                while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
-                    token = next_token(cmd_recognizer(), noises(); use_partial_recognitions = use_max_speed, ignore_unknown=false)
-                    if token == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
-                        reset_all()
-                        cmd_name = ""
-                    else
-                        cmd_name = cmd_name * " " * token
-                    end
-                end
-            catch e
-                if isa(e, InsecureRecognitionException)
-                    if !is_sleeping @debug(e.msg) end
-                    cmd_name = ""
-                else
-                    rethrow(e)
-                end
-            end
+            nbcommands_processed+=1
+            if !do_infinite_loop && (nbcommands_processed >= nbcommands) break end
         end
     catch e
         if isa(e, InterruptException)
             @info "Terminating JustSayIt..."
+            if (finalize) finalize_jsi() end # NOTE: in case of another exception it must not be finalized because then we would not get the stack trace.
         else
             rethrow(e)
         end
-    finally
-        finalize_jsi()
     end
-
-    finalize_jsi()
 end
 
 function is_confirmed()
@@ -222,8 +235,15 @@ function is_confirmed()
 end
 
 
-const CONFIRMATION = Dict(LANG.DE=>["j s i"], LANG.EN_US=>["just say it"], LANG.ES=>["j s i"], LANG.FR=>["j s i"])
-
 @voiceargs words=>(valid_input=Tuple(CONFIRMATION), timeout=2.0) function _is_confirmed(words::String...)
     return ([join(words, " ")] == CONFIRMATION[default_language()])
+end
+
+
+## Functions for unit testing
+
+function interpret(text_with_silence::AbstractVector, _start_kwargs::NamedTuple; muted::Bool=true, wavfile::String="", enginename::String=tts())
+    generate_audio_input(text_with_silence; muted=muted, wavfile=wavfile, enginename=enginename) do
+        _start(; _start_kwargs...)
+    end
 end
