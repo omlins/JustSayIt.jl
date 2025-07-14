@@ -2,6 +2,7 @@ module LLMcore
 
 ## Imports
 using PyCall, Preferences
+using ..JustSayIt
 import ..JustSayIt: tic, toc
 using ..JustSayIt.TTScore
 using ..JustSayIt.Exceptions
