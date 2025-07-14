@@ -75,6 +75,11 @@ const LANG_STR = Dict(LANG.DE    => "German",
                       LANG.ES    => "Spanish",
                       LANG.FR    => "French",
                       )
+const CONFIRMATION = Dict(LANG.DE    => ["j s i"],
+                          LANG.EN_US => ["just say it"],
+                          LANG.ES    => ["j s i"],
+                          LANG.FR    => ["j s i"],
+                         )
 const NOISES = (DE    = String[],
                 EN_US = String["huh"],
                 ES    = String[],
