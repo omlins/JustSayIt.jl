@@ -1,5 +1,5 @@
 let
-    global llm, init_llm, finalize_llm, switch_llm
+    global llm, init_llm, finalize_llm, switch_llm, USE_LOCAL_LLM
     USE_LOCAL_LLM::Bool    = true
     _default_model::String = ""
     llm()::String          = _default_model
@@ -57,6 +57,10 @@ let
         run(`ollama ps`)
         register_llm(modelname) # Register the model if not already registered (only after it has been verified to work!)
         set_default_llm(modelname)
+        @info "LLM PT backend test:"
+        ai"$test_question"
+        ai"$test_question"
+        ai!"In which language was this text written?"
     end
 
     unload_local_llm(modelname::String) = run(`ollama stop $modelname`)
