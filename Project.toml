@@ -22,7 +22,7 @@ JSON = "0.21"
 MacroTools = "0.5"
 Preferences = "1.4.3"
 ProgressMeter = "1.7"
-PromptingTools = "0.76.0"
+PromptingTools = "0.77.0"
 PyCall = "1.93"
 julia = "1.6"
 
