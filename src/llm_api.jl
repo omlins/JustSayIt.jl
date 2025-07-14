@@ -18,12 +18,13 @@ end
 
 ## API FUNCTIONS
 
-function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false)
+function _ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false)
     if (show_thinking) @info "LLM question: $question" end
     model = llm()
     if (delete) Keyboard.press_delete() end
     play_delay = 30
     nb_tokens = 0
+    answer = ""
     if stream
         is_thinking = false
         for part in Ollama.generate(model, question, stream=true)
@@ -40,6 +41,7 @@ function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bo
                     else                        say(token)
                     end
                 end
+                answer = join((answer, token), " ")
             end
             if (token == "</think>") 
                 is_thinking = false
@@ -51,16 +53,41 @@ function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bo
     else
         answer, thinking = llm_generate(model, question)
         if (show_thinking) 
-            @info "LLM thinking: $thinking"
+            if !isempty(thinking) @info "LLM thinking: $thinking" end
             @info "LLM answer: $answer"
         end
         if (type_answer) Keyboard.type_string(answer) end
         if (say_answer) say(answer) end
     end
+    return answer
+end
+
+function _ask_llm_pt(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false, follow_up::Bool=false)
+    if (stream) @APIUsageError("streaming is not supported using the PT backend.") end
+    if (show_thinking) @info "LLM question: $question" end
+    if (delete) Keyboard.press_delete() end
+    response = follow_up ? ai!"$question" : ai"$question"
+    answer, thinking = split_response(response.content)
+    if show_thinking
+        if !isempty(thinking) @info "LLM thinking: $thinking" end
+        @info "LLM answer: $answer"
+    end
+    if (type_answer) Keyboard.type_string(answer) end
+    if (say_answer) say(answer) end
+    return answer
 end
 
 
-function ask_llm!(question::AbstractString; show_thinking::Bool=true, delete::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
-    #TODO: the implementation is missing and this currently just falls back to `ask_llm`
-    ask_llm(question; stream=false, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
+function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false)
+    if stream
+        if (!USE_LOCAL_LLM) @APIUsageError("streaming is not supported for remote LLMs.") end
+        _ask_llm(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
+    else
+        _ask_llm_pt(question; show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer)
+    end
+end
+
+function ask_llm!(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
+    if (stream) @APIUsageError("streaming is not supported for questions with follow up.") end
+    _ask_llm_pt(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer, follow_up=true)
 end
