@@ -49,6 +49,9 @@ include("tools.jl")
 ## Include of TTScore submodule (must be before other submodules as it is used there)
 include("TTScore.jl"); using .TTScore
 
+## Include of shared functionality using TTScore
+include("audio_tools.jl")
+
 ## Alphabetical include of submodules, except commmand-submodules (below)
 include("LLMcore.jl"); using .LLMcore
 
