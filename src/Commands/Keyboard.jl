@@ -39,10 +39,13 @@ To see a description of a function type `?<functionname>`.
 See also: [`Mouse`](@ref)
 """
 module Keyboard
-
 using ..JustSayIt.API
 import ..JustSayIt: Key, PyKey
+import ..JustSayIt: remove_end_punctuation
+import ..JustSayIt: Unidecode
 using PyCall
+using PromptingTools
+const PT = PromptingTools
 public press_keys, press_delete, press_backspace, type_sentence, type_sentence_lowercase, type_first_lowercase, type_first_uppercase, type_lowercase, type_uppercase, type_flatcase, type_snakecase, type_camelcase, type_constantcase, type_letter, type_majuscule, type_letters, type_capitals, type_digits
 
 
@@ -55,6 +58,7 @@ function type_string(str::AbstractString; do_keystrokes::Bool=true, press_durati
         if (single_line) str = replace(str, "\\n" => "")
         else             str = replace(str, "\\n" => '\n')
         end
+        str = Unidecode.unidecode(str) # NOTE: pynput does not support unicode characters correctly, so we convert them to ASCII. 
         keys = map(convert_key, [str...])
         for key in keys
             if (!single_line && key == "\n") key = Key.enter end
@@ -78,8 +82,6 @@ function handle_first_lower!(words::AbstractArray{<:AbstractString}, active_lang
     words[begin] = handle_uppercase(lowercase(words[begin]), false, active_lang)
     return words
 end
-
-remove_end_punctuation(words_str::AbstractString, lang::String) = (lang != LANG_AUTO) ? replace(words_str, r"\p{P}+$" => "") : words_str
 
 @voiceargs words=>(modeltype=MODELTYPE_DEFAULT, ignore_unknown=true) _next_short_wordgroup(words::String...) = return collect(words)
 
@@ -193,5 +195,6 @@ type_digits(; lang::String=default_language()) = type_string(join((next_digits(l
 Type `text` with the keyboard.
 """
 type(text::AbstractString) = type_string(text)
+type(msg::PT.AIMessage) = type_string(msg.content)
 
 end # module Keyboard
