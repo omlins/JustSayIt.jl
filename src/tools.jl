@@ -1,3 +1,11 @@
+function remove_end_punctuation(words_str::AbstractString, lang::String)
+    if lang != LANG_AUTO
+        return replace(words_str, r"\p{P}+$" => "")
+    else
+        return words_str
+    end
+end
+
 function get_clipboard_content()
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
     root.withdraw()
@@ -52,6 +60,13 @@ function download_and_unzip(destination, filename, repository)
     Downloads.download(repository * "/" * filename, filepath; progress=show_progress)
     @pywith Zipfile.ZipFile(filepath, "r") as archive begin
         archive.extractall(destination)
+    end
+end
+
+function ramdisk_tempdir()
+    shm = "/dev/shm"
+    if (Sys.islinux() && isdir(shm) && iswritable(shm)) return shm
+    else                                                return tempdir()
     end
 end
 
