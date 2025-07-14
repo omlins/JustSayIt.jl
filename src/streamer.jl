@@ -1,9 +1,12 @@
 import Base: readbytes!, close
 let
-    global default_streamer, set_default_streamer, readbytes!, close, finalize_streamer
-    _default_streamer::Tuple{Function, String}                = (recorder, DEFAULT_RECORDER_ID)
-    default_streamer()::Union{Base.Process,PyObject,IOBuffer} = _default_streamer[1](_default_streamer[2])
-    set_default_streamer(streamerkind::Function, id::String)  = (_default_streamer = (streamerkind, id); return)
+    global default_streamer, set_default_streamer, default_streamer_samplerate, finalize_streamer, close, readbytes!
+    _default_streamer::Tuple{Function, String}                           = (()->nothing, "")
+    _default_streamer_samplerate::Int                                    = -1
+    default_streamer()::Union{Base.Process,PyObject,IOBuffer}            = _default_streamer[1](_default_streamer[2])
+    set_default_streamer(streamer::Function; isreader::Bool=false, 
+        id::String=(isreader ? DEFAULT_READER_ID : DEFAULT_RECORDER_ID)) = (_default_streamer = (streamer, id); _default_streamer_samplerate = (isreader) ? active_reader_samplerate() : active_recorder_samplerate(); return)
+    default_streamer_samplerate()::Int                                   = (if (_default_streamer_samplerate==-1) @APIUsageError("no default streamer set.") end; return _default_streamer_samplerate)
 
     function readbytes!(stream::PyObject, b::AbstractVector{UInt8}, nb=length(b))
         nb_frames = nb ÷ sizeof(AUDIO_ELTYPE)
@@ -26,5 +29,4 @@ let
         close(default_streamer())
         return
     end
-
 end
