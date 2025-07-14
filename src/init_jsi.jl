@@ -52,7 +52,7 @@ $(pretty_dict_string(DEFAULT_VOSK_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES)
+function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, record::Bool=true)
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
@@ -91,5 +91,8 @@ function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{S
 
     # Start the recorder.
     set_tts_async_default(tts_async_default) # NOTE: the TTS async default must be set after initializatins, but before the recording is started (until this point, TTS can be asynchronous in any case without potentially triggering commands by accident)
-    start_recording(; audio_input_cmd=audio_input_cmd, microphone_id=microphone_id, microphone_name=microphone_name)
+    if record
+        start_recording(; audio_input_cmd=audio_input_cmd, microphone_id=microphone_id, microphone_name=microphone_name)
+        set_default_streamer(recorder)
+    end
 end
