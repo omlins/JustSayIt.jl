@@ -152,6 +152,7 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
                 if cmd_name == UNKNOWN_TOKEN # For increased recognition security, ignore the current word group if the unknown token was obtained as command name (achieved by doing a full reset). This will prevent for example "text right" or "text type text" to trigger an action, while "right" or "type text" does so.
                     reset_all()
                     cmd_name = ""
+                    if !is_sleeping @voiceinfo "Command not recognized." end
                 end
                 while (cmd_name != "") && (cmd_name ∉ valid_cmd_names) && any(startswith.(valid_cmd_names, cmd_name))
                     token = next_token(cmd_recognizer(), noises(); use_partial_recognitions = use_max_speed, ignore_unknown=false)
@@ -173,8 +174,8 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
             if is_sleeping
                 if cmd_name == cmd_name_awake
                     if is_confirmed() is_sleeping = false end
-                    if (is_sleeping) @voiceinfo("I think I heard \"$cmd_name_awake\". If you want to awake me, say \"$cmd_awake_jsi\".")
-                    else             @voiceinfo("... awake again. Listening for commands...")
+                    if (is_sleeping) @voiceinfo "I think I heard \"$cmd_name_awake\". If you want to awake me, say \"$cmd_awake_jsi\"."
+                    else             @voiceinfo "... awake again. Listening for commands..."
                     end
                 end
             else
