@@ -89,9 +89,11 @@ function __init__()
         @pyinclude(joinpath(@__DIR__, "transcriber.py"))
         copy!(Transcriber, py"Transcriber")
 
-        # Set the device controllers
+        # Set keyboard layout and the device controllers
+        fix_keyboard_layout() # This is a workaround for the following pyinput issue: https://github.com/moses-palmer/pynput/issues/639
         set_controller("keyboard", Pynput.keyboard.Controller())
         set_controller("mouse", Pynput.mouse.Controller())
+        atexit(restore_keyboard_layout)
     end
 end
 
