@@ -128,11 +128,27 @@ type_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_pre
 
 
 """
+    type_text_answer_to(question/instructions)
+
+Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and type it.
+"""
+type_text_answer_to(question::AbstractString; stream::Bool=false, show_thinking::Bool=true) = _answer(question; stream=stream, show_thinking=show_thinking, instruction_prefix="", type_answer=true, say_answer=false, with_text=true)
+
+
+"""
     read_text_answer `question/instructions`
 
 Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and read it out loud.
 """
-read_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, with_text=true, type_answer=false, say_answer=true)
+read_text_answer(; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="") = _answer(; stream=stream, show_thinking=show_thinking, instruction_prefix=instruction_prefix, type_answer=false, say_answer=true, with_text=true)
+
+
+"""
+    read_text_answer_to(question::AbstractString)
+
+Use LLM to reply to the `question/instructions` considering the selected text (or text from clipboard) and read it out loud.
+"""
+read_text_answer_to(question::AbstractString; stream::Bool=false, show_thinking::Bool=true) = _answer(question; stream=stream, show_thinking=show_thinking, instruction_prefix="", type_answer=false, say_answer=true, with_text=true)
 
 
 @voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer(instruction_tokens::String...; stream::Bool=false, show_thinking::Bool=true, with_text::Bool=false, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false)
