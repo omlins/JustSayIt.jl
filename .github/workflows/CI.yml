@@ -26,7 +26,7 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-latest
-          - windows-latest
+          #- windows-latest # There is some issue with the pre-test pywinctl installation
         arch:
           - x64
           - x86

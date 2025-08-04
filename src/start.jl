@@ -195,7 +195,7 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
                             say("Command `$cmd_name` aborted.")
                             sleep(2.0) # Give the recognizer time to finalize
-                        elseif isa(e, InterruptException)
+                        elseif isa(e, InterruptException) || (isa(e, PyCall.PyError) && occursin("KeyboardInterrupt", string(e.T)))
                             @info "Command `$cmd_name` aborted (with CTRL+C)."
                         else
                             rethrow(e)
@@ -214,7 +214,7 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
             if !do_infinite_loop && (nbcommands_processed >= nbcommands) break end
         end
     catch e
-        if isa(e, InterruptException)
+        if isa(e, InterruptException) || (isa(e, PyCall.PyError) && occursin("KeyboardInterrupt", string(e.T)))
             @info "Terminating JustSayIt..."
             if (finalize) finalize_jsi() end # NOTE: in case of another exception it must not be finalized because then we would not get the stack trace.
         else
