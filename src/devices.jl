@@ -61,20 +61,20 @@ let
         # Extract layout and variant strings
         layout_str, variant_str = _original_keyboard_layout
         
-        # If multiple layouts are defined (comma-separated), use only the first one
+        # If multiple layouts are defined (comma-separated), use only the last one
         if contains(layout_str, ",")
             layouts = split(layout_str, ",")
-            first_layout = strip(layouts[1])
+            last_layout = strip(layouts[end])
             
             # Get corresponding variant (if any)
-            first_variant = ""
+            last_variant = ""
             if !isempty(variant_str)
                 variants = split(variant_str, ",")
-                first_variant = length(variants) > 0 ? strip(variants[1]) : ""
+                last_variant = length(variants) > 0 ? strip(variants[end]) : ""
             end
             
-            # Set keyboard to use only the first layout
-            set_keyboard_layout((first_layout, first_variant))
+            # Set keyboard to use only the last layout
+            set_keyboard_layout((last_layout, last_variant))
         end
 
         return
