@@ -2,6 +2,7 @@ let
     global controller, set_controller, finalize_devices, fix_keyboard_layout, restore_keyboard_layout
     _controllers::Dict{String, PyObject}              = Dict{String, PyObject}()
     _original_keyboard_layout                         = ("", "")
+    _keyboard_layout_restored                         = false
     controller(name::AbstractString)::PyObject        = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
     set_controller(name::AbstractString, c::PyObject) = (_controllers[name] = c; return)
 
@@ -13,7 +14,7 @@ let
 
     function set_keyboard_layout(layout::Tuple{AbstractString, AbstractString})
         if !Sys.islinux()
-            @error "Setting keyboard layout requires Linux with setxkbmap tool"
+            @error "Setting X-keyboard layout requires Linux with setxkbmap tool"
             return false
         end
         
@@ -23,14 +24,14 @@ let
             run(cmd)
             return true
         catch e
-            @error "Failed to set keyboard layout" exception=(e, catch_backtrace())
+            @error "Failed to set X-keyboard layout" exception=(e, catch_backtrace())
             return false
         end
     end
 
     function get_keyboard_layout()::Tuple{AbstractString, AbstractString}
         if !Sys.islinux()
-            @error "Getting keyboard layout requires Linux with setxkbmap tool"
+            @error "Getting X-keyboard layout requires Linux with setxkbmap tool"
             return ("", "")
         end
         
@@ -47,7 +48,7 @@ let
             
             return (layout, variant)
         catch e
-            @error "Failed to get keyboard layout" exception=(e, catch_backtrace())
+            @error "Failed to get X-keyboard layout" exception=(e, catch_backtrace())
             return ("", "")
         end
     end
@@ -75,10 +76,23 @@ let
             
             # Set keyboard to use only the last layout
             set_keyboard_layout((last_layout, last_variant))
+            @info "X-keyboard layout temporarily set to: $(last_layout) - $(last_variant) (original: $(layout_str) - $(variant_str))"
         end
 
         return
     end
 
-    restore_keyboard_layout() = set_keyboard_layout(_original_keyboard_layout)
+    function has_multiple_layouts(layout::Tuple{AbstractString, AbstractString})::Bool
+        if !Sys.islinux() @error "this function is only defined for Linux systems" end
+        layout_str, ~ = layout
+        return contains(layout_str, ",")
+    end
+
+    function restore_keyboard_layout()
+        if !(Sys.islinux() && has_multiple_layouts(_original_keyboard_layout) && !_keyboard_layout_restored) return end
+        _keyboard_layout_restored = set_keyboard_layout(_original_keyboard_layout)
+        layout_str, variant_str = _original_keyboard_layout
+        @info "X-keyboard layout restored to original: $(layout_str) - $(variant_str)"
+        return
+    end
 end
