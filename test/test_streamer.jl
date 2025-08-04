@@ -1,7 +1,7 @@
 using Test
 using JustSayIt
 using PyCall
-import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, DEFAULT_READER_ID, AUDIO_ELTYPE
+import JustSayIt: MODELNAME, VOSK_MODELDIR_PREFIX, DEFAULT_NOISES, DEFAULT_READER_ID, AUDIO_ELTYPE
 import JustSayIt: init_jsi, finalize_jsi, reader, start_reading, stop_reading, set_default_streamer, default_streamer
 
 # Test setup
@@ -9,8 +9,8 @@ const SAMPLEDIR_CMD = joinpath("samples", "commands")
 
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type)
-modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 start_reading(joinpath(SAMPLEDIR_CMD, "help.wav"))

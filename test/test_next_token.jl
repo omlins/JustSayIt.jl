@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
+import JustSayIt: MODELNAME, VOSK_MODELDIR_PREFIX, DEFAULT_NOISES, AUDIO_ELTYPE, COMMAND_RECOGNIZER_ID
 import JustSayIt: init_jsi, finalize_jsi, recognizer, Recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, reset, next_partial_recognition, next_recognition, next_token, _is_next, is_next, _are_next, are_next
 
 
@@ -29,8 +29,8 @@ commands = Dict("help"      => Help.help,
                 "page up"   => Key.page_up,
                 "page down" => Key.page_down,
                 );
-modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 samples = Dict("help"      => read_wav(joinpath(SAMPLEDIR_CMD, "help.wav")),

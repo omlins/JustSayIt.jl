@@ -2,7 +2,7 @@ using Test
 using JustSayIt
 using JustSayIt.API
 using PyCall
-import JustSayIt: MODELNAME, MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS
+import JustSayIt: MODELNAME, VOSK_MODELDIR_PREFIX, DEFAULT_NOISES, DIGITS
 import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognizer, Recognizer
 
 
@@ -13,7 +13,7 @@ import JustSayIt: init_jsi, finalize_jsi, voicearg_f_names, voiceargs, recognize
 @voiceargs (n1=>(valid_input_auto=true), n2=>(valid_input_auto=true)) hi(n1::Name, n2::Name) = println("hi $n1 and $n2")
 
 @voiceargs (
-    nr=>(valid_input=(LANG.EN_US=>[keys(DIGITS[LANG.EN_US])...],LANG.FR=>[keys(DIGITS[LANG.FR])...]), interpret_function=Keyboard.interpret_digits_EN_US, use_max_speed=true),
+    nr=>(valid_input=(LANG.EN_US=>[keys(DIGITS[LANG.EN_US])...],LANG.FR=>[keys(DIGITS[LANG.FR])...]), interpreter=Keyboard.interpret_digits_EN_US, use_max_speed=true),
     name=>(valid_input_auto=true),
     question=>(model=MODELNAME.TYPE.EN_US, ignore_unknown=true, vararg_end="end", vararg_max=10, vararg_timeout=5.0)
 ) function ask(nr::Integer, name::Name, question::String...)
@@ -22,8 +22,8 @@ end
 
 commands = Dict("help"  => Help.help,
                 "hello" => hello)
-modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
-                 MODELNAME.TYPE.EN_US    => joinpath(MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
+modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
+                 MODELNAME.TYPE.EN_US    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
 init_jsi(commands, modeldirs, DEFAULT_NOISES)
 
 
@@ -43,7 +43,7 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
             @test issetequal(keys(voiceargs(:hello)[:space]), [:recognizer, :valid_input])
             @test issetequal(keys(voiceargs(:hi)[:n1]), [:recognizer, :valid_input, :valid_input_auto])
             @test issetequal(keys(voiceargs(:hi)[:n2]), [:recognizer, :valid_input, :valid_input_auto])
-            @test issetequal(keys(voiceargs(:ask)[:nr]), [:recognizer, :valid_input, :interpret_function, :use_max_speed])
+            @test issetequal(keys(voiceargs(:ask)[:nr]), [:recognizer, :valid_input, :interpreter, :use_max_speed])
             @test issetequal(keys(voiceargs(:ask)[:name]), [:recognizer, :valid_input, :valid_input_auto])
             @test issetequal(keys(voiceargs(:ask)[:question]), [:model, :ignore_unknown, :vararg_end, :vararg_max, :vararg_timeout])
         end;
@@ -67,8 +67,8 @@ init_jsi(commands, modeldirs, DEFAULT_NOISES)
                 @test voiceargs(:hi)[:n2][:valid_input_auto] == true
                 @test voiceargs(:ask)[:name][:valid_input_auto] == true
             end;
-            @testset "interpret_function" begin
-                @test voiceargs(:ask)[:nr][:interpret_function] == Keyboard.interpret_digits_EN_US
+            @testset "interpreter" begin
+                @test voiceargs(:ask)[:nr][:interpreter] == Keyboard.interpret_digits_EN_US
             end;
             @testset "use_max_speed" begin
                 @test voiceargs(:ask)[:nr][:use_max_speed] == true

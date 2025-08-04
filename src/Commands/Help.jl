@@ -10,7 +10,11 @@ To see a description of a function type `?<functionname>`.
 """
 module Help
 
-import ..JustSayIt: LANG, default_language, command, command_names, next_token, pretty_cmd_string, PyKey
+using ..JustSayIt.API
+import ..JustSayIt: command, command_names, pretty_cmd_string, PyKey
+using ..JustSayIt: next_token #TODO: remove this import after reimplementation
+public help
+
 
 const COMMANDS_KEYWORDS = Dict(LANG.DE    => "kommandos",
                                LANG.EN_US => "commands",
@@ -25,10 +29,10 @@ function help()
     help(keyword)
 end
 
-function help(keyword)
+function help(keyword; debugonly::Bool=false)
     if keyword == COMMANDS_KEYWORDS[default_language()]
         cmd_length_max = maximum(length.(command_names()))
-        @info join(["", "Your commands:",
+        msg = join(["", "Your commands:",
                     map(sort([command_names()...])) do x
                        join((x, pretty_cmd_string(command(x))), " "^(cmd_length_max+1-length(x)) * "=> ")
                     end...
@@ -36,20 +40,28 @@ function help(keyword)
     elseif keyword in command_names()
         cmd = command(keyword)
         if isa(cmd, Function)
-            @info "Command $keyword" ""=Base.Docs.doc(cmd)
+            msg = ""
+            if (debugonly) @debug "Command $keyword" ""=Base.Docs.doc(cmd)
+            else           @info  "Command $keyword" ""=Base.Docs.doc(cmd)
+            end
         elseif isa(cmd, PyKey)
-            @info "Command $keyword\n   =   Keyboard key $(pretty_cmd_string(cmd))"
+            msg = "Command $keyword\n   =   Keyboard key $(pretty_cmd_string(cmd))"
         elseif isa(cmd, String)
-            @info "Command $keyword\n   =   Type word $(pretty_cmd_string(cmd))"
+            msg = "Command $keyword\n   =   Type word $(pretty_cmd_string(cmd))"
         elseif isa(cmd, Dict)
-            @info "Command $keyword\n   =   Activate additional commands for $keyword"
+            msg = "Command $keyword\n   =   Activate additional commands for $keyword"
         elseif isa(cmd, Array)
-            @info "Command $keyword\n   =   Command sequence $(pretty_cmd_string(cmd))"
+            msg = "Command $keyword\n   =   Command sequence $(pretty_cmd_string(cmd))"
         else
-            @info "Command $keyword\n   =   Keyboard shortcut $(pretty_cmd_string(cmd))"
+            msg = "Command $keyword\n   =   Keyboard shortcut $(pretty_cmd_string(cmd))"
         end
     else
-        @info "Help search keyword not recognized."
+        msg = "Help search keyword not recognized."
+    end
+    if !isempty(msg)
+        if (debugonly) @debug msg
+        else           @info msg
+        end
     end
     return
 end
