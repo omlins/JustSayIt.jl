@@ -69,6 +69,9 @@ let
 end
 
 
+_last_app_window_handle::Dict{String, Int} = Dict{String, Int}()
+
+
 let
     global active_app, execute
     _active_app::String = ""
@@ -90,6 +93,27 @@ function execute(cmd::Dict, cmd_name::String)
 end
 
 function activate(cmd::Cmd)
+    active_window = try
+        Pywinctl.getActiveWindow()
+    catch
+        nothing
+    end
+    if !isnothing(active_window)
+        active_app_name = try
+            active_window.getAppName()
+        catch
+            ""
+        end
+        active_handle = try
+            Int(active_window.getHandle())
+        catch
+            -1
+        end
+        if active_app_name != "" && active_handle != -1
+            _last_app_window_handle[active_app_name] = active_handle
+        end
+    end
+
     app = cmd.exec[1]    
     open_apps = Pywinctl.getAllAppsNames()
     open_app = (app in open_apps) ? app : ""
@@ -104,9 +128,80 @@ function activate(cmd::Cmd)
     end
     is_open = (open_app != "")
     if is_open
-        windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # If there are multiple open windows for the given application take the first window.
-        window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
+        windows = try
+            collect(Pywinctl.getAllWindows())
+        catch
+            []
+        end
+
+        window = nothing
+        if haskey(_last_app_window_handle, open_app)
+            target_handle = _last_app_window_handle[open_app]
+            for w in windows
+                w_app = try
+                    w.getAppName()
+                catch
+                    ""
+                end
+                w_handle = try
+                    Int(w.getHandle())
+                catch
+                    -1
+                end
+                if w_app == open_app && w_handle == target_handle
+                    window = w
+                    break
+                end
+            end
+        end
+
+        if isnothing(window)
+            for w in windows
+                w_app = try
+                    w.getAppName()
+                catch
+                    ""
+                end
+                w_is_active = try
+                    Bool(w.isActive)
+                catch
+                    false
+                end
+                if w_app == open_app && w_is_active
+                    window = w
+                    break
+                end
+            end
+        end
+
+        if isnothing(window)
+            for w in windows
+                w_app = try
+                    w.getAppName()
+                catch
+                    ""
+                end
+                if w_app == open_app
+                    window = w
+                    break # Fallback to first visible window for the app when no better signal exists.
+                end
+            end
+        end
+
+        if isnothing(window)
+            windowtitle = Pywinctl.getAllAppsWindowsTitles()[open_app][1] # Fallback when stacked window list is not available.
+            window = Pywinctl.getWindowsWithTitle(windowtitle)[1]
+        end
+
         window.activate()
+        activated_handle = try
+            Int(window.getHandle())
+        catch
+            -1
+        end
+        if activated_handle != -1
+            _last_app_window_handle[open_app] = activated_handle
+        end
     end
     return is_open
 end
