@@ -10,10 +10,10 @@ function finalize_jsi()
     finalize_devices()
     if (use_tts()) finalize_tts() end
     if (use_llm()) finalize_llm() end
-    finalize_stt()
     finalize_streamer()
     finalize_recorder()
     finalize_reader()
+    finalize_stt()
     set_initialized(false)
     @info "JustSayIt: stopped listening for commands. Bye!"
     return

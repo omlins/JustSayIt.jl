@@ -70,6 +70,8 @@ let
 						id += 1
 						# if (id >= lastindex(denoised_text)) @InsecureRecognitionException("module internal error: (id >= lastindex(denoised_text)) (token_buffer: $(token_buffer_clean(1:i)); tokens: $(clean_token.(tokens))); denoised_text[id]=$(denoised_text[id]), consumed_text[ic]=$(consumed_text[ic]), consumed_text=$(consumed_text), denoised_text=$(denoised_text), eachindex(consumed_text)=$(eachindex(consumed_text)), i=$i, ic=$ic, id=$id, consumed_end=$consumed_end.") end
 					end
+					# consumed_end = id
+					# TODO: remove
 					id += 1
 					consumed_end = id # NOTE: consumed_end will include the space (as after id increment).
 				end

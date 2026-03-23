@@ -1,3 +1,31 @@
+"""
+# Module API
+
+Application Programming Interface (API) of JustSayIt.
+
+#### Macros
+- [`@voiceargs`](@ref)
+- [`@voiceconfig`](@ref)
+- [`@voiceinfo`](@ref)
+
+#### Functions
+- Lifecycle and device access: [`controller`](@ref), [`init_jsi`](@ref), [`finalize_jsi`](@ref), [`default_language`](@ref), [`type_languages`](@ref)
+- Interpreters and STT helpers: [`interpret_enum`](@ref), [`interpret_digit`](@ref), [`interpret_count`](@ref), [`interpret_language`](@ref), [`next_wordgroup`](@ref), [`next_letter`](@ref), [`next_letters`](@ref), [`next_digit`](@ref), [`next_digits`](@ref), [`get_language`](@ref)
+- Text access: [`get_selection_content`](@ref), [`get_clipboard_content`](@ref)
+- TTS helpers: [`is_playing_tts`](@ref), [`pause_tts`](@ref), [`resume_tts`](@ref), [`stop_tts`](@ref), [`set_tts_async_default`](@ref), [`tts_async_default`](@ref)
+- LLM helpers: [`ask_llm`](@ref), [`ask_llm!`](@ref)
+
+#### Constants
+- [`LANG`](@ref)
+- [`LANG_AUTO`](@ref)
+- [`MODELTYPE_DEFAULT`](@ref)
+- [`MODELTYPE_SPEECH`](@ref)
+- [`ALPHABET`](@ref)
+- [`DIGITS`](@ref)
+- [`COUNTS`](@ref)
+
+To see a description of a function, macro or module type `?<functionname>`, `?<macroname>` (including the `@`) or `?<modulename>`, respectively.
+"""
 module API
     import ..JustSayIt: MODELTYPE_DEFAULT, MODELTYPE_SPEECH, LANG, LANG_AUTO, ALPHABET, DIGITS, COUNTS # from constants.jl
     export MODELTYPE_DEFAULT, MODELTYPE_SPEECH, LANG, LANG_AUTO, ALPHABET, DIGITS, COUNTS
@@ -34,5 +62,5 @@ module API
 
     import ..JustSayIt: @voiceargs, @voiceconfig                                     # from voiceargs.jl, voiceconfig.jl
     export @voiceargs, @voiceconfig
-    
+
 end

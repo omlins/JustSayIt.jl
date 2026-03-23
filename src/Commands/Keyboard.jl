@@ -36,7 +36,7 @@ Provides functions for controlling the keyboard by voice.
 
 To see a description of a function type `?<functionname>`.
 
-See also: [`Mouse`](@ref)
+See also: [`JustSayIt.Mouse`](@ref)
 """
 module Keyboard
 using ..JustSayIt.API
@@ -116,7 +116,11 @@ let
     set_prefix(keys::PyKey...) = (_prefix = keys)
     reset_prefix()             = (_prefix = [])
 
-    "Press keys on the keyboard."
+    @doc """
+        press_keys(keys...; count=1)
+
+    Press keys on the keyboard.
+    """
     function press_keys(keys::PyKey...; count::Integer=1)
         for i = 1:count
             keyboard  = controller("keyboard")
