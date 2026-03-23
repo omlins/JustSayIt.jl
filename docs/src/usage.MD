@@ -88,9 +88,7 @@ Saying "help commands" lists your available commands in the [Julia REPL] leading
 │ cut       => ctrl + x
 │ double    => click_double
 │ downwards => page_down
-│ email     => email
 │ help      => help
-│ internet  => internet
 │ ma        => click_left
 │ middle    => click_middle
 │ okay      => release_left
@@ -103,20 +101,16 @@ Saying "help commands" lists your available commands in the [Julia REPL] leading
 │ undo      => ctrl + z
 └ upwards   => page_up
 ```
-Saying "help <command name>", where `<command name>` is to be replaced with one of the available commands, shows the help for the corresponding command. Here is, e.g., the output produced when saying "help email":
+Saying "help <command name>", where `<command name>` is to be replaced with one of the available commands, shows the help for the corresponding command. Here is, e.g., the output produced when saying "help help":
 ```julia-repl
 [ Info: Starting command: help (latency: 6 ms)
-┌ Info: Command email
+┌ Info: Command help
 │    =
-│      email `inbox` | `outbox`
+│      help()
 │    
-│      Manage e-mails, performing one of the following actions:
-│    
-│        •  open inbox
-│    
-└        •  open outbox
+└      Show help for your commands or a spoken command or module.
 ```
-Note that the submodules [`Email`](@ref) and [`Internet`](@ref) contain still very little functionality. Yet, they illustrate how submodules for all kind of operations can be programmed.
+The [Software reference](@ref) lists the current built-in command modules and root-level entry points. For custom workflows, you can also define your own command mappings to Julia functions, keyboard shortcuts, or command sequences.
 
 
 ## Sleep and wake up by voice

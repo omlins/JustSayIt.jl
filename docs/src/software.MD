@@ -11,6 +11,11 @@ julia>?
 help?> JustSayIt
 ```
 
+## Root module
+```@docs
+JustSayIt
+```
+
 ## Functions to configure and start JustSayIt
 #### Index
 * [`JustSayIt.start`](@ref)
@@ -24,21 +29,83 @@ start
 @edit
 ```
 
-## Submodules for command name to function mapping
+## Root convenience reexports
 #### Index
-* [`JustSayIt.Help`](@ref)
-* [`JustSayIt.Keyboard`](@ref)
-* [`JustSayIt.Mouse`](@ref)
-* [`JustSayIt.Email`](@ref)
-* [`JustSayIt.Internet`](@ref)
+* [`JustSayIt.take`](@ref)
+* [`JustSayIt.type`](@ref)
+* [`JustSayIt.ask`](@ref)
+* [`JustSayIt.ask!`](@ref)
+* [`JustSayIt.grab`](@ref)
+* [`JustSayIt.listen`](@ref)
+* [`JustSayIt.say`](@ref)
 
 #### Documentation
 ```@docs
+take
+type
+ask
+ask!
+grab
+listen
+say
+```
+
+## Public helper utilities
+#### Index
+* [`JustSayIt.set_preferences!`](@ref)
+* [`JustSayIt.load_preference`](@ref)
+* [`JustSayIt.has_preference`](@ref)
+* [`JustSayIt.delete_preferences!`](@ref)
+
+#### Documentation
+```@docs
+set_preferences!
+load_preference
+has_preference
+delete_preferences!
+```
+
+## Software-facing modules
+#### Index
+* [`JustSayIt.Clipboard`](@ref)
+* [`JustSayIt.Generic`](@ref)
+* [`JustSayIt.Help`](@ref)
+* [`JustSayIt.Keyboard`](@ref)
+* [`JustSayIt.LLM`](@ref)
+* [`JustSayIt.Mouse`](@ref)
+* [`JustSayIt.Selection`](@ref)
+* [`JustSayIt.STT`](@ref)
+* [`JustSayIt.TTS`](@ref)
+
+#### Documentation
+```@docs
+Clipboard
+Generic
 Help
 Keyboard
+LLM
 Mouse
-Email
-Internet
+Selection
+STT
+TTS
+```
+
+## Keyboard shortcut namespace
+The root `JustSayIt` module also re-exports `Key` for command mappings and keyboard shortcuts.
+Use `Key.` completion in the Julia REPL to inspect the currently available key names.
+
+
+## Functions of [`Generic`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.Generic]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.Generic]
+Order = [:function]
 ```
 
 
@@ -58,11 +125,29 @@ Order = [:function]
 
 ## Functions of [`Keyboard`](@ref)
 #### Index
-* [`JustSayIt.Keyboard.type`](@ref)
+```@index
+Modules = [JustSayIt.Keyboard]
+Order = [:function]
+```
 
 #### Documentation
-```@docs
-Keyboard.type
+```@autodocs
+Modules = [JustSayIt.Keyboard]
+Order = [:function]
+```
+
+
+## Functions of [`LLM`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.LLM]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.LLM]
+Order = [:function]
 ```
 
 
@@ -80,21 +165,15 @@ Order = [:function]
 ```
 
 
-## Functions of [`Email`](@ref)
+## Functions of [`TTS`](@ref)
 #### Index
-* [`JustSayIt.Email.email`](@ref)
-
-#### Documentation
-```@docs
-Email.email
+```@index
+Modules = [JustSayIt.TTS]
+Order = [:function]
 ```
 
-
-## Functions of [`Internet`](@ref)
-#### Index
-* [`JustSayIt.Internet.internet`](@ref)
-
 #### Documentation
-```@docs
-Internet.internet
+```@autodocs
+Modules = [JustSayIt.TTS]
+Order = [:function]
 ```
