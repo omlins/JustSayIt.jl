@@ -3,6 +3,12 @@ let
     _controllers::Dict{String, PyObject}              = Dict{String, PyObject}()
     _original_keyboard_layout                         = ("", "")
     _keyboard_layout_restored                         = false
+
+    @doc """
+        controller(name)
+
+    Return the configured device controller named `name`, for example `keyboard` or `mouse`.
+    """
     controller(name::AbstractString)::PyObject        = if (name in keys(_controllers)) return _controllers[name] else @APIUsageError("The controller for $name is not available as it has not been set up in init_jsi.") end
     set_controller(name::AbstractString, c::PyObject) = (_controllers[name] = c; return)
 

@@ -9,7 +9,19 @@ let
     _stop_progresser::Bool                                   = false
     engine(enginename::String)::PyObject                     = _engines[enginename]
     stream(enginename::String, streamname::String)::PyObject = _streams[enginename][streamname]
+
+    @doc """
+        tts_async_default()
+
+    Return whether JustSayIt uses asynchronous TTS playback by default.
+    """
     tts_async_default()::Bool                                = _async_default
+
+    @doc """
+        set_tts_async_default(async)
+
+    Set whether JustSayIt uses asynchronous TTS playback by default.
+    """
     set_tts_async_default(async::Bool)                       = (_async_default = async)
     tts()::String                                            = _default_engine
     audiooutput()::Int64                                     = _audiooutput_id
@@ -164,6 +176,11 @@ let
         start_progresser(async; enginename=enginename, streamname=streamname) # NOTE: this must be called even if it is already playing in order to match the desired (a)synchronous behavior (play is kept as is)
     end
 
+    @doc """
+        say(text)
+
+    Read `text` with the active TTS engine.
+    """
     function say(text::AbstractString; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM, async::Bool=tts_async_default(), flush::Bool=false)
         if use_tts()
             if !is_tts_stream(enginename, streamname) create_tts_stream(enginename, streamname) end

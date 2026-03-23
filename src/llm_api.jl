@@ -78,6 +78,13 @@ function _ask_llm_pt(question::AbstractString; stream::Bool=false, show_thinking
 end
 
 
+"""
+    ask_llm(question)
+
+Query the configured LLM with `question` and return the answer text.
+
+See also: [`ask_llm!`](@ref)
+"""
 function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=false, type_answer::Bool=true, say_answer::Bool=false)
     if stream
         if (!USE_LOCAL_LLM) @APIUsageError("streaming is not supported for remote LLMs.") end
@@ -87,6 +94,13 @@ function ask_llm(question::AbstractString; stream::Bool=false, show_thinking::Bo
     end
 end
 
+"""
+    ask_llm!(question)
+
+Query the configured LLM with `question` as a follow-up and return the answer text.
+
+See also: [`ask_llm`](@ref)
+"""
 function ask_llm!(question::AbstractString; stream::Bool=false, show_thinking::Bool=true, delete::Bool=true, type_answer::Bool=true, say_answer::Bool=false)
     if (stream) @APIUsageError("streaming is not supported for questions with follow up.") end
     _ask_llm_pt(question; stream=stream, show_thinking=show_thinking, delete=delete, type_answer=type_answer, say_answer=say_answer, follow_up=true)

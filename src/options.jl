@@ -9,8 +9,20 @@ let
     _do_perf_debug::Bool                             = false
     is_initialized()::Bool                           = _is_initialized
     set_initialized(val::Bool)                       = _is_initialized = val
+
+    @doc """
+        default_language()
+
+    Return the current default language used for speech recognition and typing.
+    """
     default_language()                               = _default_language
     set_default_language(lang::AbstractString)       = if (lang in LANG) _default_language = lang; else @ArgumentError("The language $lang is not supported. Supported languages are: $(LANG)."); end
+
+    @doc """
+        type_languages()
+
+    Return the currently configured typing languages, ordered by priority.
+    """
     type_languages()                                 = _type_languages
     set_type_languages(langs::AbstractArray{String}) = if all(l in LANG for l in langs) _type_languages = langs; else @ArgumentError("The languages $(langs) are not supported. Supported languages are: $(LANG)."); end
     use_gpu()::Bool                                  = _use_gpu

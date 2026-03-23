@@ -16,7 +16,7 @@ Provides functions for controlling the mouse by voice.
 
 To see a description of a function type `?<functionname>`.
 
-See also: [`Keyboard`](@ref)
+See also: [`JustSayIt.Keyboard`](@ref)
 """
 module Mouse
 

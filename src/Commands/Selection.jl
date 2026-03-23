@@ -10,7 +10,7 @@ Provides functions for accessing the text selected by the user.
 
 To see a description of a function type `?<functionname>`.
 
-See also: [`Clipboard`](@ref)
+See also: [`JustSayIt.Clipboard`](@ref)
 """
 module Selection
 

@@ -10,7 +10,7 @@ Provides functions for accessing the clipboard.
 
 To see a description of a function type `?<functionname>`.
 
-See also: [`Selection`](@ref)
+See also: [`JustSayIt.Selection`](@ref)
 """
 module Clipboard
 

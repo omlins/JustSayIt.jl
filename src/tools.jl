@@ -6,6 +6,11 @@ function remove_end_punctuation(words_str::AbstractString, lang::String)
     end
 end
 
+"""
+    get_clipboard_content()
+
+Get the current clipboard text content.
+"""
 function get_clipboard_content()
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.
     root.withdraw()
@@ -25,6 +30,11 @@ function get_clipboard_content()
     return content
 end
 
+"""
+    get_selection_content()
+
+Get the current primary text selection.
+"""
 function get_selection_content()
     sleep(0.1)
     root = Tkinter.Tk() # NOTE: it seems to be necessary that the root object is created after the keyboard copy shortcut is executed has otherwise the clipboard does sometimes not contain the new content.

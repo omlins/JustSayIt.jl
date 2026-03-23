@@ -28,7 +28,11 @@ const AUDIO_BLOCKSIZE         = Int(AUDIO_READ_MAX/sizeof(AUDIO_ELTYPE))
 const COMMAND_RECOGNIZER_ID   = ""          # NOTE: This is a safe ID as it cannot be taken by any model (raises error).
 const DEFAULT_RECORDER_ID     = "__default__"
 const DEFAULT_READER_ID       = "__default__"
+
+"Constant model-type prefix for command-oriented speech-recognition models."
 const MODELTYPE_DEFAULT       = "__default__"
+
+"Constant model-type prefix for free-speech recognition models."
 const MODELTYPE_SPEECH        = "__speech__"
 const UNKNOWN_TOKEN           = "[unk]"
 const COMMAND_ABORT           = "abortus"
@@ -69,6 +73,8 @@ const LANG = (DE    = "de",
               ES    = "es",
               FR    = "fr",
              )
+
+"Constant language tag used for automatic language detection."
 const LANG_AUTO = "auto"
 const LANG_STR = Dict(LANG.DE    => "German",
                       LANG.EN_US => "English (United States)",
@@ -129,18 +135,24 @@ const LANGUAGES = Dict(
     LANG.ES    => ["alemán", "inglés", "español", "francés"],
     LANG.FR    => ["allemand", "anglais", "espagnol", "français"],
 )
+
+"Constant mapping from each supported language to the recognized spoken letter tokens."
 const ALPHABET = Dict(
     LANG.DE    => LATIN_ALPHABET,
     LANG.EN_US => LATIN_ALPHABET,
     LANG.ES    => LATIN_ALPHABET,
     LANG.FR    => LATIN_ALPHABET,
 )
+
+"Constant mapping from each supported language to the recognized spoken digit tokens."
 const DIGITS = Dict(
     LANG.DE    => ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "punkt", "komma", "leerzeichen"],
     LANG.EN_US => ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "dot", "comma", "space"],
     LANG.ES    => ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "punto", "coma", "espacio"],
     LANG.FR    => ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "point", "virgule", "espace"],
 )
+
+"Constant mapping from each supported language to the recognized spoken count tokens."
 const COUNTS = Dict(
     LANG.DE    => ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "fünfzig", "hundert", "tausend"],
     LANG.EN_US => ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "fifty", "hundred", "thousand"],
