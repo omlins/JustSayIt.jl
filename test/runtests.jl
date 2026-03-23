@@ -5,6 +5,7 @@ excludedfiles = [ "test_excluded.jl"];
 function runtests()
     exename      = Base.julia_cmd()
     testdir      = pwd()
+    projectdir   = joinpath(testdir, "test", "test_toml")
     istest(f)    = endswith(f, ".jl") && startswith(basename(f), "test_")
     ispretest(f) = endswith(f, ".jl") && startswith(basename(f), "pretest_")    # NOTE: pretest_JustSayIt1.jl, pretest_JustSayIt2.jl test the Python related installations (restart needed after first installation!).
     testfiles    = sort(filter(istest,    vcat([joinpath.(root, files) for (root, dirs, files) in walkdir(testdir)]...)))
@@ -20,7 +21,7 @@ function runtests()
             continue
         end
         try
-            run(`$exename -O3 --startup-file=no $(joinpath(testdir, f))`)
+            run(`$exename --project=$projectdir -O3 --startup-file=no $(joinpath(testdir, f))`)
         catch ex
             nfail += 1
         end
