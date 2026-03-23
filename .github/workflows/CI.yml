@@ -79,9 +79,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
       - run: |
-          julia --project=docs -e '
-            using Documenter: DocMeta, doctest
-            ENV["JSI_USE_PYTHON"] = "0"
-            using JustSayIt
-            DocMeta.setdocmeta!(JustSayIt, :DocTestSetup, :(using JustSayIt); recursive=true)
-            doctest(JustSayIt)'
+          julia --project=docs/test_toml -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+      - run: |
+          julia --project=docs/test_toml docs/buildtest.jl
