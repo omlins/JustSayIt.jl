@@ -1,0 +1,78 @@
+\begin{thebibliography}{10}
+
+\bibitem{jabbour2025genagents}
+Jason Jabbour and Vijay Janapa~Reddi.
+Generative {AI} agents in autonomous machines: A safety perspective.
+In {\em Proceedings of the 43rd IEEE/ACM International Conference on
+  Computer-Aided Design}, pages 1--13, 2025.
+\href{http://dx.doi.org/10.1145/3676536.3698390}{doi:10.1145/3676536.3698390}.
+
+\bibitem{lee2026mobilesafetybench}
+Juyong Lee, Dongyoon Hahm, June~Suk Choi, W.~Bradley Knox, and Kimin Lee.
+Mobilesafetybench: Evaluating safety of autonomous agents in mobile device
+  control.
+{\em Proceedings of the AAAI Conference on Artificial Intelligence},
+  40(44):37565--37573, 2026.
+\href{http://dx.doi.org/10.1609/aaai.v40i44.41090}{doi:10.1609/aaai.v40i44.41090}.
+
+\bibitem{martinez2020multiparty}
+Victor~R. Martinez and James Kennedy.
+A multiparty chat-based dialogue system with concurrent conversation tracking
+  and memory.
+In {\em Proceedings of the 2nd Conference on Conversational User Interfaces},
+  pages 1--9. ACM, 2020.
+\href{http://dx.doi.org/10.1145/3405755.3406121}{doi:10.1145/3405755.3406121}.
+
+\bibitem{ollama2026}
+{Ollama}.
+Ollama.
+Project website, 2026.
+\url{https://ollama.com/}.
+
+\bibitem{omlin2023}
+Samuel Omlin.
+Quick assembly of personalized voice assistants with justsayit.
+JuliaCon 2023 talk abstract and video, 2023.
+\url{https://pretalx.com/juliacon2023/talk/review/9MJFPDJV9DR7ANUXPSP9ZWJRFWSE83EY}.
+
+\bibitem{omlin2024}
+Samuel Omlin.
+Justsayit.jl: A fresh approach to open source voice assistant development.
+{\em The Proceedings of the JuliaCon Conferences}, 6(66):121, 2024.
+\href{http://dx.doi.org/10.21105/jcon.00121}{doi:10.21105/jcon.00121}.
+
+\bibitem{vosk2020}
+Nickolay~V. Shmyrev and contributors.
+Vosk speech recognition toolkit.
+Project website, 2020.
+\url{https://alphacephei.com/vosk/}.
+
+\bibitem{promptingtools2025}
+{svilupp}.
+Promptingtools.jl.
+Project documentation and README, 2025.
+\url{https://github.com/svilupp/PromptingTools.jl}.
+
+\bibitem{fasterwhisper2025}
+{SYSTRAN}.
+faster-whisper.
+Project documentation and README, 2025.
+\url{https://github.com/SYSTRAN/faster-whisper}.
+
+\bibitem{yang2008switching}
+Fan Yang, Peter~A. Heeman, and Andrew Kun.
+Switching to real-time tasks in multi-tasking dialogue.
+In {\em Proceedings of the 22nd International Conference on Computational
+  Linguistics - {COLING} '08}, volume~1, pages 1025--1032. Association for
+  Computational Linguistics, 2008.
+\href{http://dx.doi.org/10.3115/1599081.1599210}{doi:10.3115/1599081.1599210}.
+
+\bibitem{zhang2019dangerousskills}
+Nan Zhang, Xianghang Mi, Xuan Feng, XiaoFeng Wang, Yuan Tian, Feng Qian, et~al.
+Dangerous skills: Understanding and mitigating security risks of
+  voice-controlled third-party functions on virtual personal assistant systems.
+In {\em 2019 IEEE Symposium on Security and Privacy (SP)}, pages 1381--1396,
+  2019.
+\href{http://dx.doi.org/10.1109/SP.2019.00016}{doi:10.1109/SP.2019.00016}.
+
+\end{thebibliography}

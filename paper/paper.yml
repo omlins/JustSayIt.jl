@@ -1,0 +1,15 @@
+title: Enhancing Deterministic Voice Control with Safe LLM Interaction
+authors:
+  - name: Samuel Omlin
+    affiliation: 1
+affiliations:
+  - index: 1
+    name: Swiss National Supercomputing Centre (CSCS), ETH Zurich, Lugano, Switzerland
+keywords:
+  - deterministic voice control
+  - large language models
+  - speech interfaces
+  - programmable voice assistants
+  - human-AI interaction
+  - desktop automation
+bibliography: ref.bib
