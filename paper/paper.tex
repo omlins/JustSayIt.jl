@@ -13,6 +13,8 @@
   belowskip=4pt
 }
 
+\renewcommand{\lstlistingname}{Listing}
+
 \begin{document}
 
 \input{header}
@@ -35,13 +37,17 @@ The approach extends deterministic voice control with LLM interaction capabiliti
 
 At the interaction level, the design uses a dual STT architecture: fast constrained recognition is used for commands, while high-quality free-speech recognition is used for LLM interaction and direct speech-to-text. Text-to-speech integration provides spoken LLM output, enabling follow-up exchanges that approach almost human-like interaction. Clipboard and selection access are treated as idiomatic context sources, so LLM interaction can operate directly on the material currently being edited, inspected, or selected in the active application.
 
-These LLM, STT, TTS, clipboard, and selection capabilities are exposed alongside the deterministic control mechanisms through four layers. First, a command submodule provides predefined generic LLM interaction commands; the application-specific example in Code~\ref{code:jupyter} shows how those commands are reused in a focused workflow. Second, parallel command submodules provide predefined generic STT, TTS, and clipboard or selection access commands. Third, a small set of idiomatic composable primitives provides base-language-like building blocks, similar in spirit to essential primitives such as \texttt{print}, so that new voice-plus-LLM commands can be composed directly without defining new functions; Table~\ref{tab:primitives} and Code~\ref{code:chatbot} illustrate this layer in the next section. Fourth, lower-level LLM functionality remains available for maximum programmability, in particular for use in voice argument functions.
+These LLM, STT, TTS, clipboard, and selection capabilities are exposed alongside the deterministic control mechanisms through four layers. First, a command submodule provides predefined generic LLM interaction commands; the application-specific example in Listing~\ref{code:jupyter} shows how those commands are reused in a focused workflow. Second, parallel command submodules provide predefined generic STT, TTS, and clipboard or selection access commands. Third, a small set of idiomatic composable primitives provides base-language-like building blocks, similar in spirit to essential primitives such as \texttt{print}, so that new voice-plus-LLM commands can be composed directly without defining new functions; Table~\ref{tab:primitives} and Listing~\ref{code:chatbot} illustrate this layer in the next section. Fourth, lower-level LLM functionality remains available for maximum programmability, in particular for use in voice argument functions.
 
 \section{Implementation and Results}
 
-The approach is implemented in JustSayIt.jl\footnote{Release target for the presented contribution: v0.4.0, \url{https://github.com/omlins/JustSayIt.jl/releases/tag/v0.4.0}.}. LLM execution combines Ollama \cite{ollama2026} with PromptingTools.jl \cite{promptingtools2025}; the dual STT path uses Vosk \cite{vosk2020} for constrained commands and faster-whisper \cite{fasterwhisper2025} for free speech. This yields deterministic control over actions while allowing free-form prompting, follow-up interaction, and context-aware responses that can be typed back into the active application or spoken aloud.
+The approach was successfully implemented in JustSayIt.jl\footnote{Release target for the presented contribution: v0.4.0, \url{https://github.com/omlins/JustSayIt.jl/releases/tag/v0.4.0}.}. The implementation integrates tightly with PromptingTools.jl \cite{promptingtools2025} to enable sophisticated LLM interaction and uses Ollama \cite{ollama2026} as additional option for local LLM execution; it uses Vosk \cite{vosk2020} and faster-whisper \cite{fasterwhisper2025} for the dual STT path, and supports multiple text-to-speech backends.
 
-Table~\ref{tab:primitives} lists the seven root-level primitives that support direct composition. Code~\ref{code:chatbot} shows the minimal chatbot case: a spoken follow-up loop is defined entirely by composing recognition, LLM follow-up, and speech output. Code~\ref{code:jupyter} shows the complementary route for focused workflows. Instead of defining new low-level functions, an application-specific command dictionary reuses predefined LLM commands to turn spoken instructions into Jupyter magics or to explain selected notebook code with clipboard or selection context.
+Table~\ref{tab:primitives} gives the seven composable primitives for LLM interaction, voice-, clipboard-, and selection-based input, and typed or spoken output. Together they provide a compact root-level interface for defining LLM interaction directly in command dictionaries.
+
+Listing~\ref{code:chatbot} demonstrates the expressive power of this primitive layer. A minimal voice chatbot is defined entirely by composing speech input, LLM follow-up, and spoken output, showing how seamless and safe integration of LLM intelligence into small everyday PC tasks can be expressed with very little syntax.
+
+Listing~\ref{code:jupyter} demonstrates the complementary result for application-specific command dictionaries. Here, concise focused commands are defined by reusing predefined generic LLM commands rather than assembling the interaction from lower-level components, enabling more efficient LLM interaction in a concrete Jupyter workflow.
 
 \begin{table}[t]
 \caption{Composable primitives for LLM interaction, voice input, text capture, and typed or spoken output.}
@@ -62,18 +68,16 @@ Table~\ref{tab:primitives} lists the seven root-level primitives that support di
 \end{tabular}
 \end{table}
 
-\begin{lstlisting}[caption={Minimal voice chatbot defined by direct composition of speech input, LLM follow-up, and spoken output.},label={code:chatbot}]
+\begin{lstlisting}[caption={Minimal voice chatbot composed with the primitives in Table~\ref{tab:primitives}.},label={code:chatbot}]
 llm_commands = Dict("chatbot" => () -> 	while true
 						listen() |> ask! |> say
 					end)
 \end{lstlisting}
 
-\begin{lstlisting}[caption={Application-specific Jupyter commands built from predefined LLM commands. In this example, \texttt{LLM.type\_answer} answers an uttered instruction directly, whereas \texttt{LLM.type\_text\_answer\_to} answers with respect to selected text or clipboard content; the first command types an IPython magic for a spoken task and the second types a markdown explanation of the selected cell.},label={code:jupyter}]
+\begin{lstlisting}[caption={Application-specific Jupyter commands built from predefined LLM commands. In this example, \texttt{LLM.type\_answer} answers an uttered instruction directly, whereas \texttt{LLM.type\_text\_answer\_to} answers with respect to selected text or clipboard content; the first command types the appropriate IPython magic for a spoken task and the second types a markdown explanation of the selected cell, demonstrating concise application-specific LLM interaction.},label={code:jupyter}]
 jupyter_llm_commands = Dict(
-	"generate magic" => () -> LLM.type_answer(instruction_prefix="Generate the appropriate IPython magic command for the following task using proper syntax (%line magic or %%cell magic) with necessary options:"),
-	"explain cell" => () -> LLM.type_text_answer_to("Explain what the selected
-	cell code does in simple terms. Include key functions, algorithms, and data
-	transformations. Format as markdown with clear section headings."),
+  "generate magic" => () -> LLM.type_answer(instruction_prefix="Generate the appropriate IPython magic command for the following task using proper syntax (%line magic or %%cell magic) with necessary options:"),
+  "explain cell" => () -> LLM.type_text_answer_to("Explain what the selected cell code does in simple terms. Include key functions, algorithms, and data transformations. Format as markdown with clear section headings."),
 )
 \end{lstlisting}
 
