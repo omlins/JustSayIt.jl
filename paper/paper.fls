@@ -272,9 +272,9 @@ INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmb8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmr8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmr8r.tfm
+INPUT /home/omlins/texmf/fonts/enc/dvips/cm-super/cm-super-t1.enc
 INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmr8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmr8r.tfm
-INPUT /home/omlins/texmf/fonts/enc/dvips/cm-super/cm-super-t1.enc
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/ectt0800.tfm
 INPUT ./bib.tex
 INPUT ./bib.tex
