@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-Small desktop tasks benefit from speech and large-language-model assistance, but open-ended agents relinquish action control while text chat keeps interaction cumbersome. This paper presents an approach that extends deterministic voice control with dual speech recognition, text-to-speech, and clipboard- or selection-aware large-language-model interaction while keeping system actions under deterministic command control. The implementation couples predefined commands with seven composable primitives and application-specific command dictionaries, allowing concise definitions that range from spoken follow-up chat to Jupyter-specific assistance. The resulting interaction enables seamless and safe integration of large-language-model intelligence into everyday PC workflows, more efficient application-specific prompting, and almost human-like follow-up through spoken responses, thereby helping bridge a gap in human-AI interaction.
+Small desktop tasks on PC remain insufficiently served by fixed assistant command sets, unrestricted tool-using agents, and cumbersome chat-only interaction. This paper presents an approach that extends deterministic voice control with large-language-model interaction through dual speech recognition, text-to-speech, clipboard- and selection-aware context access, predefined command layers, and composable primitives, while keeping system actions under deterministic command control. Implemented in JustSayIt.jl, the approach supports concise primitive-based definitions such as a minimal voice chatbot and application-specific command dictionaries such as focused Jupyter assistance, demonstrating both expressive power and more efficient workflow-specific interaction. The resulting system enables seamless and safe integration of large-language-model intelligence into small everyday PC tasks, supports almost human-like follow-up through spoken responses, and bridges a practical gap in human-AI interaction.
 \end{abstract}
 
 \section{Introduction}
@@ -83,7 +83,7 @@ jupyter_llm_commands = Dict(
 
 \section{Conclusions}
 
-This approach enables seamless and safe integration of LLM intelligence into small, everyday PC tasks while preserving deterministic control over system actions. Application-specific command dictionaries make interaction more efficient for focused workflows, and TTS-backed follow-up makes the exchange almost human-like. Together, these mechanisms bridge a practical gap in human-AI interaction between deterministic desktop control and flexible language-model assistance.
+The approach enables seamless and safe integration of LLM intelligence into small, everyday tasks on PC while keeping system actions under deterministic command control. Application-specific command dictionaries enable more efficient LLM interaction in focused workflows, and text-to-speech integration supports follow-up exchanges that approach almost human-like interaction. In this way, the approach addresses the niche defined in the introduction and bridges a practical gap in human-AI interaction.
 
 \input{bib.tex}
 
