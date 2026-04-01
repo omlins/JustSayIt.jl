@@ -1138,9 +1138,8 @@ FUNCTION {presort}
   'sort.key$ :=
 }
 
-ITERATE {presort}
-
-SORT
+% Keep bibliography entries in citation order so numeric identifiers follow
+% first occurrence in the main text.
 
 STRINGS { longest.label }
 
