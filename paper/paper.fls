@@ -272,6 +272,8 @@ INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmb8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmr8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmr8r.tfm
+INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmr8t.vf
+INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmr8r.tfm
 INPUT /home/omlins/texmf/fonts/enc/dvips/cm-super/cm-super-t1.enc
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/ectt0800.tfm
 INPUT ./bib.tex
@@ -282,8 +284,6 @@ INPUT ./paper.bbl
 INPUT paper.bbl
 INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmri8t.vf
 INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmri8r.tfm
-INPUT /home/omlins/texmf/fonts/vf/adobe/times/ptmr8t.vf
-INPUT /home/omlins/texmf/fonts/tfm/adobe/times/ptmr8r.tfm
 INPUT paper.aux
 INPUT ./paper.out
 INPUT ./paper.out
