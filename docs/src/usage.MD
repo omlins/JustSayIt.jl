@@ -49,6 +49,17 @@ start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "ri
 Note that keyboard shortcuts are given as either single keys (e.g., `Key.page_up`) or tuples of keys (e.g., `(Key.ctrl, 'c')`). Special keys are selected from those available in `Key`: type `Key.`+ `tab` in the [Julia REPL] to see the available keys (the full documentation on the available keys is available [here](https://pynput.readthedocs.io/en/latest/keyboard.html#pynput.keyboard.Key)). Character keys are simply given in single quotes (e.g., `'c'`).
 
 A mapping of a command name to a sequence of commands can be defined by using as mapping target an array whose elements are functions or keyboard shortcuts (e.g., `[Mouse.click_double, (Key.ctrl, 'c')]`). This enables to express new complex actions without programming. In the above example, "take" double clicks the word below the mouse curser to select it and then copies it; "replace" double clicks the word below the mouse curser to select it and then replaces it.
+
+A command entry can also activate a nested command dictionary. This is useful for application-specific command contexts that should become active only after a higher-level command has been recognized, e.g.:
+```julia
+using JustSayIt
+vsc_commands = Dict("comment" => (Key.ctrl, '/'),
+                    "save"    => (Key.ctrl, 's'))
+commands = Dict("coding" => [`code`, vsc_commands],
+                "help"   => Help.help)
+start(commands=commands)
+```
+In this style, saying `coding` activates the corresponding nested command set for that context while keeping the top-level command dictionary concise.
  
 The keyword `subset` of [`start`](@ref) enables to activate only a subset of the default or user-defined commands. The following example selects a subset of the default commands:
 ```julia
@@ -144,3 +155,65 @@ Detailed information on [`@voiceargs`](@ref) is found in the [High-level API ref
 While contributions to the JustSayIt command modules are very much encouraged, it is possible to quickly define and use custom [`@voiceargs`](@ref) functions thanks to the API of JustSayIt ([`JustSayIt.API`](@ref)). It is illustrated in [this example](@ref Quick-definition-and-usage-of-custom-function). More information on the JustSayIt API is given in the [High-level API reference](@ref).
 
 Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: [`JustSayIt.@include`](@ref) and [`JustSayIt.@edit`](@ref) permit to conveniently `include` and `edit` files from this folder.
+
+
+## Recorder setup and microphone choice
+JustSayIt uses the default microphone unless you choose a different one explicitly. At startup it prints the selected input device together with the available devices, which makes it practical to switch to a better headset or external microphone when recognition quality is not good enough.
+
+You can select a recorder by microphone name or by microphone id:
+```julia
+using JustSayIt
+start(microphone_name="USB")
+```
+
+For stable setups, `microphone_name` is often more convenient than `microphone_id`, because ids can change between sessions. Advanced setups can also replace the live microphone with an external audio-input command through the `audio_input_cmd` keyword when the command outputs a compatible audio stream.
+
+
+## Speech models and free-speech capture
+On first use, JustSayIt automatically acquires the default speech models it needs for the selected command and typing languages. If you configure additional `type_languages`, the corresponding typing models are prepared as needed as part of the same setup workflow.
+
+Command recognition and most [`@voiceargs`](@ref) interactions stay constrained to the current command set or to the declared valid input of the active voice argument. By contrast, [`listen`](@ref) is the auxiliary workflow for open-ended free-speech capture and returns the next spoken word group as plain text:
+```julia
+using JustSayIt
+start(default_language="en-us", type_languages=["en-us", "fr"])
+spoken_text = listen()
+```
+
+When your machine supports it, `use_gpu=true` enables the higher-performance local path used by the speech, TTS, and LLM stack. For lower-level speech-token helpers such as `next_wordgroup`, `next_letter`, or `next_digits`, use the [High-level API reference](@ref).
+
+
+## Text-to-speech setup and control
+Text-to-speech is enabled by default and can be configured at startup together with the audio output device. The `tts_async_default` keyword controls whether spoken output is asynchronous by default; synchronous playback is often the safer choice when you are not using headphones.
+
+```julia
+using JustSayIt
+start(use_tts=true, tts_async_default=false, audiooutput_name="Speakers")
+
+say("JustSayIt is ready.")
+TTS.read()
+TTS.pause()
+TTS.resume()
+TTS.stop()
+```
+
+`TTS.read()` reads the selected text, or falls back to the clipboard when nothing is selected. The root-level `say` helper is convenient for directly speaking strings, while `TTS.pause`, `TTS.resume`, `TTS.stop`, and `TTS.set_async_default` cover the user-facing playback controls.
+
+
+## LLM-assisted workflows
+LLM functionality is enabled with `use_llm=true`. Summary, translation, and text-aware answer workflows use the currently selected text first and otherwise fall back to the clipboard, which makes them fit naturally into normal desktop usage.
+
+If no OpenAI API key preference is configured, JustSayIt uses a local runtime path and can prompt you to install Ollama or download a local model. If an API key preference is configured, the active remote model path is used instead.
+
+```julia
+using JustSayIt
+start(use_llm=true, use_tts=true)
+
+LLM.read_summary()
+LLM.type_translation()
+LLM.read_text_answer()
+LLM.read_followup()
+```
+
+Use the `LLM.type_*` commands when the generated result should be inserted into the active application, and the `LLM.read_*` commands when it should be spoken aloud. `LLM.read_answer()` answers a spoken prompt directly, `LLM.read_text_answer()` answers with the current text selection or clipboard as context, and `LLM.read_followup()` or `LLM.chat_followup()` continue an earlier interaction.
+
+For programming-facing direct queries and follow-up queries, see [`ask`](@ref), [`ask!`](@ref), and the corresponding entries in the [High-level API reference](@ref).
