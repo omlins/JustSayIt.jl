@@ -10,8 +10,8 @@ In {\em 2019 IEEE Symposium on Security and Privacy (SP)}, pages 1381--1396,
 
 \bibitem{lee2026mobilesafetybench}
 Juyong Lee, Dongyoon Hahm, June~Suk Choi, W.~Bradley Knox, and Kimin Lee.
-Mobilesafetybench: Evaluating safety of autonomous agents in mobile device
-  control.
+{M}obile{S}afety{B}ench: Evaluating safety of autonomous agents in mobile
+  device control.
 {\em Proceedings of the AAAI Conference on Artificial Intelligence},
   40(44):37565--37573, 2026.
 \href{http://dx.doi.org/10.1609/aaai.v40i44.41090}{doi:10.1609/aaai.v40i44.41090}.
@@ -41,38 +41,41 @@ In {\em Proceedings of the 2nd Conference on Conversational User Interfaces},
 
 \bibitem{omlin2024}
 Samuel Omlin.
-Justsayit.jl: A fresh approach to open source voice assistant development.
+{J}ust{S}ay{I}t.jl: A fresh approach to open source voice assistant
+  development.
 {\em The Proceedings of the JuliaCon Conferences}, 6(66):121, 2024.
 \href{http://dx.doi.org/10.21105/jcon.00121}{doi:10.21105/jcon.00121}.
 
 \bibitem{omlin2023}
 Samuel Omlin.
-Quick assembly of personalized voice assistants with justsayit.
-JuliaCon 2023 talk abstract and video, 2023.
-\url{https://pretalx.com/juliacon2023/talk/review/9MJFPDJV9DR7ANUXPSP9ZWJRFWSE83EY}.
+Quick assembly of personalized voice assistants with {J}ust{S}ay{I}t.
+JuliaCon 2023, 2023.
+\url{https://pretalx.com/juliacon2023/talk/HC8HLQ/}. Accessed: 2026-03-15.
 
 \bibitem{promptingtools2025}
-{svilupp}.
-Promptingtools.jl.
+{svilupp and contributors}.
+{P}rompting{T}ools.jl.
 Project documentation and README, 2025.
-\url{https://github.com/svilupp/PromptingTools.jl}.
+GitHub repository, \url{https://github.com/svilupp/PromptingTools.jl}.
+  Accessed: 2026-03-15.
 
 \bibitem{ollama2026}
 {Ollama}.
 Ollama.
 Project website, 2026.
-\url{https://ollama.com/}.
+\url{https://ollama.com/}. Accessed: 2026-03-15.
 
 \bibitem{vosk2020}
-Nickolay~V. Shmyrev and contributors.
-Vosk speech recognition toolkit.
-Project website, 2020.
-\url{https://alphacephei.com/vosk/}.
+Nickolay~V. Shmyrev and {Vosk contributors}.
+{V}osk: Offline speech recognition toolkit.
+Project website and documentation, 2020.
+\url{https://alphacephei.com/vosk/}. Accessed: 2026-03-15.
 
 \bibitem{fasterwhisper2025}
-{SYSTRAN}.
+{SYSTRAN and contributors}.
 faster-whisper.
 Project documentation and README, 2025.
-\url{https://github.com/SYSTRAN/faster-whisper}.
+GitHub repository, \url{https://github.com/SYSTRAN/faster-whisper}. Accessed:
+  2026-03-15.
 
 \end{thebibliography}
