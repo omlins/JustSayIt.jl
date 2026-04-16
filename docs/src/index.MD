@@ -12,20 +12,29 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 2\. Install [Julia] if you do not have it yet.
 
-3\. Execute the following in your shell to install and run JustSayIt:
+3\. Execute the following in your shell to install JustSayIt, copy one maintained recipe into your JustSayIt config folder, edit it, and run it:
 
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add JustSayIt
+  pkg> add JustSayIt, JustSayItRecipes
   pkg> <backspace button>
-julia> using JustSayIt
-julia> start()
+julia> using JustSayIt, JustSayItRecipes
+julia> recipe = normpath(joinpath(dirname(pathof(JustSayItRecipes)), "..", "recipes", "ubuntu_max.jl"))
+julia> local_recipe = joinpath(homedir(), ".config", "JustSayIt", "my_commands.jl")
+julia> mkpath(dirname(local_recipe))
+julia> cp(recipe, local_recipe; force=true)
+julia> @edit("my_commands.jl")
+julia> @include("my_commands.jl")
 ```
 
-4\. Say "help commands" and then, e.g., "help type".
+4\. Say `help commands` and then, e.g., `help sentence`, and try some commands following the guidance of the help output.
 
-5\. Try some commands and then look through the rest of the documentation!
+5\. Look through `my_commands.jl` itself to understand what commands are available and adjust them as desired.
+
+6\. Look through the rest of the documentation!
+
+This recipe-copy workflow is the basic practical way to use JustSayIt properly, and it remains the standard recommended workflow for advanced users too.
 
 ## Dependencies
 JustSayIt's primary dependencies are [vosk], [sounddevice], [pynput], [PyCall.jl], [Conda.jl] and [MacroTools.jl].
