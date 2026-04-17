@@ -45,6 +45,7 @@ try
             "Examples"                      => [hide("..." => "examples.md"),
                                                 "examples/config_custom_function.md",
                                                 "examples/application_specific_commands.md",
+                                                "examples/jupyter_llm_commands.md",
                                                ],
             "Software reference"            => "software.md",
             "High-level API reference"      => "api.md",
