@@ -3,13 +3,15 @@
 
 Application Programming Interface (API) of JustSayIt.
 
+Use this facade when the predefined software-facing command-module functions and the root composable primitives of `JustSayIt` are no longer sufficient for the command mapping you want to build. A typical progression is to start with the software-facing building blocks, then compose root primitives such as `take`, `type`, `ask`, `ask!`, `grab`, `listen`, and `say`, then define custom functions with [`@voiceargs`](@ref) and [`@voiceconfig`](@ref), and only then reach for the lower-level helper groups listed below.
+
 #### Macros
 - [`@voiceargs`](@ref)
 - [`@voiceconfig`](@ref)
 - [`@voiceinfo`](@ref)
 
 #### Functions
-- Lifecycle and device access: [`controller`](@ref), [`init_jsi`](@ref), [`finalize_jsi`](@ref), [`default_language`](@ref), [`type_languages`](@ref)
+- Session and device access: [`controller`](@ref), [`default_language`](@ref), [`type_languages`](@ref)
 - Interpreters and STT helpers: [`interpret_enum`](@ref), [`interpret_digit`](@ref), [`interpret_count`](@ref), [`interpret_language`](@ref), [`next_wordgroup`](@ref), [`next_letter`](@ref), [`next_letters`](@ref), [`next_digit`](@ref), [`next_digits`](@ref), [`get_language`](@ref)
 - Text access: [`get_selection_content`](@ref), [`get_clipboard_content`](@ref)
 - TTS helpers: [`is_playing_tts`](@ref), [`pause_tts`](@ref), [`resume_tts`](@ref), [`stop_tts`](@ref), [`set_tts_async_default`](@ref), [`tts_async_default`](@ref)

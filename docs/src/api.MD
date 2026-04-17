@@ -4,7 +4,7 @@ CurrentModule = JustSayIt
 
 # High-level API reference
 
-This is the official High-level API reference of `JustSayIt`. Note that it can also be queried interactively from the [Julia REPL] using the [help mode](https://docs.julialang.org/en/v1/stdlib/REPL/#Help-mode):
+This is the official High-level API reference of `JustSayIt`. Start with the predefined command-module functions in the [Software reference](software.MD). If you need smaller building blocks, compose the root primitives `take`, `type`, `ask`, `ask!`, `grab`, `listen`, and `say`. When you need custom-function programming, reach for `@voiceargs` and `@voiceconfig`. The remaining entries on this page are the lower-level helper groups that support those custom functions. Note that this reference can also be queried interactively from the [Julia REPL] using the [help mode](https://docs.julialang.org/en/v1/stdlib/REPL/#Help-mode):
 ```julia-repl
 julia> using JustSayIt
 julia>?
@@ -31,15 +31,13 @@ JustSayIt.API.@voiceinfo
 
 ## Functions
 #### Index
-* [`JustSayIt.API.finalize_jsi`](@ref)
-* [`JustSayIt.API.init_jsi`](@ref)
 * [`JustSayIt.API.controller`](@ref)
+* [`JustSayIt.API.default_language`](@ref)
+* [`JustSayIt.API.type_languages`](@ref)
 * [`JustSayIt.API.interpret_enum`](@ref)
 * [`JustSayIt.API.interpret_digit`](@ref)
 * [`JustSayIt.API.interpret_count`](@ref)
 * [`JustSayIt.API.interpret_language`](@ref)
-* [`JustSayIt.API.default_language`](@ref)
-* [`JustSayIt.API.type_languages`](@ref)
 * [`JustSayIt.API.ask_llm`](@ref)
 * [`JustSayIt.API.ask_llm!`](@ref)
 * [`JustSayIt.API.next_wordgroup`](@ref)
@@ -60,14 +58,12 @@ JustSayIt.API.@voiceinfo
 #### Documentation
 ```@docs
 JustSayIt.API.controller
-JustSayIt.API.finalize_jsi
-JustSayIt.API.init_jsi
+JustSayIt.API.default_language
+JustSayIt.API.type_languages
 JustSayIt.API.interpret_enum
 JustSayIt.API.interpret_digit
 JustSayIt.API.interpret_count
 JustSayIt.API.interpret_language
-JustSayIt.API.default_language
-JustSayIt.API.type_languages
 JustSayIt.API.ask_llm
 JustSayIt.API.ask_llm!
 JustSayIt.API.next_wordgroup
