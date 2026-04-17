@@ -1,7 +1,7 @@
 """
 Module JustSayIt
 
-Enables offline, low latency, highly accurate speech to command translation, offering composable functionality using speech-to-text (STT), text-to-speech (TTS), large language models (LLMs) and more.
+Enables secure, offline, low-latency, highly accurate speech to command translation for assembling personalized voice assistants on Linux, MacOS, and Windows; it offers composable functionality using speech-to-text (STT), text-to-speech (TTS), large language models (LLMs) and more.
 It contains in addition an Application Programming Interface (API) for a fast and easy development of custom functions.
 
 # General overview and examples

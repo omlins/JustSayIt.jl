@@ -1,7 +1,9 @@
 """
 Module LLM
 
-Provides functions for operations using an LLM.
+Provides predefined generic LLM commands and helper functions that are mainly meant as building blocks for application-specific command dictionaries.
+
+In practical use, application-specific commands are often more powerful than the generic ones, because they can be designed around the way one actually works.
 
 # Functions
 
@@ -10,12 +12,17 @@ Provides functions for operations using an LLM.
 - [`LLM.type_translation`](@ref)
 - [`LLM.type_answer`](@ref)
 - [`LLM.type_text_answer`](@ref)
+- [`LLM.type_text_answer_to`](@ref)
+- [`LLM.type_followup`](@ref)
 
 ###### Text reading
 - [`LLM.read_summary`](@ref)
 - [`LLM.read_translation`](@ref)
 - [`LLM.read_answer`](@ref)
 - [`LLM.read_text_answer`](@ref)
+- [`LLM.read_text_answer_to`](@ref)
+- [`LLM.read_followup`](@ref)
+- [`LLM.chat_followup`](@ref)
 
 ###### Text generation (no typing or reading)
 - [`LLM.ask`](@ref)
