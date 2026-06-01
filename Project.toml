@@ -24,7 +24,7 @@ Preferences = "1.4.3"
 ProgressMeter = "1.7"
 PromptingTools = "0.77.0"
 PyCall = "1.93"
-julia = "1.6"
+julia = "1.10" # LTS version is oldest supported
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

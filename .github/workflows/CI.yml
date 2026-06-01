@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Minimum required Julia version.
+          - '1.10' # Minimum required Julia version.
           - '1'   # Latest stable 1.x release of Julia
           #- 'nightly'
         os:
@@ -28,8 +28,7 @@ jobs:
           - macOS-latest
           #- windows-latest # There is some issue with the pre-test pywinctl installation
         arch:
-          - x64
-          - x86
+          - default
         include:
           - os: ubuntu-latest
             prefix: xvfb-run
@@ -39,12 +38,12 @@ jobs:
           - os: ubuntu-latest
             arch: x86  # Conda interop fails: https://github.com/JuliaPy/Conda.jl/issues/220
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v5
         env:
           cache-name: cache-artifacts
         with:
@@ -59,7 +58,7 @@ jobs:
         with:
           prefix: ${{ matrix.prefix }}
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
       # - uses: julia-actions/julia-uploadcoveralls@v1
@@ -69,8 +68,8 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
         with:
           version: '1'
       - uses: julia-actions/julia-buildpkg@v1

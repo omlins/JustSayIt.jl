@@ -3,12 +3,12 @@ using JustSayIt
 using JustSayIt.API
 using PyCall
 import JustSayIt: MODELNAME, VOSK_MODELDIR_PREFIX, DEFAULT_NOISES, COMMAND_RECOGNIZER_ID
-import JustSayIt: init_jsi, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, reset, _are_next
+import JustSayIt: init_jsi, init_commands, finalize_jsi, recognizer, noises, reader, start_reading, stop_reading, read_wav, set_default_streamer, reset_all, reset, _are_next
 
 
 # Test setup
-const SAMPLEDIR_CMD     = joinpath("samples", "commands")
-const SAMPLEDIR_SILENCE = joinpath("samples", "silence")
+const SAMPLEDIR_CMD     = joinpath(dirname(@__DIR__), "samples", "commands")
+const SAMPLEDIR_SILENCE = joinpath(dirname(@__DIR__), "samples", "silence")
 
 commands = Dict("help"      => Help.help,
                 "type"      => Keyboard.type,
@@ -19,8 +19,6 @@ commands = Dict("help"      => Help.help,
                 "right"     => Mouse.click_right,
                 "double"    => Mouse.click_double,
                 "triple"    => Mouse.click_triple,
-                "email"     => Email.email,
-                "internet"  => Internet.internet,
                 "copy"      => (Key.ctrl, 'c'),
                 # "cut"       => (Key.ctrl, 'x'), # NOTE: this is used to test the handling of an unrecognised keyword.
                 "paste"     => (Key.ctrl, 'v'),
@@ -31,7 +29,8 @@ commands = Dict("help"      => Help.help,
                 );
 modeldirs = Dict(MODELNAME.DEFAULT.EN_US => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"),
                  MODELNAME.TYPE.EN_US    => joinpath(VOSK_MODELDIR_PREFIX, "vosk-model-small-en-us-0.15"))
-init_jsi(commands, modeldirs, DEFAULT_NOISES)
+init_jsi(modeldirs=modeldirs, noises=DEFAULT_NOISES, use_llm=false, use_tts=false, record=false)
+init_commands(commands)
 
 samples = Dict("help"      => read_wav(joinpath(SAMPLEDIR_CMD, "help.wav")),
                "type"      => read_wav(joinpath(SAMPLEDIR_CMD, "type.wav")),
@@ -42,8 +41,6 @@ samples = Dict("help"      => read_wav(joinpath(SAMPLEDIR_CMD, "help.wav")),
                "right"     => read_wav(joinpath(SAMPLEDIR_CMD, "right.wav")),
                "double"    => read_wav(joinpath(SAMPLEDIR_CMD, "double.wav")),
                "triple"    => read_wav(joinpath(SAMPLEDIR_CMD, "triple.wav")),
-               "email"     => read_wav(joinpath(SAMPLEDIR_CMD, "email.wav")),
-               "internet"  => read_wav(joinpath(SAMPLEDIR_CMD, "internet.wav")),
                "copy"      => read_wav(joinpath(SAMPLEDIR_CMD, "copy.wav")),
                "cut"       => read_wav(joinpath(SAMPLEDIR_CMD, "cut.wav")),
                "paste"     => read_wav(joinpath(SAMPLEDIR_CMD, "paste.wav")),
@@ -60,7 +57,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
     @testset "1. print available commands as @info" begin
         id = "commands"
         start_reading([sample_commands; _2]; id=id)
-        set_default_streamer(reader, id)
+        set_default_streamer(reader; isreader=true, id=id)
         @test_logs (:info,) Help.help()
         stop_reading(id=id)
     end;
@@ -68,7 +65,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
         sample = samples[cmd]
         id     = cmd
         start_reading([sample; _2]; id=id)
-        set_default_streamer(reader, id)
+        set_default_streamer(reader; isreader=true, id=id)
         _are_next(cmd, recognizer(COMMAND_RECOGNIZER_ID), noises(MODELNAME.DEFAULT.EN_US); use_partial_recognitions=false, ignore_unknown=false) # NOTE: this full recognition call is required to have safe reproducable results in the following help call.
         @test_logs (:info,) Help.help()
         stop_reading(id=id)
@@ -76,7 +73,7 @@ _2  = read_wav(joinpath(SAMPLEDIR_SILENCE, "silence_2001ms.wav"))
     @testset "3. Keyword not recognized @info" begin
         id = "cut"
         start_reading([samples["cut"]; _2]; id=id)
-        set_default_streamer(reader, id)
+        set_default_streamer(reader; isreader=true, id=id)
         @test_logs (:info,) Help.help() # NOTE: In Julia 1.9, testing explicitly for "Help search keyword not recognized." does not work anymore.
         stop_reading(id=id)
     end;

@@ -7,13 +7,12 @@ const DEFAULT_COMMANDS = Dict(
 
 
 """
-    start()
     start(<keyword arguments>)
 
 Start offline, low latency, highly accurate and secure speech to command translation.
 
 # Keyword arguments
-- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those.
+- `commands::Dict{String, <:Any}=DEFAULT_COMMANDS[default_language]`: the commands to be recognized with their mapping to a function or to a keyboard key or shortcut or a sequence of any of those. If you define your own top-level command dictionary and want spoken help there as well, include the language-appropriate help command explicitly (for example `"help" => Help.help` for english-US).
 - `subset::AbstractArray{String}=nothing`: a subset of the `commands` to be recognised and executed (instead of the complete `commands` list).
 - `max_speed_subset::AbstractArray{String}=nothing`: a subset of the `commands` for which the command names (first word of a command) are to be recognised with maxium speed rather than with maximum accuracy. Forcing maximum speed is usually desired for single word commands that map to functions or keyboard shortcuts that should trigger immediate actions as, e.g., mouse clicks or page up/down (in general, actions that do not modify content and can therefore safely be triggered at maximum speed). Note that forcing maximum speed means not to wait for a certain amount of silence after the end of a command as normally done for the full confirmation of a recognition. As a result, it enables a minimal latency between the saying of a command name and its execution. Note that it is usually possible to define very distinctive command names, which allow for a safe command name to shortcut mapping at maximum speed (to be tested case by case).
 - `default_language::String="$(LANG.EN_US)"`: the default language, which is used for the command names, for the voice arguments and for typing when no other language is specified (noted with its IETF language tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es").
@@ -45,30 +44,14 @@ Start offline, low latency, highly accurate and secure speech to command transla
 To see a description of a submodule, type `?<modulename>`.
 
 
+# Default `commands`
+```
+$(pretty_dict_string(DEFAULT_COMMANDS))
+```
+
 # Examples
 
-#### Define `default_language` (also used for typing if `type_languages` is not set)
-```
-# Set command and type language to french:
-using JustSayIt
-start(default_language="$(LANG.FR)")
-```
-
-#### Define `default_language` and `type_languages`
-```
-# Set command language to french and type languages to french and spanish:
-using JustSayIt
-start(default_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
-```
-
-#### Define `subset`
-```
-# Listen only to the commands "help" and "type".
-using JustSayIt
-start(subset=["help", "type"])
-```
-
-#### Define custom `commands` - functions, keyboard shortcuts and sequences of those - and a `max_speed_subset`
+#### Define `commands` - functions, keyboard shortcuts and sequences of those - and a `max_speed_subset`
 ```
 using JustSayIt
 commands = Dict("help"      => Help.help,
@@ -92,9 +75,28 @@ commands = Dict("help"      => Help.help,
 start(commands=commands, max_speed_subset=["ma", "select", "okay", "middle", "right", "double", "triple", "copy", "upwards", "downwards", "take"])
 ```
 
-# Default `commands`
+#### Define `commands` with nested subcommands - activated automatically when the parent command is said
 ```
-$(pretty_dict_string(DEFAULT_COMMANDS))
+using JustSayIt
+vsc_commands = Dict("comment" => (Key.ctrl, '/'),
+                    "save"    => (Key.ctrl, 's'))
+commands = Dict("help"   => Help.help,
+                "coding" => [`code`, vsc_commands])
+start(commands=commands)
+```
+
+#### Define `default_language` (also used for typing if `type_languages` is not set)
+```
+# Set command and type language to french:
+using JustSayIt
+start(default_language="$(LANG.FR)")
+```
+
+#### Define `default_language` and `type_languages`
+```
+# Set command language to french and type languages to french and spanish:
+using JustSayIt
+start(default_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
 ```
 
 """

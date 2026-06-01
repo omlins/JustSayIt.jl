@@ -11,10 +11,12 @@ julia>?
 help?> JustSayIt
 ```
 
+
 ## Root module
 ```@docs
 JustSayIt
 ```
+
 
 ## Functions to configure and start JustSayIt
 #### Index
@@ -29,7 +31,16 @@ start
 @edit
 ```
 
-## Root convenience reexports
+## Keyboard shortcut namespace
+The root `JustSayIt` module also re-exports `Key` for command mappings and keyboard shortcuts.
+Use `Key.` completion in the Julia REPL to inspect the currently available key names.
+
+
+## Composable primitives for quick command definition (reexported from the root module for convenient access)
+These root primitives can be composed directly in command dictionaries when no wrapper function is needed.
+
+Use `type` here for low-level text typing when you already have text to send to the active application. For voice-input typing from speech, use the `Keyboard.type_*` family documented below.
+
 #### Index
 * [`JustSayIt.take`](@ref)
 * [`JustSayIt.type`](@ref)
@@ -50,22 +61,7 @@ listen
 say
 ```
 
-## Public helper utilities
-#### Index
-* [`JustSayIt.set_preferences!`](@ref)
-* [`JustSayIt.load_preference`](@ref)
-* [`JustSayIt.has_preference`](@ref)
-* [`JustSayIt.delete_preferences!`](@ref)
-
-#### Documentation
-```@docs
-set_preferences!
-load_preference
-has_preference
-delete_preferences!
-```
-
-## Software-facing modules
+## Submodules for quick command definition with predefined, flexible and composable functions
 #### Index
 * [`JustSayIt.Clipboard`](@ref)
 * [`JustSayIt.Generic`](@ref)
@@ -90,9 +86,19 @@ STT
 TTS
 ```
 
-## Keyboard shortcut namespace
-The root `JustSayIt` module also re-exports `Key` for command mappings and keyboard shortcuts.
-Use `Key.` completion in the Julia REPL to inspect the currently available key names.
+
+## Functions of [`Clipboard`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.Clipboard]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.Clipboard]
+Order = [:function]
+```
 
 
 ## Functions of [`Generic`](@ref)
@@ -164,6 +170,33 @@ Modules = [JustSayIt.Mouse]
 Order = [:function]
 ```
 
+## Functions of [`Selection`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.Selection]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.Selection]
+Order = [:function]
+```
+
+
+## Functions of [`STT`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.STT]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.STT]
+Order = [:function]
+```
+
 
 ## Functions of [`TTS`](@ref)
 #### Index
@@ -176,4 +209,20 @@ Order = [:function]
 ```@autodocs
 Modules = [JustSayIt.TTS]
 Order = [:function]
+```
+
+
+## JustSayIt preference management wrappers
+#### Index
+* [`JustSayIt.set_preferences!`](@ref)
+* [`JustSayIt.load_preference`](@ref)
+* [`JustSayIt.has_preference`](@ref)
+* [`JustSayIt.delete_preferences!`](@ref)
+
+#### Documentation
+```@docs
+set_preferences!
+load_preference
+has_preference
+delete_preferences!
 ```

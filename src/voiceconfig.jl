@@ -35,7 +35,7 @@ end
 
 ## VOICECONFIG FUNCTIONS
 
-function handle_voiceconfig(caller::Module, kwargs_expr::Union{Symbol,Expr}, call_or_f::Expr)
+function handle_voiceconfig(caller::Module, kwargs_expr::Union{Symbol,Expr}, call_or_f::Union{Symbol,Expr})
     if is_call(call_or_f) handle_voiceconfig_call(kwargs_expr, call_or_f)
     else                  handle_voiceconfig_f(caller, kwargs_expr, call_or_f)
     end
@@ -64,7 +64,8 @@ function handle_voiceconfig_f(caller::Module, kwargs_expr::Union{Symbol,Expr}, f
     return f_gateway
 end
 
-kwarg_to_namedtuple(kwarg_expr::Expr) = :((; $kwarg_expr)) # Convert single kwarg to a named tuple
+kwarg_to_namedtuple(kwarg_expr::Expr) = (kwarg_expr.head == :tuple) ? kwarg_expr : :((; $kwarg_expr)) # Convert a single kwarg to a named tuple, but keep named tuple literals unchanged.
+kwarg_to_namedtuple(kwarg_expr::Symbol) = kwarg_expr
 
 
 # RUNTIME FUNCTIONS

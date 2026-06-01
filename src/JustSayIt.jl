@@ -1,7 +1,8 @@
 """
 Module JustSayIt
 
-Enables offline, low latency, highly accurate speech to command translation. It contains in addition an Application Programming Interface (API) for a fast and easy development of functionalities using speech-to-text (STT), text-to-speech (TTS) and large language models (LLMs).
+Enables secure, offline, low-latency, highly accurate speech to command translation for assembling personalized voice assistants on Linux, MacOS, and Windows; it offers composable functionality using speech-to-text (STT), text-to-speech (TTS), large language models (LLMs) and more.
+It contains in addition an Application Programming Interface (API) for a fast and easy development of custom functions.
 
 # General overview and examples
 https://github.com/omlins/JustSayIt.jl
@@ -10,9 +11,12 @@ https://github.com/omlins/JustSayIt.jl
 ```
 > julia
 julia> using JustSayIt
-julia> start()
+julia> commands = Dict(
+    ...
+)
+julia> start(commands=commands, <keyword arguments>)
 ```
-Type `?start` to learn about customization keywords.
+Type `?start` to learn about customization keywords to pass a command dictionary and set different options.
 
 # API
 
@@ -21,7 +25,7 @@ Type `?start` to learn about customization keywords.
 julia> import JustSayIt
 julia> using JustSayIt.API
 ```
-Type `?JustSayIt.API` to learn about the Application Programming Interface (API) of JustSayIt.
+Type `?JustSayIt.API` to learn about the Application Programming Interface ([`JustSayIt.API`](@ref)) of JustSayIt.
 """
 module JustSayIt
 
