@@ -28,8 +28,7 @@ jobs:
           - macOS-latest
           #- windows-latest # There is some issue with the pre-test pywinctl installation
         arch:
-          - x64
-          - x86
+          - default
         include:
           - os: ubuntu-latest
             prefix: xvfb-run
