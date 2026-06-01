@@ -4,13 +4,15 @@ using PyCall
 import JustSayIt: recorder, active_recorder_id, start_recording, stop_recording, pause_recording, restart_recording
 
 # Test setup
-const SAMPLEDIR_CMD = joinpath("samples", "commands")
+const SAMPLEDIR_CMD = joinpath(@__DIR__, "samples", "commands")
+const HELP_WAV      = joinpath(SAMPLEDIR_CMD, "help.wav")
 
 
 @testset "$(basename(@__FILE__))" begin
     @testset "1. start/stop/pause/restart recording from audio input cmd" begin
         id = "help"
-        cmd = `julia -e 'using JustSayIt; JustSayIt.read_wav(joinpath("samples","commands","help.wav"))'`
+        script = "using JustSayIt; JustSayIt.read_wav($(repr(HELP_WAV)))"
+        cmd = `$(Base.julia_cmd()) --project=$(Base.active_project()) -e $script`
         @test isa(start_recording(;audio_input_cmd=cmd, id=id), Base.Process)
         @test active_recorder_id() == id
         @test isa(recorder(id), Base.Process)
