@@ -284,5 +284,3 @@ Detailed information on [`@voiceargs`](@ref) is found in the [High-level API ref
 [`@voiceconfig`](@ref) complements `@voiceargs` when you want to apply shared recognition settings to a call or to a function symbol without rewriting the function declaration itself.
 
 The smallest complete end-to-end example is shown in [Quick definition and usage of custom function](examples/config_custom_function.MD). For larger assemblies built around command dictionaries, see [Application-specific command dictionaries](examples/application_specific_commands.MD), [Jupyter notebook LLM-assisted commands](examples/jupyter_llm_commands.MD), and then continue with JustSayItRecipes.jl.
-
-Note that the JustSayIt application config folder (e.g., `~/.config/JustSayIt` on Unix systems) is an easily accessible storage for scripts to start JustSayIt and/or for custom command functions: [`JustSayIt.@include`](@ref) and [`JustSayIt.@edit`](@ref) permit to conveniently `include` and `edit` files from this folder.
