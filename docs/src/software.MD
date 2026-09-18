@@ -21,14 +21,10 @@ JustSayIt
 ## Functions to configure and start JustSayIt
 #### Index
 * [`JustSayIt.start`](@ref)
-* [`JustSayIt.@include`](@ref)
-* [`JustSayIt.@edit`](@ref)
 
 #### Documentation
 ```@docs
 start
-@include
-@edit
 ```
 
 ## Keyboard shortcut namespace

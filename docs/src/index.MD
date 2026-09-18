@@ -16,25 +16,30 @@ Finally, JustSayIt puts a small load on the CPU, using only one core, and can th
 
 2\. Install [Julia] if you do not have it yet.
 
-3\. Execute the following in your shell to install JustSayIt, copy one maintained recipe into your JustSayIt config folder, edit it, and run it:
-
+3\. Execute the following in your shell to install JustSayIt and JustSayItRecipes - installing `JustSayItRecipes` in development mode to enable editing of recipes (and later contributing back to the JustSayItRecipes repository) -, and start a maintained recipe from `JustSayItRecipes`:
 ```julia-repl
 $> julia
 julia> ]
-  pkg> add JustSayIt, JustSayItRecipes
+  pkg> add JustSayIt
+  pkg> develop JustSayItRecipes
   pkg> <backspace button>
 julia> using JustSayIt, JustSayItRecipes
-julia> recipe = normpath(joinpath(dirname(pathof(JustSayItRecipes)), "..", "recipes", "ubuntu_max.jl"))
-julia> local_recipe = joinpath(homedir(), ".config", "JustSayIt", "my_commands.jl")
-julia> mkpath(dirname(local_recipe))
-julia> cp(recipe, local_recipe; force=true)
-julia> @edit("my_commands.jl")
-julia> @include("my_commands.jl")
+julia> JustSayItRecipes.@run("ubuntu_max.jl")
 ```
 
-4\. Say `help commands` and then, e.g., `help sentence`, and try some commands following the guidance of the help output.
+> JustSayItRecipes is installed in development mode (typically in the `~/.julia/dev/` directory on Linux and macOS, and in the `~\AppData\Local\Julia\dev\` directory on Windows). Type `?Pkg.develop` for details, and set the environment variable `JULIA_PKG_DEVDIR` before starting Julia to use a custom location for the Julia development folder, where `JustSayItRecipes` will be installed.
 
-5\. Look through `my_commands.jl` itself to understand what commands are available and adjust them as desired.
+4\. Say `help commands` and then, e.g., `help sentence`, and try some commands following the guidance of the help output. Stop the JustSayIt session with `CTRL-C` as indicated in the help output of JustSayIt. To look through `ubuntu_max.jl` itself to understand what commands are available, type `JustSayItRecipes.@edit("ubuntu_max.jl")` in the Julia REPL (type `?edit` to learn how to specify a custom editor to be used for file editing in Julia).
+
+5\. Duplicate the recipe in the local JustSayItRecipes folder, edit it - e.g., add new commands or modify existing ones -, and run it (restart Julia first to avoid redefining commands):
+```julia-repl
+julia> cp(JustSayItRecipes.@path("ubuntu_max.jl"), JustSayItRecipes.@path("my_ubuntu_commands.jl"))
+julia> JustSayItRecipes.@edit("my_ubuntu_commands.jl")
+julia> <CTRL-D>
+$> julia
+julia> using JustSayIt, JustSayItRecipes
+julia> JustSayItRecipes.@run("my_ubuntu_commands.jl")
+```
 
 6\. Look through the rest of the documentation!
 
