@@ -102,7 +102,6 @@ import .Clipboard.take, .Keyboard.type, .LLM.ask, .LLM.ask!, .Selection.grab, .S
 export take, type, ask, ask!, grab, listen, say # NOTE: low-level 'say' (with kwargs) is exported here instead of TTS.say (cannot be exported here and in API.jl...)
 
 ## Public but not exported
-public @edit, @include
 public set_preferences!, load_preference, has_preference, delete_preferences!
 
 end # module JustSayIt
