@@ -34,6 +34,7 @@ JustSayIt.API.@voiceinfo
 * [`JustSayIt.API.controller`](@ref)
 * [`JustSayIt.API.default_language`](@ref)
 * [`JustSayIt.API.type_languages`](@ref)
+* [`JustSayIt.API.use_tts_messages`](@ref)
 * [`JustSayIt.API.interpret_enum`](@ref)
 * [`JustSayIt.API.interpret_digit`](@ref)
 * [`JustSayIt.API.interpret_count`](@ref)
@@ -60,6 +61,7 @@ JustSayIt.API.@voiceinfo
 JustSayIt.API.controller
 JustSayIt.API.default_language
 JustSayIt.API.type_languages
+JustSayIt.API.use_tts_messages
 JustSayIt.API.interpret_enum
 JustSayIt.API.interpret_digit
 JustSayIt.API.interpret_count
