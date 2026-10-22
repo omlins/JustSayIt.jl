@@ -12,11 +12,11 @@ Furthermore, JustSayIt provides an **unprecedented highly generic extension to t
 Finally, JustSayIt puts a small load on the CPU, using only one core, and can therefore run continuously without harming the computer usage experience.
 
 ## Quick start
-1\. Connect your best microphone (a good recording quality is key to a great voice control experience!)
+1\. Connect your best microphone - a good recording quality is key to a great voice control experience!
 
 2\. Install [Julia] if you do not have it yet.
 
-3\. Execute the following in your shell to install JustSayIt and JustSayItRecipes - installing `JustSayItRecipes` in development mode to enable editing of recipes (and later contributing back to the JustSayItRecipes repository) -, and start a maintained recipe from `JustSayItRecipes`:
+3\. Execute the following in your shell to install JustSayIt and JustSayItRecipes (providing maintained command dictionaries) - installing JustSayItRecipes in development mode to enable editing of recipes (and later contributing back to the JustSayItRecipes repository) -, and to start a maintained recipe from JustSayItRecipes:
 ```julia-repl
 $> julia
 julia> ]
@@ -27,7 +27,7 @@ julia> using JustSayIt, JustSayItRecipes
 julia> JustSayItRecipes.@run("ubuntu_max.jl")
 ```
 
-> JustSayItRecipes is installed in development mode (typically in the `~/.julia/dev/` directory on Linux and macOS, and in the `~\AppData\Local\Julia\dev\` directory on Windows). Type `?Pkg.develop` for details, and set the environment variable `JULIA_PKG_DEVDIR` before starting Julia to use a custom location for the Julia development folder, where `JustSayItRecipes` will be installed.
+> JustSayItRecipes is installed in development mode (typically in the `~/.julia/dev/` directory on Linux and macOS, and in the `~\AppData\Local\Julia\dev\` directory on Windows). Type `?Pkg.develop` for details, and set the environment variable `JULIA_PKG_DEVDIR` before starting Julia to use a custom location for the Julia development folder, where JustSayItRecipes will be installed.
 
 4\. Say `help commands` and then, e.g., `help sentence`, and try some commands following the guidance of the help output. Stop the JustSayIt session with `CTRL-C` as indicated in the help output of JustSayIt. To look through `ubuntu_max.jl` itself to understand what commands are available, type `JustSayItRecipes.@edit("ubuntu_max.jl")` in the Julia REPL (type `?edit` to learn how to specify a custom editor to be used for file editing in Julia).
 
