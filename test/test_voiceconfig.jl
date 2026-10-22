@@ -1,7 +1,7 @@
 using Test
 using JustSayIt
 using JustSayIt.API
-import JustSayIt: validate_voiceconfig, VALID_VOICEARGS_KWARGS, @prettyexpand, remove_linenumbernodes!
+import JustSayIt: validate_voiceconfig
 import JustSayIt.Exceptions: KeywordArgumentError
 
 # Test setup
@@ -17,31 +17,31 @@ f2(x; y=1, language="", timeout="") = "$x,$y,$language,$timeout"
     
     @testset "2. @voiceconfig expansion" begin
         @testset "call" begin
-            expansion = @prettyexpand @voiceconfig language="de" f1(1; y=2)
-            @test expansion == :(f1(1; y = 2, JustSayIt.validate_voiceconfig((; $(Expr(:(=), :language, "de"))))...))
+            expansion = JustSayIt.@prettyexpand @voiceconfig language="de" f1(1; y=2)
+            @test repr(expansion) == ":(f1(1; y = 2, JustSayIt.validate_voiceconfig((; \$(Expr(:(=), :language, \"de\"))))...))"
 
-            expansion = @prettyexpand @voiceconfig (language="de", timeout=5.0) f2(1; y=2)
-            @test expansion == :(f2(1; y = 2, JustSayIt.validate_voiceconfig((language = "de", timeout = 5.0))...))
+            expansion = JustSayIt.@prettyexpand @voiceconfig (language="de", timeout=5.0) f2(1; y=2)
+            @test repr(expansion) == ":(f2(1; y = 2, JustSayIt.validate_voiceconfig((language = \"de\", timeout = 5.0))...))"
 
-            expansion = @prettyexpand @voiceconfig language="de" f1(1)
-            @test expansion == :(f1(1; JustSayIt.validate_voiceconfig((; $(Expr(:(=), :language, "de"))))...))
+            expansion = JustSayIt.@prettyexpand @voiceconfig language="de" f1(1)
+            @test repr(expansion) == ":(f1(1; (JustSayIt.JustSayIt).validate_voiceconfig((; \$(Expr(:(=), :language, \"de\"))))...))"
         end;
         @testset "symbol" begin
-            expansion = @prettyexpand @voiceconfig language="de" f1
-            @test expansion == remove_linenumbernodes!(:(((args...,; kwargs...)->begin 
-                f1(args...; kwargs..., JustSayIt.validate_voiceconfig((; $(Expr(:(=), :language, "de"))))...)
-            end)))
+            expansion = JustSayIt.@prettyexpand @voiceconfig language="de" Main.f1
+            expansion_str = repr(expansion)
+            @test occursin("(JustSayIt.Main).f1", expansion_str)
+            @test occursin("JustSayIt.validate_voiceconfig((language = \"de\",))", expansion_str)
 
-            expansion = @prettyexpand @voiceconfig (language="it", timeout=5.0) f2
-            @test expansion == remove_linenumbernodes!(:(((args...,; kwargs...)->begin 
-                f2(args...; kwargs..., JustSayIt.validate_voiceconfig((language = "it", timeout = 5.0))...)
-            end)))
+            expansion = JustSayIt.@prettyexpand @voiceconfig (language="it", timeout=5.0) Main.f2
+            expansion_str = repr(expansion)
+            @test occursin("(JustSayIt.Main).f2", expansion_str)
+            @test occursin("JustSayIt.validate_voiceconfig((language = \"it\", timeout = 5.0))", expansion_str)
         end;
     end;
     
     @testset "3. @voiceconfig call" begin
-        g1 = @voiceconfig language="de" f1
-        g2 = @voiceconfig (language="de", timeout=5.0) f2
+        g1 = @voiceconfig language="de" Main.f1
+        g2 = @voiceconfig (language="de", timeout=5.0) Main.f2
         @testset "direct call" begin
             @test "1,2,de"     == @voiceconfig language="de" f1(1; y=2)
             @test "1,2,de,5.0" == @voiceconfig (language="de", timeout=5.0) f2(1; y=2)

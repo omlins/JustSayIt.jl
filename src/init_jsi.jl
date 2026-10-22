@@ -9,6 +9,7 @@ Initialize the package JustSayIt.
 - `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF language tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 - `use_llm::Bool=true`: whether to use a Large Language Model (LLM) for advanced features as the summary or translation of text (default is `true).
 - `use_tts::Bool=true`: whether to use text-to-speech (TTS) functionality for voice enhancement of certain commands and for enabling the text-to-speech commands of the model TTS (default is `true`).
+- `use_tts_messages::Bool=true`: whether to use text-to-speech (TTS) to voice error and status messages (requires `use_tts=true`); user-triggered speech output as reading text using the `TTS` module or similar is not affected (default is `true`).
 - `tts_async_default::Bool=true`: whether to use asynchronous TTS by default. The default (`true`) requires using of headphones, because in asynchronous mode, the TTS voice can naturally trigger commands by accident.
 - `use_gpu::Bool=true`: whether to use GPU, enabling the use of better performing STT, TTS and LLM models (default is `true`).
 - `microphone_id::Int`: the id of the microphone to be used, instead of the default microphone. JustSayIt prints available devices and their ids at the start of the application.
@@ -52,7 +53,7 @@ $(pretty_dict_string(DEFAULT_VOSK_MODELDIRS))
 $(pretty_dict_string(DEFAULT_NOISES))
 ```
 """
-function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, record::Bool=true)
+function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, use_tts_messages::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, modeldirs::Union{Nothing, Dict{String,String}}=nothing, noises::Dict{String,<:AbstractArray{String}}=DEFAULT_NOISES, record::Bool=true)
     if (default_language ∉ LANG) @KeywordArgumentError("invalid `default_language` (obtained \"$default_language\"). Valid are: \"$(join(LANG, "\", \"", "\" and \""))\".") end
     if isa(type_languages, String) type_languages = String[type_languages] end
     for l in type_languages
@@ -78,13 +79,14 @@ function init_jsi(; default_language::String=LANG.EN_US, type_languages::Union{S
     set_type_languages(type_languages)
     set_use_gpu(use_gpu)
     set_use_tts(use_tts)
+    set_use_tts_messages(use_tts_messages)
     set_use_llm(use_llm)
     set_perf_debug()
 
     # Initialize components.
     @info "JustSayIt: I am getting ready..."
     if (use_tts) init_tts(audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name) end
-    say("Hi there! I am getting ready...")
+    if use_tts_messages say("Hi there! I am getting ready...") end # NOTE: the kwarg is used directly as it shadows the option getter use_tts_messages().
     if (use_llm) init_llm() end
     init_stt(modeldirs, noises; freespeech_engine=stt_freespeech_engine)
     set_initialized(true)

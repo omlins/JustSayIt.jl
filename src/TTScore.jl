@@ -4,7 +4,7 @@ module TTScore
 using PyCall, Preferences
 using ..JustSayIt
 import Base.Threads
-import ..JustSayIt: tic, toc, use_gpu, use_tts
+import ..JustSayIt: tic, toc, use_gpu, use_tts, use_tts_messages
 using ..JustSayIt.Exceptions
 import ..JustSayIt: Sounddevice
 using ..JustSayIt: RealtimeTTS
