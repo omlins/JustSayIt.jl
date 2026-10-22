@@ -33,7 +33,7 @@ To see a description of a function type `?<functionname>`.
 module LLM
 
 using ..JustSayIt.API
-import ..JustSayIt: say, remove_end_punctuation
+import ..JustSayIt: say, use_tts_messages, remove_end_punctuation
 public type_summary, read_summary, type_translation, read_translation, type_answer, read_answer, type_text_answer, read_text_answer
 
 ## CONSTANTS
@@ -198,7 +198,7 @@ chat_followup(; show_thinking::Bool=true) = _chat_followup(; show_thinking=show_
 
 
 function _chat_followup(; show_thinking::Bool=true)
-    say("Listening...")
+    if use_tts_messages() say("Listening...") end
     has_answered = true
     while has_answered
         has_answered = _answer!(; stream=false, show_thinking=show_thinking, type_answer=false, say_answer=true)
@@ -210,7 +210,7 @@ end
 @voiceargs instruction_tokens=>(modeltype=MODELTYPE_SPEECH) function _answer!(instruction_tokens::String...; stream::Bool=false, show_thinking::Bool=true, instruction_prefix::String="", type_answer::Bool=true, say_answer::Bool=false, exit_cmd="bye")
     if remove_end_punctuation(join(lowercase.(instruction_tokens), " "), default_language()) == exit_cmd # TODO: use lang
         @info "Exiting chat."
-        say("Bye!")
+        if use_tts_messages() say("Bye!") end
         return false
     end
     question = instruction_prefix * " " * join(instruction_tokens, " ")

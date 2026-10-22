@@ -18,11 +18,15 @@ stop_tts(; enginename::String=tts(), streamname::String=TTS_DEFAULT_STREAM)     
 """
     @voiceinfo message
 
-Log `message` and speak it through the active TTS engine.
+Log `message` and speak it through the active TTS engine (only if the option `use_tts_messages` is enabled; the log message is always issued).
 """
-macro voiceinfo(args...) esc(voiceinfo(args...)); end
-
-function voiceinfo(args...)
+macro voiceinfo(args...)
     if (length(args) != 1) @ArgumentError("The `voiceinfo` macro takes exactly one argument.") end
-    return :(@info($((args...))); say($(args...)))
+    msg = args[1]
+    return quote
+        @info($(esc(msg)))
+        if use_tts_messages()
+            say($(esc(msg)))
+        end
+    end
 end

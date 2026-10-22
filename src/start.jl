@@ -19,6 +19,7 @@ Start offline, low latency, highly accurate and secure speech to command transla
 - `type_languages::String|AbstractArray{String}=default_language`: the languages used for typing, where the first is the default type language (noted with its IETF language tag https://en.wikipedia.org/wiki/IETF_language_tag). Currently supported are: english-US ("en-us"), German ("de"), French ("fr") and Spanish ("es"). Type `?Keyboard.type` for information about typing or say "help type" after having started JustSayIt.
 - `use_llm::Bool=true`: whether to use a Large Language Model (LLM) for advanced features as the summary or translation of text (default is `true).
 - `use_tts::Bool=true`: whether to use text-to-speech (TTS) functionality for voice enhancement of certain commands and for enabling the text-to-speech commands of the model TTS (default is `true`).
+- `use_tts_messages::Bool=(default_language==LANG.EN_US)`: whether to use text-to-speech (TTS) to voice error and status messages (requires `use_tts=true`); user-triggered speech output as reading text using the `TTS` module or similar is not affected (default is `true`). The default is `true` for english-US and `false` for all other languages.
 - `tts_async_default::Bool=true`: whether to use asynchronous TTS by default. The default (`true`) requires using of headphones, because in asynchronous mode, the TTS voice can naturally trigger commands by accident.
 - `use_gpu::Bool=true`: whether to use GPU, enabling the use of better performing STT, TTS and LLM models (default is `true`).
 - `microphone_id::Int`: the id of the microphone to be used, instead of the default microphone. JustSayIt prints available devices and their ids at the start of the application.
@@ -100,11 +101,11 @@ start(default_language="$(LANG.FR)", type_languages=["$(LANG.FR)","$(LANG.ES)"])
 ```
 
 """
-function start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing)
-    _start(; commands=commands, subset=subset, max_speed_subset=max_speed_subset, default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
+function start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, use_tts_messages::Bool=(default_language==LANG.EN_US), tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing)
+    _start(; commands=commands, subset=subset, max_speed_subset=max_speed_subset, default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, use_tts_messages=use_tts_messages, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
 end
 
-function _start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, nbcommands::Int=-1)
+function _start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset::Union{Nothing, AbstractArray{String}}=nothing, max_speed_subset::Union{Nothing, AbstractArray{String}}=nothing, default_language::String=LANG.EN_US, type_languages::Union{String,AbstractArray{String}}=default_language, use_llm::Bool=true, use_tts::Bool=true, use_tts_messages::Bool=true, tts_async_default::Bool=true, use_gpu::Bool=true, microphone_id::Int=-1, microphone_name::String="", audiooutput_id::Int=-1, audiooutput_name::String="", audio_input_cmd::Union{Cmd,Nothing}=nothing, nbcommands::Int=-1)
     if isnothing(commands) commands = DEFAULT_COMMANDS[default_language] end
     if (!isnothing(subset) && !issubset(subset, keys(commands))) @IncoherentArgumentError("'subset' incoherent: the obtained command name subset ($(subset)) is not a subset of the command names ($(keys(commands))).") end
     #TODO: temporarily deactivated: if (!isnothing(max_speed_subset) && !issubset(max_speed_subset, keys(commands))) @IncoherentArgumentError("'max_speed_subset' incoherent: the obtained max_speed_subset ($(max_speed_subset)) is not a subset of the command names ($(keys(commands))).") end
@@ -121,7 +122,7 @@ function _start(; commands::Union{Nothing, Dict{String, <:Any}}=nothing, subset:
     if is_initialized()
         if (nbcommands == -1) @warn "JustSayIt is already initialized; ignoring new initialization parameters." end
     else
-        init_jsi(; default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
+        init_jsi(; default_language=default_language, type_languages=type_languages, use_llm=use_llm, use_tts=use_tts, use_tts_messages=use_tts_messages, tts_async_default=tts_async_default, use_gpu=use_gpu, microphone_id=microphone_id, microphone_name=microphone_name, audiooutput_id=audiooutput_id, audiooutput_name=audiooutput_name, audio_input_cmd=audio_input_cmd)
     end
     init_commands(commands)
     interpret(max_speed_token_subset; nbcommands=nbcommands, finalize=finalize)
@@ -143,7 +144,7 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
     use_max_speed     = true
     if do_infinite_loop
         @info "I'm ready. Listening for commands in $(lang_str(default_language())) (say \"$cmd_sleep_jsi\" to put me to sleep; press CTRL+c in the terminal to terminate)..."
-        say("...and now, whatever you need: \"just say it\"!")
+        if use_tts_messages() say("...and now, whatever you need: \"just say it\"!") end
     end
     try
         while true
@@ -195,7 +196,7 @@ function interpret(max_speed_token_subset::AbstractArray{String}; nbcommands::In
                         if isa(e, InsecureRecognitionException)
                             @debug e.msg
                             @info("Command `$cmd_name` aborted: insecure command argument recognition.")
-                            say("Command `$cmd_name` aborted.")
+                            if use_tts_messages() say("Command `$cmd_name` aborted.") end
                             sleep(2.0) # Give the recognizer time to finalize
                         elseif isa(e, InterruptException) || (isa(e, PyCall.PyError) && occursin("KeyboardInterrupt", string(e.T)))
                             @info "Command `$cmd_name` aborted (with CTRL+C)."

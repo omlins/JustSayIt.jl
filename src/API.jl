@@ -11,7 +11,7 @@ Use this facade when the predefined software-facing command-module functions and
 - [`@voiceinfo`](@ref)
 
 #### Functions
-- Session and device access: [`controller`](@ref), [`default_language`](@ref), [`type_languages`](@ref)
+- Session and device access: [`controller`](@ref), [`default_language`](@ref), [`type_languages`](@ref), [`use_tts_messages`](@ref)
 - Interpreters and STT helpers: [`interpret_enum`](@ref), [`interpret_digit`](@ref), [`interpret_count`](@ref), [`interpret_language`](@ref), [`next_wordgroup`](@ref), [`next_letter`](@ref), [`next_letters`](@ref), [`next_digit`](@ref), [`next_digits`](@ref), [`get_language`](@ref)
 - Text access: [`get_selection_content`](@ref), [`get_clipboard_content`](@ref)
 - TTS helpers: [`is_playing_tts`](@ref), [`pause_tts`](@ref), [`resume_tts`](@ref), [`stop_tts`](@ref), [`set_tts_async_default`](@ref), [`tts_async_default`](@ref)
@@ -44,8 +44,8 @@ module API
     import ..JustSayIt: interpret_enum, interpret_digit, interpret_count, interpret_language # from interpreters.jl
     export interpret_enum, interpret_digit, interpret_count, interpret_language
 
-    import ..JustSayIt: default_language, type_languages                             # from options.jl
-    export default_language, type_languages
+    import ..JustSayIt: default_language, type_languages, use_tts_messages             # from options.jl
+    export default_language, type_languages, use_tts_messages
 
     import ..JustSayIt.LLMcore: ask_llm, ask_llm!                                    # from llm_api.jl
     export ask_llm, ask_llm!
