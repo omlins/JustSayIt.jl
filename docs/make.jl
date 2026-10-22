@@ -29,7 +29,7 @@ try
     makedocs(;
         modules  = [JustSayIt],
         authors  = "Samuel Omlin",
-        repo     = "https://github.com/omlins/JustSayIt.jl/blob/{commit}{path}#{line}",
+        repo     = Remotes.GitHub("omlins", "JustSayIt.jl"),
         sitename = "JustSayIt.jl",
         checkdocs = :exports,
         format   = Documenter.HTML(;
