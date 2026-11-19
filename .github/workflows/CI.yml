@@ -53,6 +53,27 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      # On Windows, the conda downgrade in the "Pin conda" step below fails: Windows
+      # file locking prevents conda 26 from replacing its own running conda.exe with
+      # conda 24.11.3 (the self-replacement that works on Linux/macOS via POSIX rename
+      # semantics). The fix: provide an external Miniconda with conda 24.11.x and point
+      # Conda.jl at it via CONDA_JL_CONDA_EXE. When that variable names an existing
+      # conda executable, Conda.jl's build bakes it in as CONDA_EXE and skips the
+      # miniforge-latest bootstrap (which ships conda 26) entirely. The "Pin conda"
+      # step then installs conda=24.11.3 + python=3.12 into the Conda.jl root env
+      # using the external conda 24.x as the driver — a fresh install into the target
+      # prefix, no self-replacement involved. With conda 24.x, Conda.jl's pip_interop
+      # check also uses the old key name (pip_interop_enabled) that Conda.jl reads.
+      - name: Install Miniconda with conda 24.x (Windows)
+        if: runner.os == 'Windows'
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniconda-version: "24.11.1-0"  # bundles conda 24.11.x
+          architecture: x64
+      - name: Point Conda.jl at the external conda 24.x (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "CONDA_JL_CONDA_EXE=$env:USERPROFILE\miniconda3\Scripts\conda.exe" >> $env:GITHUB_ENV
       - uses: julia-actions/julia-buildpkg@v1
       # Pin the Conda.jl base env to the versions of the verified-good local installation
       # (conda 24.11.3, python 3.12). Fresh miniforge ships conda >= 25/26, where the renamed
