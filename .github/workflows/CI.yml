@@ -70,10 +70,14 @@ jobs:
         with:
           miniconda-version: "py312_24.11.1-0"  # real filename: Miniconda3-py312_24.11.1-0-Windows-x86_64.exe (verified from repo.anaconda.com index)
           architecture: x64
+      # Use PowerShell's Add-Content (not "echo >> ") to append to GITHUB_ENV: the
+      # "echo >>" pattern interacts badly with the conda initialization profile that
+      # setup-miniconda installs into pwsh (the profile uses Invoke-Expression, which
+      # tangles with the redirect and invokes conda with an empty command).
       - name: Point Conda.jl at the external conda 24.x (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: echo "CONDA_JL_CONDA_EXE=$env:USERPROFILE\miniconda3\Scripts\conda.exe" >> $env:GITHUB_ENV
+        run: Add-Content -Path $env:GITHUB_ENV -Value "CONDA_JL_CONDA_EXE=$env:USERPROFILE\miniconda3\Scripts\conda.exe"
       - uses: julia-actions/julia-buildpkg@v1
       # Pin the Conda.jl base env to the versions of the verified-good local installation
       # (conda 24.11.3, python 3.12). Fresh miniforge ships conda >= 25/26, where the renamed
