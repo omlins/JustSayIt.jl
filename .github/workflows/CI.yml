@@ -90,6 +90,18 @@ jobs:
       # pre-downgrade base). Docs are unaffected (JSI_USE_PYTHON=0 there).
       - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
         run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
+      # Pre-enable pip_interop on Windows from a TOP-LEVEL julia process (the same context in
+      # which the Pin-conda step's spawns succeed). During the actual test run, JustSayIt's
+      # __init__ -> pyimport_pip fallback -> Conda.pip_interop(true) spawns conda.exe with an
+      # enormous triple-prepended PATH and ~130 env vars, and on Windows this spawn dies with
+      # "could not spawn ... bad file descriptor (EBADF)" (libuv/CreateProcessW env-block
+      # failure). Running the same call HERE, before the tests, writes the key into
+      # condarc-julia.yml with a small runner PATH — so the in-test pip_interop call becomes
+      # a no-op re-set (the key is already true) that need not spawn at all, and the test
+      # process inherits a working configuration.
+      - name: Pre-enable pip_interop for Conda.jl (Windows)
+        if: runner.os == 'Windows'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
       # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
       # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
       # image ships xvfb but not these X tools, so install x11-utils (xset) and
