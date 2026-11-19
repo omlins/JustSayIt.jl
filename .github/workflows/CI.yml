@@ -63,6 +63,13 @@ jobs:
       # pre-downgrade base). Docs are unaffected (JSI_USE_PYTHON=0 there).
       - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
         run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
+      # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
+      # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
+      # image ships xvfb but not these X tools, so install x11-utils (xset) and
+      # x11-xserver-utils (xrandr) before the tests run.
+      - name: Install X tools required by pymonctl on Linux runners
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y x11-utils x11-xserver-utils
       - uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}
