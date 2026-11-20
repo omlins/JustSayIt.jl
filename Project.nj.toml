@@ -1,0 +1,41 @@
+# DRAFT (Phase 2) — for review. Final placement after Phase-3 approval: JustSayIt repo root.
+# JustSayIt — compatibility constraints for non-Julia dependencies (nj-deps).
+# Analogue of [compat] in Project.toml. Ranges follow pip/conda specifier syntax,
+# passed as-is to pip / Conda.add; they constrain, but never change, the pip↔conda choice.
+#
+# REVIEW NOTES (Phase 3):
+#  - All ranges are proposals; verified-good exact versions live in Manifest.nj.toml.
+#  - "Verified-working version" column comments give the floor reference from the 1.11 env.
+
+[python]                       # the interpreter the env is expected to provide (ADVISORY, plan §8.4)
+version = ">=3.11, <3.13"      # verified env: 3.12.9
+
+[pip]                          # direct pip deps; keys = pip package names (see name_mapping.md)
+numpy       = ">=1.26.4, <2.0"   # REVIEW: numpy 2.x breaks several STT/TTS deps — ceiling proposed
+scipy       = ">=1.15.1, <1.16"  # verified: 1.15.1
+vosk        = ">=0.3.45, <0.4"   # verified: 0.3.45
+sounddevice = ">=0.5.1, <0.6"    # verified: 0.5.1
+Unidecode   = ">=1.3, <2"        # REVIEW ceiling; verified: 1.4.0
+PyWinCtl    = ">=0.4.1, <0.5"    # import name: pywinctl; verified: 0.4.1
+pynput      = ">=1.8.1, <2"      # verified: 1.8.1
+ollama      = ">=0.4.7, <0.5"    # verified: 0.4.7
+realtimestt = {version = ">=0.3.98, <0.4"}                              # RealtimeSTT; verified: 0.3.100
+realtimetts = {version = ">=0.4.55, <0.5", extras = "[system, kokoro]"} # RealtimeTTS; verified: 0.4.55
+
+[pip.torch]
+# torch/torchvision/torchaudio live ONLY here (never as a [pip] key: TOML table/key collision).
+index       = "https://download.pytorch.org/whl/cu118"
+torch       = "==2.3.0"        # exact: CUDA wheel coupling (cu118 nvidia-* set)
+torchvision = "==0.18.0"       # exact: matched to torch 2.3.0
+torchaudio  = "==2.3.0"        # exact: matched to torch 2.3.0
+
+[pip.constraints]              # KNOWN-SENSITIVE transitive combinations (user-validated; plan §8.1).
+                               # Not direct deps; rendered as pip constraints (-c) in BOTH modes.
+ctranslate2        = "==3.24.0"     # user-pinned in src/pymodules.jl; faster-whisper engine
+nvidia-cudnn-cu11  = ">=8.7, <9"    # libcudnn.so.8 for torch cu118 (user pin was ==8.*)
+nvidia-cublas-cu11 = ">=11.11, <12" # LD_LIBRARY_PATH-critical cublas
+
+[conda]                        # conda-side constraints (MatchSpec syntax for Conda.add)
+portaudio = ">=19.7, <20"      # verified: 19.7.0
+ffmpeg    = ">=7.1, <8"        # verified: 7.1.1
+pyaudio   = ">=0.2.14, <0.3"   # verified: 0.2.14
