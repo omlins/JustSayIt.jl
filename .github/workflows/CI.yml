@@ -95,6 +95,11 @@ jobs:
       - name: Pre-enable pip_interop for Conda.jl (Windows)
         if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
+      # SciPy is imported before its automatic pip fallback can reliably spawn
+      # conda.exe during JustSayIt's module initialization on Windows.
+      - name: Pre-install SciPy for JustSayIt (Windows)
+        if: runner.os == 'Windows'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip("install", "scipy")'
       # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
       # process. This is the REAL fix for the Windows test-spawn failure:
       #
