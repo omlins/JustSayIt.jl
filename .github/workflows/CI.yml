@@ -104,12 +104,12 @@ jobs:
       #      already true -- it's a SETTER, not a check-then-set)
       #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
       #
-      # Pre-install the modules that pyimport_pip would otherwise install through pip_interop
-      # during initialization. Then import JustSayIt to install anything requiring Conda
-      # dependencies from a top-level process where spawns succeed.
+      # Pre-install the modules and native dependencies that pyimport_pip would otherwise
+      # install during initialization. RealtimeSTT and RealtimeTTS require Conda dependencies;
+      # resolving their fallbacks during module initialization can fail to spawn pip.exe.
       - name: Pre-install Python packages for JustSayIt (Windows)
         if: runner.os == 'Windows'
-        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama"]); using JustSayIt'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
       # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
       # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
       # image ships xvfb but not these X tools, so install x11-utils (xset) and
