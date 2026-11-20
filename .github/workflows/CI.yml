@@ -20,16 +20,15 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Minimum required Julia version.
+          - '1.11' # Minimum required Julia version (`public` keyword needs 1.11).
           - '1'   # Latest stable 1.x release of Julia
           #- 'nightly'
         os:
           - ubuntu-latest
           - macOS-latest
-          #- windows-latest # There is some issue with the pre-test pywinctl installation
+          - windows-latest # There is some issue with the pre-test pywinctl installation
         arch:
-          - x64
-          - x86
+          - default
         include:
           - os: ubuntu-latest
             prefix: xvfb-run
@@ -39,12 +38,12 @@ jobs:
           - os: ubuntu-latest
             arch: x86  # Conda interop fails: https://github.com/JuliaPy/Conda.jl/issues/220
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v5
         env:
           cache-name: cache-artifacts
         with:
@@ -54,12 +53,87 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      # On Windows, the conda downgrade in the "Pin conda" step below fails: Windows
+      # file locking prevents conda 26 from replacing its own running conda.exe with
+      # conda 24.11.3 (the self-replacement that works on Linux/macOS via POSIX rename
+      # semantics). The fix: provide an external Miniconda with conda 24.11.x and point
+      # Conda.jl at it via CONDA_JL_CONDA_EXE. When that variable names an existing
+      # conda executable, Conda.jl's build bakes it in as CONDA_EXE and skips the
+      # miniforge-latest bootstrap (which ships conda 26) entirely. The "Pin conda"
+      # step then installs conda=24.11.3 + python=3.12 into the Conda.jl root env
+      # using the external conda 24.x as the driver — a fresh install into the target
+      # prefix, no self-replacement involved. With conda 24.x, Conda.jl's pip_interop
+      # check also uses the old key name (pip_interop_enabled) that Conda.jl reads.
+      - name: Install Miniconda with conda 24.x (Windows)
+        if: runner.os == 'Windows'
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniconda-version: "py312_24.11.1-0"  # real filename: Miniconda3-py312_24.11.1-0-Windows-x86_64.exe (verified from repo.anaconda.com index)
+          architecture: x64
+      # Use pwsh with -NoProfile: setup-miniconda installs a conda-initialization profile
+      # for pwsh (Invoke-Expression of the conda hook), and on this runner the hook fails
+      # (INVoke-Expression gets an empty string; conda is invoked with no subcommand). That
+      # profile breakage happens at pwsh startup — BEFORE any run: command executes — and
+      # kills the step with exit code 1. -NoProfile skips the profile (and thus the broken
+      # hook) entirely; Add-Content then appends the variable without any shell interaction.
+      - name: Point Conda.jl at the external conda 24.x (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh -NoProfile {0}
+        run: Add-Content -Path $env:GITHUB_ENV -Value "CONDA_JL_CONDA_EXE=$env:USERPROFILE\miniconda3\Scripts\conda.exe"
       - uses: julia-actions/julia-buildpkg@v1
+      # Pin the Conda.jl base env to the versions of the verified-good local installation
+      # (conda 24.11.3, python 3.12). Fresh miniforge ships conda >= 25/26, where the renamed
+      # config key (pip_interop_enabled -> prefix_data_interoperability) breaks Conda.jl's
+      # pip_interop check ("InitError: pip_interop is not enabled"); python 3.12 is also
+      # required for the pinned pip dependencies (no cp314 wheels exist). PyCall is rebuilt
+      # afterwards against the new base python (its recorded libpython soname refers to the
+      # pre-downgrade base). Docs are unaffected (JSI_USE_PYTHON=0 there).
+      - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
+        run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
+      # Pre-enable pip_interop on Windows from a TOP-level julia process. The same call
+      # IN the test process fails with spawn errors -- see the huge comment below.
+      - name: Pre-enable pip_interop for Conda.jl (Windows)
+        if: runner.os == 'Windows'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
+      # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
+      # process. This is the REAL fix for the Windows test-spawn failure:
+      #
+      #   JustSayIt's __init__ -> pyimport_pip("vosk") -> pyimport fails (fresh runner)
+      #   -> error handler calls Conda.pip_interop(true) at pymodules.jl:120
+      #   -> that unconditionally spawns conda.exe every time (even if the key is
+      #      already true -- it's a SETTER, not a check-then-set)
+      #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
+      #
+      # Pre-install the modules and native dependencies that pyimport_pip would otherwise
+      # install during initialization. RealtimeSTT and RealtimeTTS require Conda dependencies;
+      # resolving their fallbacks during module initialization can fail to spawn pip.exe.
+      - name: Pre-install Python packages for JustSayIt (Windows)
+        if: runner.os == 'Windows'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
+      # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
+      # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
+      # image ships xvfb but not these X tools, so install x11-utils (xset) and
+      # x11-xserver-utils (xrandr) before the tests run.
+      - name: Install X tools required by pymonctl on Linux runners
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y x11-utils x11-xserver-utils
+      # PyAudio 0.2.14 (pinned by realtimestt) provides no macOS arm64 wheels, so pip builds it
+      # from source during the test-time installs. On Linux the conda portaudio package (with its
+      # headers) is pulled in implicitly through JustSayIt's own conda-fallback for sounddevice;
+      # on macOS, sounddevice's wheel bundles the PortAudio dylib instead, so that fallback never
+      # fires and the headers are missing when pip compiles PyAudio ("fatal error:
+      # 'portaudio.h' file not found"). Installing the conda-forge portaudio package provides
+      # both the headers and the library exactly where the build already searches
+      # (-isystem $CONDA_PREFIX/include and $CONDA_PREFIX/lib), i.e. it reproduces on macOS what
+      # the Linux run gets for free.
+      - name: Install PortAudio headers for PyAudio source builds (macOS runners)
+        if: runner.os == 'macOS'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["portaudio"]; channel="conda-forge")'
       - uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v6
         with:
           files: lcov.info
       # - uses: julia-actions/julia-uploadcoveralls@v1
@@ -69,8 +143,8 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
         with:
           version: '1'
       - uses: julia-actions/julia-buildpkg@v1

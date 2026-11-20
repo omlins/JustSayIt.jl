@@ -1,10 +1,11 @@
 let
-    global is_initialized, set_initialized, default_language, set_default_language, type_languages, set_type_languages, use_gpu, set_use_gpu, use_tts, set_use_tts, use_llm, set_use_llm, do_perf_debug, set_perf_debug
+    global is_initialized, set_initialized, default_language, set_default_language, type_languages, set_type_languages, use_gpu, set_use_gpu, use_tts, set_use_tts, use_tts_messages, set_use_tts_messages, use_llm, set_use_llm, do_perf_debug, set_perf_debug
     _is_initialized::Bool                            = false
     _default_language::String                        = ""
     _type_languages::AbstractArray{String}           = String[]
     _use_gpu::Bool                                   = false
     _use_tts::Bool                                   = false
+    _use_tts_messages::Bool                          = true
     _use_llm::Bool                                   = false
     _do_perf_debug::Bool                             = false
     is_initialized()::Bool                           = _is_initialized
@@ -29,6 +30,14 @@ let
     set_use_gpu(val::Bool)                           = _use_gpu = val
     use_tts()::Bool                                  = _use_tts
     set_use_tts(val::Bool)                           = _use_tts = val
+
+    @doc """
+        use_tts_messages()
+
+    Return whether JustSayIt uses text-to-speech (TTS) to voice error and status messages. Requires `use_tts` to be enabled; user-triggered speech output (e.g., text reading) is not affected by this option.
+    """
+    use_tts_messages()::Bool                         = _use_tts_messages
+    set_use_tts_messages(val::Bool)                  = _use_tts_messages = val
     use_llm()::Bool                                  = _use_llm
     set_use_llm(val::Bool)                           = _use_llm = val
     do_perf_debug()::Bool                            = _do_perf_debug

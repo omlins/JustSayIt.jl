@@ -172,8 +172,13 @@ let
 
     function finalize_stt()
         @info "Finalizing STT..."
-        for r in values(_recognizers)
-            finalize(r)
+        for (id, r) in _recognizers
+            @debug "Finalizing recognizer $id (backend $(r.backend))."
+            try
+                finalize(r)
+            catch e
+                @warn "Failed to finalize recognizer $id (backend $(r.backend)): $e"
+            end
         end
     end
 
@@ -181,8 +186,24 @@ let
         backend = recognizer.backend
         transcriber = recognizer.transcriber
         if backend == :RealtimeSTT
+            if recognizer.pyobject != PyNULL()
+                try
+                    recognizer.pyobject.stop()
+                catch e
+                    @warn "Failed to stop the audio recorder: $e"
+                end
+                try
+                    recognizer.pyobject.shutdown()
+                catch e
+                    @warn "Failed to shut down the audio recorder: $e"
+                end
+            end
             if transcriber != PyNULL() && transcriber.is_running()
-                transcriber.stop()
+                try
+                    transcriber.stop()
+                catch e
+                    @warn "Failed to stop the transcription worker: $e"
+                end
             end
         end
     end

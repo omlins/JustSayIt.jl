@@ -21,6 +21,7 @@ module TTS
 
 using ..JustSayIt.API
 import ..JustSayIt.TTScore; _say = TTScore.say
+import ..JustSayIt: use_tts_messages
 public read, pause, resume, stop, set_async_default, say
 
 
@@ -34,7 +35,7 @@ Use TTS to read the selected text (or text from clipboard if no text is selected
 function read(; async::Bool=tts_async_default())
     text = get_selection_content()
     if isempty(text) text = get_clipboard_content() end
-    if isempty(text) _say("No text is selected or in the clipboard to read."); return end
+    if isempty(text) if use_tts_messages() _say("No text is selected or in the clipboard to read.") end; return end
     _say(text; async=async)
 end
 
@@ -68,7 +69,7 @@ set_async_default
 @voiceargs async=>(valid_input=["asynchronous", "synchronous"]) function set_async_default(async::String)
     async = (async == "asynchronous")
     set_tts_async_default(async)
-    _say("Default TTS behavior is now $(async ? "asynchronous" : "synchronous")."; async=async)
+    if use_tts_messages() _say("Default TTS behavior is now $(async ? "asynchronous" : "synchronous")."; async=async) end
 end
 
 """

@@ -7,7 +7,7 @@ class Transcriber:
         self.stop_event = threading.Event()
         self.transcription_buffer = []
         self.transcription_lock = threading.Lock()
-        self.thread = threading.Thread(target=self._transcription_thread, daemon=False)
+        self.thread = threading.Thread(target=self._transcription_thread, daemon=True)
 
     def _transcription_thread(self):
         """Thread function to handle transcription and buffer the results."""
@@ -29,7 +29,9 @@ class Transcriber:
     def stop(self):
         """Stop the transcription thread and wait for it to finish."""
         self.stop_event.set()
-        self.thread.join()
+        self.thread.join(timeout=5.0)
+        if self.thread.is_alive():
+            print("Transcription thread did not terminate in time.")
 
     def is_running(self):
         """Check if the transcription thread is running."""
