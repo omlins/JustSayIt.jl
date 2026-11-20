@@ -11,34 +11,103 @@ julia>?
 help?> JustSayIt
 ```
 
+
+## Root module
+```@docs
+JustSayIt
+```
+
+
 ## Functions to configure and start JustSayIt
 #### Index
 * [`JustSayIt.start`](@ref)
-* [`JustSayIt.@include`](@ref)
-* [`JustSayIt.@edit`](@ref)
 
 #### Documentation
 ```@docs
 start
-@include
-@edit
 ```
 
-## Submodules for command name to function mapping
+## Keyboard shortcut namespace
+The root `JustSayIt` module also re-exports `Key` for command mappings and keyboard shortcuts.
+Use `Key.` completion in the Julia REPL to inspect the currently available key names.
+
+
+## Composable primitives for quick command definition (reexported from the root module for convenient access)
+These root primitives can be composed directly in command dictionaries when no wrapper function is needed.
+
+Use `type` here for low-level text typing when you already have text to send to the active application. For voice-input typing from speech, use the `Keyboard.type_*` family documented below.
+
 #### Index
-* [`JustSayIt.Help`](@ref)
-* [`JustSayIt.Keyboard`](@ref)
-* [`JustSayIt.Mouse`](@ref)
-* [`JustSayIt.Email`](@ref)
-* [`JustSayIt.Internet`](@ref)
+* [`JustSayIt.take`](@ref)
+* [`JustSayIt.type`](@ref)
+* [`JustSayIt.ask`](@ref)
+* [`JustSayIt.ask!`](@ref)
+* [`JustSayIt.grab`](@ref)
+* [`JustSayIt.listen`](@ref)
+* [`JustSayIt.say`](@ref)
 
 #### Documentation
 ```@docs
+take
+type
+ask
+ask!
+grab
+listen
+say
+```
+
+## Submodules for quick command definition with predefined, flexible and composable functions
+#### Index
+* [`JustSayIt.Clipboard`](@ref)
+* [`JustSayIt.Generic`](@ref)
+* [`JustSayIt.Help`](@ref)
+* [`JustSayIt.Keyboard`](@ref)
+* [`JustSayIt.LLM`](@ref)
+* [`JustSayIt.Mouse`](@ref)
+* [`JustSayIt.Selection`](@ref)
+* [`JustSayIt.STT`](@ref)
+* [`JustSayIt.TTS`](@ref)
+
+#### Documentation
+```@docs
+Clipboard
+Generic
 Help
 Keyboard
+LLM
 Mouse
-Email
-Internet
+Selection
+STT
+TTS
+```
+
+
+## Functions of [`Clipboard`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.Clipboard]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.Clipboard]
+Order = [:function]
+```
+
+
+## Functions of [`Generic`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.Generic]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.Generic]
+Order = [:function]
 ```
 
 
@@ -58,11 +127,29 @@ Order = [:function]
 
 ## Functions of [`Keyboard`](@ref)
 #### Index
-* [`JustSayIt.Keyboard.type`](@ref)
+```@index
+Modules = [JustSayIt.Keyboard]
+Order = [:function]
+```
 
 #### Documentation
-```@docs
-Keyboard.type
+```@autodocs
+Modules = [JustSayIt.Keyboard]
+Order = [:function]
+```
+
+
+## Functions of [`LLM`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.LLM]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.LLM]
+Order = [:function]
 ```
 
 
@@ -79,22 +166,59 @@ Modules = [JustSayIt.Mouse]
 Order = [:function]
 ```
 
-
-## Functions of [`Email`](@ref)
+## Functions of [`Selection`](@ref)
 #### Index
-* [`JustSayIt.Email.email`](@ref)
+```@index
+Modules = [JustSayIt.Selection]
+Order = [:function]
+```
 
 #### Documentation
-```@docs
-Email.email
+```@autodocs
+Modules = [JustSayIt.Selection]
+Order = [:function]
 ```
 
 
-## Functions of [`Internet`](@ref)
+## Functions of [`STT`](@ref)
 #### Index
-* [`JustSayIt.Internet.internet`](@ref)
+```@index
+Modules = [JustSayIt.STT]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.STT]
+Order = [:function]
+```
+
+
+## Functions of [`TTS`](@ref)
+#### Index
+```@index
+Modules = [JustSayIt.TTS]
+Order = [:function]
+```
+
+#### Documentation
+```@autodocs
+Modules = [JustSayIt.TTS]
+Order = [:function]
+```
+
+
+## JustSayIt preference management wrappers
+#### Index
+* [`JustSayIt.set_preferences!`](@ref)
+* [`JustSayIt.load_preference`](@ref)
+* [`JustSayIt.has_preference`](@ref)
+* [`JustSayIt.delete_preferences!`](@ref)
 
 #### Documentation
 ```@docs
-Internet.internet
+set_preferences!
+load_preference
+has_preference
+delete_preferences!
 ```
