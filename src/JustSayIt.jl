@@ -47,6 +47,7 @@ include("voiceconfig.jl")
 ## Include of shared functionality
 include("formatting.jl")
 include("options.jl")
+include("njdeps.jl")
 include("pymodules.jl")
 include("tools.jl")
 

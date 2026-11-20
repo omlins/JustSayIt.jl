@@ -14,6 +14,7 @@ Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 PromptingTools = "670122d1-24a8-4d70-bfce-740807c42192"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [compat]
 Conda = "1.7"

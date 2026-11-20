@@ -110,7 +110,13 @@ end
 
 function pyimport_pip(modulename::AbstractString; dependencies::AbstractArray=[], channel::AbstractString="conda-forge", force_dependencies::Bool=false, modulename_pip::AbstractString="", args_pip::AbstractString="")
     force_miniforge()
-    modulename_pip = isempty(modulename_pip) ? modulename : modulename_pip
+    # Version-spec resolution (Project.nj.toml / Manifest.nj.toml).
+    mode = njdeps.nj_mode()                                           # USE_NJ_MANIFEST semantics; computed once.
+    if isempty(modulename_pip)
+        modulename_pip = njdeps.spec_for(modulename; mode = mode)     # bare name if unconstrained/unmapped; explicit kwargs below keep winning (evaluated first).
+    end
+    dependencies = [njdeps.spec_conda(d; mode = mode) for d in dependencies]   # bare name when no entry (unchanged behavior).
+    cf = nj_deps_constraint_args(mode)                                # "" unless a constraint file applies.
     args_pip = isempty(args_pip) ? "" : " $args_pip"
     try
         pyimport(modulename)
@@ -118,17 +124,17 @@ function pyimport_pip(modulename::AbstractString; dependencies::AbstractArray=[]
         if isa(e, PyCall.PyError)
             if !(force_dependencies && !isempty(dependencies)) # If the dependencies installation has to be forced, we skip trying without dependencies.
                 Conda.pip_interop(true)
-                Conda.pip("install$args_pip", modulename_pip)
+                Conda.pip("install$args_pip$cf", modulename_pip)
             end
             try
                 pyimport(modulename)
             catch e
                 if isa(e, PyCall.PyError) && (!isempty(dependencies)) # If the module import still failed after installation, try installing the dependencies with Conda first.
-                    Conda.pip("uninstall --yes", modulename_pip)
+                    Conda.pip("uninstall --yes", modulename_pip)     # NOTE: kept verbatim per user decision 2026-10-02 — pip uninstall ignores specifiers/extras (deliberate workaround); do not alter here.
                     for dependency in dependencies
                         Conda.add(dependency; channel=channel)
                     end
-                    Conda.pip("install$args_pip", modulename_pip)
+                    Conda.pip("install$args_pip$cf", modulename_pip)
                     pyimport(modulename)
                 else
                     rethrow(e)
@@ -149,6 +155,14 @@ function pyimport_pip(symbol::Symbol, pymodule::PyObject, symbolname_pip::Abstra
         Conda.pip("install$args_pip", symbolname_pip)
         getproperty(pymodule, symbol)
     end
+end
+
+# (nj-deps constraints) Return the pip `-c <file>` argument if a constraint file applies for the given mode, else "". In :unconstrained mode (no nj files found), returns "" — exactly old behavior, unchanged.
+function nj_deps_constraint_args(mode::Tuple)
+    (first(mode) === :unconstrained) && return ""
+    cf = njdeps.pip_constraint_file(mode)
+    cf === nothing && return ""
+    return " --constraint $(cf)"
 end
 
 

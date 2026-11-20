@@ -21,6 +21,7 @@ jobs:
       matrix:
         version:
           - '1.11' # Minimum required Julia version (`public` keyword needs 1.11).
+          - '1.12'
           - '1'   # Latest stable 1.x release of Julia
           #- 'nightly'
         os:
@@ -32,6 +33,18 @@ jobs:
         include:
           - os: ubuntu-latest
             prefix: xvfb-run
+          # On Windows, julia-runtest internally hard-codes shell: bash for its test step
+          # (confirmed from the action.yml source: "steps: Run the package tests ... shell: bash").
+          # On Windows runners, bash = git-bash/mSys→julia runs with MSys socket-backed stdio,
+          # which Windows CreateProcessW rejects ("could not spawn ... EBADF/ENOTSUP") the moment
+          # Julia spawns a subprocess (Conda.pip_interop(true) – vosk import fallback during
+          # __init__). Interposing PowerShell between bash and julia fixes it: PowerShell creates
+          # proper native pipe handles for the julia process (documented behavior for native
+          # executables – it never passes MSYS socket handles through to CreateProcess), so
+          # julia's subsequent spawns of conda.exe succeed. This is exactly analogous to the
+          # existing Linux prefix xvfb-run.
+          - os: windows-latest
+            prefix: pwsh -Command
         exclude:
           - os: macOS-latest
             arch: x86  # 32-bit Julia binaries are not available on macOS
@@ -90,26 +103,11 @@ jobs:
       # pre-downgrade base). Docs are unaffected (JSI_USE_PYTHON=0 there).
       - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
         run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
-      # Pre-enable pip_interop on Windows from a TOP-level julia process. The same call
-      # IN the test process fails with spawn errors -- see the huge comment below.
+      # Pre-enable pip_interop on Windows from a TOP-level julia process (the same context
+      # in which the Pin-conda step's spawns succeed).
       - name: Pre-enable pip_interop for Conda.jl (Windows)
         if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
-      # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
-      # process. This is the REAL fix for the Windows test-spawn failure:
-      #
-      #   JustSayIt's __init__ -> pyimport_pip("vosk") -> pyimport fails (fresh runner)
-      #   -> error handler calls Conda.pip_interop(true) at pymodules.jl:120
-      #   -> that unconditionally spawns conda.exe every time (even if the key is
-      #      already true -- it's a SETTER, not a check-then-set)
-      #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
-      #
-      # Pre-install the modules and native dependencies that pyimport_pip would otherwise
-      # install during initialization. RealtimeSTT and RealtimeTTS require Conda dependencies;
-      # resolving their fallbacks during module initialization can fail to spawn pip.exe.
-      - name: Pre-install Python packages for JustSayIt (Windows)
-        if: runner.os == 'Windows'
-        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
       # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
       # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
       # image ships xvfb but not these X tools, so install x11-utils (xset) and

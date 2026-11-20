@@ -116,7 +116,7 @@ version = "1.14.3"
     ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
 
 [[deps.JustSayIt]]
-deps = ["Conda", "DefaultApplication", "Downloads", "JSON", "MacroTools", "Pkg", "Preferences", "ProgressMeter", "PromptingTools", "PyCall"]
+deps = ["Conda", "DefaultApplication", "Downloads", "JSON", "MacroTools", "Pkg", "Preferences", "ProgressMeter", "PromptingTools", "PyCall", "TOML"]
 path = "../.."
 uuid = "d7252348-293e-4f11-8d42-c8418dda4315"
 version = "0.3.1"
