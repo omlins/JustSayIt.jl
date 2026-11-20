@@ -95,11 +95,6 @@ jobs:
       - name: Pre-enable pip_interop for Conda.jl (Windows)
         if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
-      # SciPy is imported before its automatic pip fallback can reliably spawn
-      # conda.exe during JustSayIt's module initialization on Windows.
-      - name: Pre-install SciPy for JustSayIt (Windows)
-        if: runner.os == 'Windows'
-        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip("install", "scipy")'
       # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
       # process. This is the REAL fix for the Windows test-spawn failure:
       #
@@ -109,16 +104,12 @@ jobs:
       #      already true -- it's a SETTER, not a check-then-set)
       #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
       #
-      # But pyimport only fails when the module is NOT installed. Pre-installing all
-      # the packages here (in a top-level process where spawns succeed, exactly like
-      # the Pin-conda and Pre-enable steps above) makes every pyimport in the test
-      # process succeed -> the error handler is never triggered -> the failing spawn
-      # never happens. The packages are installed into the shared Conda.jl root env
-      # (~/.julia/conda/3/x86_64), which the test process then uses with zero
-      # further conda/pip invocations.
+      # Pre-install the modules that pyimport_pip would otherwise install through pip_interop
+      # during initialization. Then import JustSayIt to install anything requiring Conda
+      # dependencies from a top-level process where spawns succeed.
       - name: Pre-install Python packages for JustSayIt (Windows)
         if: runner.os == 'Windows'
-        run: julia --startup-file=no --project=. -e 'using JustSayIt'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama"]); using JustSayIt'
       # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
       # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
       # image ships xvfb but not these X tools, so install x11-utils (xset) and
