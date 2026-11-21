@@ -32,18 +32,6 @@ jobs:
         include:
           - os: ubuntu-latest
             prefix: xvfb-run
-          # On Windows, julia-runtest internally hard-codes shell: bash for its test step
-          # (confirmed from the action.yml source: "steps: Run the package tests ... shell: bash").
-          # On Windows runners, bash = git-bash/mSys→julia runs with MSys socket-backed stdio,
-          # which Windows CreateProcessW rejects ("could not spawn ... EBADF/ENOTSUP") the moment
-          # Julia spawns a subprocess (Conda.pip_interop(true) – vosk import fallback during
-          # __init__). Interposing PowerShell between bash and julia fixes it: PowerShell creates
-          # proper native pipe handles for the julia process (documented behavior for native
-          # executables – it never passes MSYS socket handles through to CreateProcess), so
-          # julia's subsequent spawns of conda.exe succeed. This is exactly analogous to the
-          # existing Linux prefix xvfb-run.
-          - os: windows-latest
-            prefix: pwsh -Command
         exclude:
           - os: macOS-latest
             arch: x86  # 32-bit Julia binaries are not available on macOS
@@ -107,21 +95,21 @@ jobs:
       - name: Pre-enable pip_interop for Conda.jl (Windows)
         if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda; Conda.pip_interop(true)'
-      # # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
-      # # process. This is the REAL fix for the Windows test-spawn failure:
-      # #
-      # #   JustSayIt's __init__ -> pyimport_pip("vosk") -> pyimport fails (fresh runner)
-      # #   -> error handler calls Conda.pip_interop(true) at pymodules.jl:120
-      # #   -> that unconditionally spawns conda.exe every time (even if the key is
-      # #      already true -- it's a SETTER, not a check-then-set)
-      # #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
-      # #
-      # # Pre-install the modules and native dependencies that pyimport_pip would otherwise
-      # # install during initialization. RealtimeSTT and RealtimeTTS require Conda dependencies;
-      # # resolving their fallbacks during module initialization can fail to spawn pip.exe.
-      # - name: Pre-install Python packages for JustSayIt (Windows)
-      #   if: runner.os == 'Windows'
-      #   run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
+      # Pre-install ALL Python packages that JustSayIt needs, from a top-level julia
+      # process. This is the REAL fix for the Windows test-spawn failure:
+      #
+      #   JustSayIt's __init__ -> pyimport_pip("vosk") -> pyimport fails (fresh runner)
+      #   -> error handler calls Conda.pip_interop(true) at pymodules.jl:120
+      #   -> that unconditionally spawns conda.exe every time (even if the key is
+      #      already true -- it's a SETTER, not a check-then-set)
+      #   -> the spawn fails in the test process with "could not spawn ... EBADF/ENOTSUP"
+      #
+      # Pre-install the modules and native dependencies that pyimport_pip would otherwise
+      # install during initialization. RealtimeSTT and RealtimeTTS require Conda dependencies;
+      # resolving their fallbacks during module initialization can fail to spawn pip.exe.
+      - name: Pre-install Python packages for JustSayIt (Windows)
+        if: runner.os == 'Windows'
+        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
       # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
       # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
       # image ships xvfb but not these X tools, so install x11-utils (xset) and
