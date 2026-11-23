@@ -48,7 +48,7 @@ julia> using JustSayIt, JustSayItRecipes
 julia> JustSayItRecipes.@run("my_essential.jl")
 ```
 
-6\. Include your own sub-recipes in your top-level recipe and/or modify existing sub-recipes and share them with the community by contributing back to the JustSayItRecipes repository! See the [Contributing](@ref) section for more information.
+6\. Include your own sub-recipes in your top-level recipe and/or modify existing sub-recipes and share them with the community by contributing back to the JustSayItRecipes repository! See the [Your contributions](@ref) section for more information.
 > [!TIP]
 > Contributing your changes to existing recipes back to the JustSayItRecipes repository will also allow you to easily keep your local modifications in sync with updates in the remote JustSayItRecipes repository, i.e., allowing you to straightforwardly benefit from further improvements made by other contributors.
 
