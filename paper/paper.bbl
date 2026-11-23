@@ -1,0 +1,81 @@
+\begin{thebibliography}{10}
+
+\bibitem{zhang2019dangerousskills}
+Nan Zhang, Xianghang Mi, Xuan Feng, XiaoFeng Wang, Yuan Tian, Feng Qian, et~al.
+Dangerous skills: Understanding and mitigating security risks of
+  voice-controlled third-party functions on virtual personal assistant systems.
+In {\em 2019 IEEE Symposium on Security and Privacy (SP)}, pages 1381--1396,
+  2019.
+\href{http://dx.doi.org/10.1109/SP.2019.00016}{doi:10.1109/SP.2019.00016}.
+
+\bibitem{lee2026mobilesafetybench}
+Juyong Lee, Dongyoon Hahm, June~Suk Choi, W.~Bradley Knox, and Kimin Lee.
+{M}obile{S}afety{B}ench: Evaluating safety of autonomous agents in mobile
+  device control.
+{\em Proceedings of the AAAI Conference on Artificial Intelligence},
+  40(44):37565--37573, 2026.
+\href{http://dx.doi.org/10.1609/aaai.v40i44.41090}{doi:10.1609/aaai.v40i44.41090}.
+
+\bibitem{jabbour2025genagents}
+Jason Jabbour and Vijay Janapa~Reddi.
+Generative {AI} agents in autonomous machines: A safety perspective.
+In {\em Proceedings of the 43rd IEEE/ACM International Conference on
+  Computer-Aided Design}, pages 1--13, 2025.
+\href{http://dx.doi.org/10.1145/3676536.3698390}{doi:10.1145/3676536.3698390}.
+
+\bibitem{yang2008switching}
+Fan Yang, Peter~A. Heeman, and Andrew Kun.
+Switching to real-time tasks in multi-tasking dialogue.
+In {\em Proceedings of the 22nd International Conference on Computational
+  Linguistics - {COLING} '08}, volume~1, pages 1025--1032. Association for
+  Computational Linguistics, 2008.
+\href{http://dx.doi.org/10.3115/1599081.1599210}{doi:10.3115/1599081.1599210}.
+
+\bibitem{martinez2020multiparty}
+Victor~R. Martinez and James Kennedy.
+A multiparty chat-based dialogue system with concurrent conversation tracking
+  and memory.
+In {\em Proceedings of the 2nd Conference on Conversational User Interfaces},
+  pages 1--9. ACM, 2020.
+\href{http://dx.doi.org/10.1145/3405755.3406121}{doi:10.1145/3405755.3406121}.
+
+\bibitem{omlin2024}
+Samuel Omlin.
+{J}ust{S}ay{I}t.jl: A fresh approach to open source voice assistant
+  development.
+{\em The Proceedings of the JuliaCon Conferences}, 6(66):121, 2024.
+\href{http://dx.doi.org/10.21105/jcon.00121}{doi:10.21105/jcon.00121}.
+
+\bibitem{omlin2023}
+Samuel Omlin.
+Quick assembly of personalized voice assistants with {J}ust{S}ay{I}t.
+JuliaCon 2023, 2023.
+\url{https://pretalx.com/juliacon2023/talk/HC8HLQ/}. Accessed: 2026-03-15.
+
+\bibitem{promptingtools2025}
+{svilupp and contributors}.
+{P}rompting{T}ools.jl.
+Project documentation and README, 2025.
+GitHub repository, \url{https://github.com/svilupp/PromptingTools.jl}.
+  Accessed: 2026-03-15.
+
+\bibitem{ollama2026}
+{Ollama}.
+Ollama.
+Project website, 2026.
+\url{https://ollama.com/}. Accessed: 2026-03-15.
+
+\bibitem{vosk2020}
+Nickolay~V. Shmyrev and {Vosk contributors}.
+{V}osk: Offline speech recognition toolkit.
+Project website and documentation, 2020.
+\url{https://alphacephei.com/vosk/}. Accessed: 2026-03-15.
+
+\bibitem{fasterwhisper2025}
+{SYSTRAN and contributors}.
+faster-whisper.
+Project documentation and README, 2025.
+GitHub repository, \url{https://github.com/SYSTRAN/faster-whisper}. Accessed:
+  2026-03-15.
+
+\end{thebibliography}
