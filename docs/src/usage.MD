@@ -8,6 +8,22 @@ julia>]
 ```
 All dependencies are automatically installed (on some systems, the fully automatic installation might not work, and some manual installations are required). Python dependencies are automatically installed in a local Miniconda environment, set up by [Conda.jl]. Default speech-to-text, text-to-speech and large language models are acquired automatically at first use.
 
+> [!WARNING]
+> **Supported Julia versions.** The latest Julia release is not yet supported: currently, Julia `1.11` and `1.12` are verified to work (as reflected by the `julia` compatibility range in JustSayIt's `Project.toml`). Until support for the newest release (currently Julia 1.13) has been added and verified, please install Julia `1.11` or `1.12` instead. With `juliaup`, the correct release can be selected using `juliaup add 1.12` and `juliaup default 1.12`.
+
+> [!WARNING]
+> **Windows.** On Windows, the fully automatic installation is not yet working reliably: some non-Julia (Python and Conda) dependencies might currently need to be added manually *before* installing JustSayIt. If `add JustSayIt` fails on Windows, pre-install the Python dependencies that JustSayIt needs (this is the exact set of packages that our continuous integration installs before loading JustSayIt):
+
+> ```julia-repl
+> julia> using Conda
+> julia> Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge")
+> julia> Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"])
+> julia> using JustSayIt
+> ```
+
+> [!NOTE]
+> Relief is on the way: a **new automatic installation system is work in progress**, which resolves and installs all non-Julia dependencies of JustSayIt — importing and installing every non-Julia dependency automatically, in a fully correct manner and without any user interaction. Watch [the issue tracker](https://github.com/omlins/JustSayIt.jl/issues) for its release.
+
 
 ## Fast microphone and recorder setup
 At startup, JustSayIt prints the available audio devices. In many setups the defaults are good enough, but you can also select devices explicitly:
