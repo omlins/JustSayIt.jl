@@ -88,12 +88,11 @@ jobs:
       # pip_interop check ("InitError: pip_interop is not enabled"); python 3.12 is also
       # required for the pinned pip dependencies (no cp314 wheels exist). PyCall is rebuilt
       # afterwards against the new base python (its recorded libpython soname refers to the
-      # pre-downgrade base). On Linux, the pin and the PyCall rebuild are done by JustSayIt's
-      # own build step (deps/build.jl, run by julia-buildpkg above), so this step only serves
-      # the OSes the build step does not yet cover. Docs are unaffected (JSI_USE_PYTHON=0
-      # there).
+      # pre-downgrade base). On Linux and macOS, the pin and the PyCall rebuild are done by
+      # JustSayIt's own build step (deps/build.jl, run by julia-buildpkg above), so this step
+      # only serves Windows. Docs are unaffected (JSI_USE_PYTHON=0 there).
       - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
-        if: runner.os != 'Linux'
+        if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
       # Pre-enable pip_interop on Windows from a TOP-level julia process. The same call
       # IN the test process fails with spawn errors -- see the huge comment below.
@@ -119,18 +118,9 @@ jobs:
       # transitively by pywinctl) hard-requires at import time are installed by
       # JustSayIt's own build step (deps/build.jl, run by julia-buildpkg above), so
       # no explicit installation step is needed for them here.
-      # PyAudio 0.2.14 (pinned by realtimestt) provides no macOS arm64 wheels, so pip builds it
-      # from source during the test-time installs. On Linux the conda portaudio package (with its
-      # headers) is pulled in implicitly through JustSayIt's own conda-fallback for sounddevice;
-      # on macOS, sounddevice's wheel bundles the PortAudio dylib instead, so that fallback never
-      # fires and the headers are missing when pip compiles PyAudio ("fatal error:
-      # 'portaudio.h' file not found"). Installing the conda-forge portaudio package provides
-      # both the headers and the library exactly where the build already searches
-      # (-isystem $CONDA_PREFIX/include and $CONDA_PREFIX/lib), i.e. it reproduces on macOS what
-      # the Linux run gets for free.
-      - name: Install PortAudio headers for PyAudio source builds (macOS runners)
-        if: runner.os == 'macOS'
-        run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["portaudio"]; channel="conda-forge")'
+      # On macOS, the portaudio package - providing the headers and the library for the PyAudio
+      # source build - is likewise installed by JustSayIt's own build step (deps/build.jl, run
+      # by julia-buildpkg above), so no explicit installation step is needed for it here either.
       - uses: julia-actions/julia-runtest@v1
         with:
           prefix: ${{ matrix.prefix }}
