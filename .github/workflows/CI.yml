@@ -88,8 +88,12 @@ jobs:
       # pip_interop check ("InitError: pip_interop is not enabled"); python 3.12 is also
       # required for the pinned pip dependencies (no cp314 wheels exist). PyCall is rebuilt
       # afterwards against the new base python (its recorded libpython soname refers to the
-      # pre-downgrade base). Docs are unaffected (JSI_USE_PYTHON=0 there).
+      # pre-downgrade base). On Linux, the pin and the PyCall rebuild are done by JustSayIt's
+      # own build step (deps/build.jl, run by julia-buildpkg above), so this step only serves
+      # the OSes the build step does not yet cover. Docs are unaffected (JSI_USE_PYTHON=0
+      # there).
       - name: Pin conda 24.11.3 + python 3.12 in the Conda.jl base env
+        if: runner.os != 'Linux'
         run: julia --startup-file=no --project=. -e 'using Conda, Pkg; Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge"); Pkg.build("PyCall")'
       # Pre-enable pip_interop on Windows from a TOP-level julia process. The same call
       # IN the test process fails with spawn errors -- see the huge comment below.
@@ -111,13 +115,10 @@ jobs:
       - name: Pre-install Python packages for JustSayIt (Windows)
         if: runner.os == 'Windows'
         run: julia --startup-file=no --project=. -e 'using Conda; Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge"); Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"]); using JustSayIt'
-      # pymonctl (imported transitively by pywinctl) hard-requires the xset and xrandr command-line
-      # tools on Linux at import time (otherwise it raises SystemExit -> InitError). The runner
-      # image ships xvfb but not these X tools, so install x11-utils (xset) and
-      # x11-xserver-utils (xrandr) before the tests run.
-      - name: Install X tools required by pymonctl on Linux runners
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y x11-utils x11-xserver-utils
+      # On Linux, the xset and xrandr command-line tools that pymonctl (imported
+      # transitively by pywinctl) hard-requires at import time are installed by
+      # JustSayIt's own build step (deps/build.jl, run by julia-buildpkg above), so
+      # no explicit installation step is needed for them here.
       # PyAudio 0.2.14 (pinned by realtimestt) provides no macOS arm64 wheels, so pip builds it
       # from source during the test-time installs. On Linux the conda portaudio package (with its
       # headers) is pulled in implicitly through JustSayIt's own conda-fallback for sounddevice;
