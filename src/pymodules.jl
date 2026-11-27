@@ -36,6 +36,9 @@ function __init__()
         copy!(Key,         Pynput.keyboard.Key)
         copy!(MouseButton, Pynput.mouse.Button)
         copy!(Unidecode,   pyimport_pip("unidecode"))
+        if Sys.islinux() && (Sys.which("xset") === nothing || Sys.which("xrandr") === nothing)                                     # pymonctl (imported transitively via pywinctl) hard-requires the xset and xrandr command-line tools at import time on Linux and raises SystemExit (killing the importing process) when they are missing - so check for them here in order to be able to raise a helpful error instead.
+            @ExternalError("the command-line tools xset and xrandr are required by pymonctl (imported transitively via pywinctl) on Linux - please install them manually (sudo apt-get install x11-utils x11-xserver-utils) and restart Julia and JustSayIt.")
+        end
         copy!(Pywinctl,    pyimport_pip("pywinctl"))
         copy!(Tkinter,     pyimport_pip("tkinter"))
         copy!(Ollama,      pyimport_pip("ollama"))
@@ -99,7 +102,7 @@ function force_miniforge()
         Pkg.build("PyCall")                                         # NOTE: the following might lead to permission errors: run(Cmd(`$(Base.julia_cmd()) --project="$(Base.active_project())" -e 'import Pkg; Pkg.build("PyCall")'`, env=("CONDA_JL_USE_MINIFORGE" => "1",)))
         do_restart = true
     end
-    if do_restart
+    if do_restart && !(PyCall.conda && startswith(pyimport("sys").version, "3.12")) # A restart is only needed if the running interpreter is not already the python of the pinned Conda environment (conda 24.11.3 / python 3.12, see deps/build.jl): if it is, the interpreter can be kept as it is and the import chain will work with it.
         @info "...rebuild completed. Restart Julia and JustSayIt."
         exit()
     end
