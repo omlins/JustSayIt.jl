@@ -1,17 +1,26 @@
 using Conda, Pkg
 
 ## Automatically set up the Conda environment and the system tools required by JustSayIt.
-if !(Sys.islinux() || Sys.isapple())
+if !(Sys.islinux() || Sys.isapple() || Sys.iswindows())
     @info "JustSayIt: automated dependency setup is not yet implemented for this OS; skipping."
 else
-    ## Pin the Conda.jl base environment to known-good versions (conda 24.11.3, python 3.12):
-    ## a freshly bootstrapped miniforge ships conda >= 25/26, in which the renamed config key
-    ## (pip_interop_enabled -> prefix_data_interoperability) is no longer found by Conda.jl's
-    ## pip_interop check, and in which the python version is too new for the version-pinned
-    ## pip packages of JustSayIt (no cp314 wheels exist). Conda.add is idempotent here: on an
-    ## already pinned environment, the solver resolves to the very same versions.
+    ## Pin the Conda.jl base environment to known-good versions: a freshly bootstrapped
+    ## miniforge ships a python that is too new for the version-pinned pip packages of
+    ## JustSayIt (no cp314 wheels exist), so python is pinned to 3.12 on every operating
+    ## system. On Linux and macOS, conda is pinned as well: a freshly bootstrapped miniforge
+    ## ships conda >= 25/26, in which the renamed config key (pip_interop_enabled ->
+    ## prefix_data_interoperability) is no longer found by Conda.jl's pip_interop check. On
+    ## Windows, that downgrade cannot be performed at all: a running conda.exe is locked by
+    ## the operating system and cannot replace itself, so the conda version of the base
+    ## environment is left as bootstrapped and only the python pin applies. Conda.add is
+    ## idempotent here: on an already pinned environment, the solver resolves to the very
+    ## same versions.
     ENV["PYTHON"] = ""                                             # Force PyCall to use Conda.jl
-    Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge")
+    if Sys.iswindows()
+        Conda.add(["python=3.12"]; channel="conda-forge")
+    else
+        Conda.add(["conda=24.11.3", "python=3.12"]; channel="conda-forge")
+    end
 
     ## Rebuild PyCall so that it binds to the pinned python, then load it freshly (PyCall reads
     ## its build record at load time only) and check the rebinding.
@@ -43,5 +52,18 @@ else
         if Sys.which("xset") === nothing || Sys.which("xrandr") === nothing
             error("JustSayIt: could not install the command-line tools xset and xrandr, which pymonctl (imported transitively via pywinctl) requires on Linux - please install them manually (sudo apt-get install x11-utils x11-xserver-utils) and rebuild JustSayIt.")
         end
+    end
+
+    ## On Windows, Julia's test process cannot spawn conda.exe or pip.exe ("could not spawn
+    ## ... EBADF/ENOTSUP"), so the installation of missing Python modules at JustSayIt's
+    ## import time fails there before it can even begin: everything JustSayIt needs must be
+    ## installed ahead of time in this build process instead. The native dependencies of the
+    ## Python modules are installed with Conda first, the pip packages themselves afterwards,
+    ## so that the import in the test process is served entirely from the installed
+    ## environment.
+    if Sys.iswindows()
+        Conda.pip_interop(true)
+        Conda.add(["ffmpeg", "pyaudio"]; channel="conda-forge")             # Native dependencies of JustSayIt's Python modules
+        Conda.pip("install", ["vosk", "sounddevice", "scipy", "numpy", "pynput", "unidecode", "pywinctl", "ollama", "RealtimeSTT", "realtimetts[system, kokoro]"])
     end
 end
